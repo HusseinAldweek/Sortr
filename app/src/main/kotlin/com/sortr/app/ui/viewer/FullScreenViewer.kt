@@ -10,16 +10,21 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -62,8 +67,12 @@ import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import coil3.compose.LocalPlatformContext
 import com.sortr.app.R
+import com.sortr.app.image.MediaThumbnail
 import com.sortr.app.image.viewerImageRequest
+import com.sortr.app.media.ShareItem
+import com.sortr.app.media.Sharing
 import com.sortr.app.ui.common.formatBytes
+import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.common.formatDate
 import com.sortr.domain.model.Photo
 import kotlinx.coroutines.delay
@@ -76,10 +85,15 @@ private const val DOUBLE_TAP_ZOOM = 2.5f
 
 /**
  * Full screen photo with pinch to zoom, drag to pan and double tap to zoom in or out. Videos
- * play instead, with a tap to pause or resume.
+ * play instead, with a tap to pause or resume. Drag down to close.
  */
 @Composable
-fun FullScreenViewer(photo: Photo, onDismiss: () -> Unit) {
+fun FullScreenViewer(photo: Photo, onDismiss: () -> Unit) = FullScreenViewer(listOf(photo), 0, onDismiss)
+
+/** Several photos and videos: swipe sideways between them. Share sends the one on screen. */
+@Composable
+fun FullScreenViewer(photos: List<Photo>, initialIndex: Int, onDismiss: () -> Unit) {
+    if (photos.isEmpty()) return
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
@@ -90,41 +104,84 @@ fun FullScreenViewer(photo: Photo, onDismiss: () -> Unit) {
         val screen = with(LocalDensity.current) {
             IntSize(configuration.screenWidthDp.dp.roundToPx(), configuration.screenHeightDp.dp.roundToPx())
         }
-        val request = remember(photo.id, screen) { viewerImageRequest(platformContext, photo, screen) }
+        val pager = rememberPagerState(initialPage = initialIndex.coerceIn(0, photos.lastIndex)) { photos.size }
         // Fades out while the photo is dragged down to close.
         var dismissProgress by remember { mutableFloatStateOf(0f) }
+        val current = photos[pager.currentPage.coerceIn(0, photos.lastIndex)]
 
         Box(
             Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 1f - dismissProgress)),
         ) {
-            if (photo.isVideo) {
-                VideoPlayer(uri = photo.uri.toUri(), modifier = Modifier.fillMaxSize())
-            } else {
-                ZoomableImage(
-                    model = request,
-                    contentDescription = stringResource(R.string.swipe_card_description, formatDate(photo.dateTaken)),
-                    modifier = Modifier.fillMaxSize(),
-                    onDismiss = onDismiss,
-                    onDismissProgress = { dismissProgress = it },
-                )
+            HorizontalPager(
+                state = pager,
+                beyondViewportPageCount = 1,
+                key = { photos[it].id },
+                modifier = Modifier.fillMaxSize(),
+            ) { page ->
+                val photo = photos[page]
+                if (photo.isVideo) {
+                    // Only the video on screen plays; neighbours show a still frame.
+                    if (page == pager.settledPage) {
+                        VideoPlayer(uri = photo.uri.toUri(), modifier = Modifier.fillMaxSize())
+                    } else {
+                        AsyncImage(
+                            model = MediaThumbnail(photo.uri.toUri()),
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                } else {
+                    val request = remember(photo.id, screen) { viewerImageRequest(platformContext, photo, screen) }
+                    ZoomableImage(
+                        model = request,
+                        contentDescription = stringResource(R.string.swipe_card_description, formatDate(photo.dateTaken)),
+                        modifier = Modifier.fillMaxSize(),
+                        onDismiss = onDismiss,
+                        onDismissProgress = { dismissProgress = it },
+                    )
+                }
             }
-            IconButton(
-                onClick = onDismiss,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .align(Alignment.TopStart)
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
                     .safeDrawingPadding()
-                    .padding(8.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), CircleShape),
+                    .padding(8.dp),
             ) {
-                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.viewer_close), tint = Color.White)
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape),
+                ) {
+                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.viewer_close), tint = Color.White)
+                }
+                Spacer(Modifier.weight(1f))
+                if (photos.size > 1) {
+                    Text(
+                        text = stringResource(R.string.swipe_progress, formatCount(pager.currentPage + 1), formatCount(photos.size)),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier
+                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                    Spacer(Modifier.weight(1f))
+                }
+                IconButton(
+                    onClick = { Sharing.share(context, listOf(ShareItem(current.uri.toUri(), current.mimeType))) },
+                    modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape),
+                ) {
+                    Icon(Icons.Rounded.Share, contentDescription = stringResource(R.string.action_share), tint = Color.White)
+                }
             }
             Text(
                 text = stringResource(
                     R.string.swipe_card_details,
-                    formatDate(photo.dateTaken),
-                    formatBytes(context, photo.sizeBytes),
+                    formatDate(current.dateTaken),
+                    formatBytes(context, current.sizeBytes),
                 ),
                 color = Color.White,
                 style = MaterialTheme.typography.bodyLarge,
@@ -226,7 +283,11 @@ fun ZoomableImage(
                     },
                 )
             }
-            .transformable(transformState)
+            // Sideways drags on an unzoomed photo go to the pager; downward ones close the viewer.
+            .transformable(
+                state = transformState,
+                canPan = { pan -> scale > 1f || (onDismiss != null && abs(pan.y) > abs(pan.x)) },
+            )
             .graphicsLayer {
                 // Shrinks a little while being dragged away, like the Photos app.
                 val shrink = 1f - DISMISS_SHRINK * dragProgress()

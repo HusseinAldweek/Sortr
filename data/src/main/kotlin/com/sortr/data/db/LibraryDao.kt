@@ -75,6 +75,9 @@ interface LibraryDao {
     @Query("UPDATE photos SET dHash = :hash, blurScore = :blurScore WHERE mediaStoreId = :id")
     suspend fun setAnalysis(id: Long, hash: Long?, blurScore: Double)
 
+    @Query("UPDATE photos SET width = :width, height = :height WHERE mediaStoreId = :id")
+    suspend fun setDimensions(id: Long, width: Int, height: Int)
+
     @Query("UPDATE photos SET dateTaken = :dateTaken WHERE mediaStoreId = :id")
     suspend fun setDateTaken(id: Long, dateTaken: Long)
 

@@ -19,6 +19,11 @@ data class Photo(
     val durationMs: Long? = null,
     /** Sharpness score (see BlurMeter); null until analysed. */
     val blurScore: Double? = null,
+    /**
+     * Read from a folder the gallery hides (WhatsApp's sent media, say). Android's delete and
+     * move dialogs don't cover these files.
+     */
+    val fromHiddenFolder: Boolean = false,
 ) {
     val isVideo: Boolean get() = mediaType == MediaType.VIDEO
 }

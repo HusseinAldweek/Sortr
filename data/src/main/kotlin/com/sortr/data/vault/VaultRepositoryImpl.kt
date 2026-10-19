@@ -10,6 +10,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import android.util.Size
+import androidx.core.net.toUri
 import com.sortr.data.crypto.BackupItemMeta
 import com.sortr.data.crypto.KeyWrapper
 import com.sortr.data.crypto.VaultBackupReader
@@ -23,6 +24,7 @@ import com.sortr.data.db.VaultItemEntity
 import com.sortr.data.db.toDomain
 import com.sortr.data.di.ApplicationScope
 import com.sortr.data.faces.FaceCropLoader
+import com.sortr.data.media.MediaLocator
 import com.sortr.data.media.MediaStoreSource
 import com.sortr.domain.model.AlbumPaths
 import com.sortr.domain.model.BackupImportResult
@@ -73,6 +75,7 @@ class VaultRepositoryImpl @Inject constructor(
     private val storage: VaultStorage,
     private val keyWrapper: KeyWrapper,
     private val media: MediaStoreSource,
+    private val locator: MediaLocator,
     private val faceCrops: FaceCropLoader,
     @ApplicationScope scope: CoroutineScope,
 ) : VaultRepository {
@@ -139,7 +142,8 @@ class VaultRepositoryImpl @Inject constructor(
         val thumbnailFile = "$base.svt"
         val dataKey = VaultCipher.newDataKey()
         try {
-            val uri = media.uriFor(photoId)
+            // The stored URI also covers photos read from hidden folders (e.g. WhatsApp's sent media).
+            val uri = photo.uri.toUri()
             val digest = MessageDigest.getInstance("SHA-256")
             val iv = context.contentResolver.openInputStream(uri)?.use { input ->
                 storage.file(photoFile).outputStream().buffered().use { out ->
@@ -149,10 +153,12 @@ class VaultRepositoryImpl @Inject constructor(
             val plainHash = digest.digest()
 
             // Read the encrypted copy back before trusting it.
-            val check = MessageDigest.getInstance("SHA-256").digest(decryptFile(photoFile, dataKey))
+            val decrypted = decryptFile(photoFile, dataKey)
+            val check = MessageDigest.getInstance("SHA-256").digest(decrypted)
             if (!MessageDigest.isEqual(plainHash, check)) throw VaultCryptoException("Encrypted copy didn't verify")
 
-            val thumbnail = systemThumbnail(uri)
+            // Android has no ready thumbnail for photos outside the gallery; make one in memory.
+            val thumbnail = systemThumbnail(uri) ?: thumbnailFromBytes(decrypted)
             if (thumbnail != null) {
                 storage.file(thumbnailFile).outputStream().buffered().use { VaultCipher.encrypt(thumbnail, it, dataKey) }
             }
@@ -211,7 +217,7 @@ class VaultRepositoryImpl @Inject constructor(
             // un-vault it instead of writing a second copy. Left as VAULTED, it would also be
             // encrypted again on the next start.
             val sourceId = item.sourceMediaStoreId.takeUnless { item.originalRemoved }
-            if (sourceId != null && media.existingIds(listOf(sourceId)).isNotEmpty()) {
+            if (sourceId != null && locator.existingIds(listOf(sourceId)).isNotEmpty()) {
                 photoDao.updateStatus(sourceId, PhotoStatus.KEPT, System.currentTimeMillis())
                 deleteItemFiles(item)
                 vaultDao.delete(item.id)

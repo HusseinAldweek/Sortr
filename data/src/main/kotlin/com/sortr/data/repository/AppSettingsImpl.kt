@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.sortr.domain.faces.FaceClusterer
 import com.sortr.domain.repository.AppSettings
@@ -65,11 +66,29 @@ class AppSettingsImpl @Inject constructor(
         store.edit { it[ALBUM_SORT] = value }
     }
 
+    override val hiddenFolders: Flow<Set<String>> = preferences.map { it[HIDDEN_FOLDERS] ?: emptySet() }
+
+    override suspend fun addHiddenFolder(treeUri: String) {
+        store.edit { it[HIDDEN_FOLDERS] = (it[HIDDEN_FOLDERS] ?: emptySet()) + treeUri }
+    }
+
+    override suspend fun removeHiddenFolder(treeUri: String) {
+        store.edit { it[HIDDEN_FOLDERS] = (it[HIDDEN_FOLDERS] ?: emptySet()) - treeUri }
+    }
+
+    override val whatsAppPromptDismissed: Flow<Boolean> = preferences.map { it[WHATSAPP_PROMPT_DISMISSED] ?: false }
+
+    override suspend fun dismissWhatsAppPrompt() {
+        store.edit { it[WHATSAPP_PROMPT_DISMISSED] = true }
+    }
+
     private companion object {
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val FACE_THRESHOLD = floatPreferencesKey("face_similarity_threshold")
         val SCAN_ONLY_WHILE_CHARGING = booleanPreferencesKey("scan_only_while_charging")
         val NOTIFICATION_PERMISSION_ASKED = booleanPreferencesKey("notification_permission_asked")
         val ALBUM_SORT = stringPreferencesKey("album_sort")
+        val HIDDEN_FOLDERS = stringSetPreferencesKey("hidden_folders")
+        val WHATSAPP_PROMPT_DISMISSED = booleanPreferencesKey("whatsapp_prompt_dismissed")
     }
 }

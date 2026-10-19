@@ -54,3 +54,6 @@ fun formatYear(year: Int): String =
 /** java.time prints 0-9 by default; this uses the phone's own digits, e.g. Arabic-Indic ones. */
 private fun DateTimeFormatter.localDigits(): DateTimeFormatter =
     withDecimalStyle(DecimalStyle.of(Locale.getDefault()))
+
+/** The year a moment falls in, in the phone's time zone. */
+fun yearOf(epochMillis: Long): Int = Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).year

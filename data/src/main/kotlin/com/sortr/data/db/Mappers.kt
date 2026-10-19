@@ -19,6 +19,7 @@ fun PhotoEntity.toDomain() = Photo(
     mediaType = mediaType,
     durationMs = durationMs,
     blurScore = blurScore,
+    fromHiddenFolder = fromHiddenFolder,
 )
 
 fun VaultItemEntity.toDomain() = VaultItem(

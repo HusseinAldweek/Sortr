@@ -12,7 +12,7 @@ enum class MediaTypeFilter { ALL, PHOTOS, VIDEOS }
  * Apps and folders photos come from, recognised by their folder path. Patterns use SQL LIKE
  * syntax (`%` = anything) and are matched case-insensitively.
  */
-enum class MediaSource(val patterns: List<String>) {
+enum class MediaSource(val patterns: List<String>, val partOf: MediaSource? = null) {
     CAMERA(listOf("DCIM/Camera/%")),
     SCREENSHOTS(listOf("%Screenshot%")),
     SCREEN_RECORDINGS(listOf("%Screen record%", "%Screenrecord%", "%ScreenRecorder%")),
@@ -23,6 +23,12 @@ enum class MediaSource(val patterns: List<String>) {
     MESSENGER(listOf("%Messenger%", "%Facebook%")),
     TIKTOK(listOf("%TikTok%")),
     DOWNLOADS(listOf("Download/%")),
+
+    // Parts of WhatsApp, shown on its own page rather than in the main list.
+    WHATSAPP_PHOTOS(listOf("%WhatsApp%Images/%"), partOf = WHATSAPP),
+    WHATSAPP_VIDEOS(listOf("%WhatsApp%Video/%"), partOf = WHATSAPP),
+    WHATSAPP_SENT(listOf("%WhatsApp%/Sent/"), partOf = WHATSAPP),
+    WHATSAPP_PRIVATE(listOf("%WhatsApp%/Private/"), partOf = WHATSAPP),
     ;
 
     private val regexes by lazy {
@@ -91,8 +97,15 @@ data class AnalysisProgress(val analysed: Int, val total: Int) {
     val isComplete: Boolean get() = analysed >= total
 }
 
-/** Result of moving photos between albums. */
-data class MoveResult(val moved: Int, val failed: Int)
+/**
+ * Result of moving photos between albums. [copies] are photos Android wouldn't move in place,
+ * copied into the album instead; their originals still need removing (see
+ * LibraryRepository.completeCopies).
+ */
+data class MoveResult(val moved: Int, val failed: Int, val copies: List<MovedCopy> = emptyList())
+
+/** A photo copied into an album because it couldn't be moved; the original is still there. */
+data class MovedCopy(val original: Photo, val copyId: Long, val copyUri: String)
 
 /** Folder rules for creating, renaming and merging albums. */
 object AlbumPaths {
@@ -113,9 +126,21 @@ object AlbumPaths {
         return if (parent.isNotEmpty() && isPhotoFolder("$parent/")) "$parent/$name/" else newAlbum(name)
     }
 
-    /** The folder's own name: "DCIM/Camera/" → "Camera". */
-    fun displayName(relativePath: String): String =
-        relativePath.trimEnd('/').substringAfterLast('/').ifEmpty { relativePath }
+    /**
+     * The folder's own name: "DCIM/Camera/" → "Camera". A folder inside one of WhatsApp's media
+     * folders keeps that name in front, since "Sent" alone could be anything:
+     * ".../WhatsApp Images/Sent/" → "WhatsApp Images · Sent".
+     */
+    fun displayName(relativePath: String): String {
+        val parts = relativePath.trimEnd('/').split('/')
+        val leaf = parts.last().ifEmpty { return relativePath }
+        val parent = parts.getOrNull(parts.size - 2)
+        return if (parent != null && isWhatsAppMediaFolder(parent)) "$parent · $leaf" else leaf
+    }
+
+    /** "WhatsApp Images", "WhatsApp Video" and the WhatsApp Business equivalents. */
+    fun isWhatsAppMediaFolder(name: String): Boolean =
+        name.startsWith("WhatsApp") && (name.endsWith(" Images") || name.endsWith(" Video"))
 
     private const val MAX_NAME = 60
 }

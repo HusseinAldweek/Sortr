@@ -4,6 +4,7 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,14 +22,14 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Chat
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Collections
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Face
 import androidx.compose.material.icons.rounded.FaceRetouchingNatural
 import androidx.compose.material.icons.rounded.FilterNone
 import androidx.compose.material.icons.rounded.Lock
@@ -59,9 +60,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -75,23 +81,25 @@ import com.sortr.app.ui.design.IconBadge
 import com.sortr.app.ui.design.LargeTitleScaffold
 import com.sortr.app.ui.design.ListRow
 import com.sortr.app.ui.design.PillButton
-import com.sortr.app.ui.design.ProgressCard
 import com.sortr.app.ui.design.ScreenPadding
 import com.sortr.app.ui.design.SectionTitle
 import com.sortr.app.ui.design.SmartTile
 import com.sortr.app.ui.design.TileGrid
-import com.sortr.app.ui.design.TintedButton
 import com.sortr.app.ui.library.color
 import com.sortr.app.ui.library.icon
 import com.sortr.app.ui.library.labelRes
 import com.sortr.app.ui.people.PersonCell
 import com.sortr.app.ui.permission.MediaAccess
 import com.sortr.app.ui.theme.palette
-import com.sortr.app.ui.vault.RemoveOriginalsCard
+import com.sortr.app.ui.vault.RemoveOriginalsEffects
+import com.sortr.app.ui.vault.RemoveOriginalsViewModel
+import com.sortr.app.ui.whatsapp.WhatsAppAccessViewModel
+import com.sortr.app.ui.whatsapp.rememberFolderPicker
 import com.sortr.domain.model.FaceModelState
-import com.sortr.domain.model.LibrarySummary
-import com.sortr.domain.model.Person
+import com.sortr.domain.model.MediaSource
 import com.sortr.domain.model.SessionFilter
+import com.sortr.domain.model.SourceCount
+import kotlin.math.roundToInt
 
 /** Where Home can take the user. */
 class HomeActions(
@@ -107,8 +115,13 @@ class HomeActions(
     val openDuplicates: () -> Unit,
     val openStats: () -> Unit,
     val openCustom: () -> Unit,
+    val openWhatsApp: () -> Unit,
 )
 
+/**
+ * Home, kept calm: one card with what's left and a Start button, a short to-do list only when
+ * something needs doing, then compact rows of ways in: Browse, People, Apps, Library.
+ */
 @Composable
 fun HomeScreen(
     access: MediaAccess,
@@ -117,12 +130,17 @@ fun HomeScreen(
     onOpenAppSettings: () -> Unit,
     actions: HomeActions,
     viewModel: HomeViewModel = hiltViewModel(),
+    originalsViewModel: RemoveOriginalsViewModel = hiltViewModel(),
+    whatsAppViewModel: WhatsAppAccessViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val originals by originalsViewModel.state.collectAsStateWithLifecycle()
+    val whatsApp by whatsAppViewModel.state.collectAsStateWithLifecycle()
     val summary = state.summary
-    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    val missingVideos = access == MediaAccess.FULL && !videoAccess
+    val pickWhatsAppFolder = rememberFolderPicker(whatsAppViewModel, snackbarHostState)
+    var showAccessHelp by rememberSaveable { mutableStateOf(false) }
+    RemoveOriginalsEffects(originalsViewModel, snackbarHostState)
 
     // Ask once to show the scanning notification, when there's a scan to show.
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -135,57 +153,136 @@ fun HomeScreen(
         }
     }
 
+    // Everything that wants the user's attention, as short rows in one place.
+    val whatsAppApp = whatsApp.missing.firstOrNull()?.takeIf { !whatsApp.promptDismissed }
+    val todo = buildList<@Composable () -> Unit> {
+        if (access == MediaAccess.PARTIAL) {
+            add {
+                ListRow(
+                    title = stringResource(R.string.partial_access_title),
+                    icon = Icons.Rounded.PhotoLibrary,
+                    iconColor = MaterialTheme.palette.blue,
+                    onClick = { showAccessHelp = true },
+                )
+            }
+        }
+        if (access == MediaAccess.FULL && !videoAccess) {
+            add {
+                ListRow(
+                    title = stringResource(R.string.video_access_title),
+                    icon = Icons.Rounded.Videocam,
+                    iconColor = MaterialTheme.palette.pink,
+                    onClick = onRequestAccess,
+                )
+            }
+        }
+        if (originals.pending > 0 || originals.encrypting > 0) {
+            add {
+                ListRow(
+                    title = if (originals.encrypting > 0) {
+                        pluralStringResource(R.plurals.vault_encrypting, originals.encrypting, formatCount(originals.encrypting))
+                    } else {
+                        pluralStringResource(R.plurals.vault_pending_title, originals.pending, formatCount(originals.pending))
+                    },
+                    subtitle = if (originals.encrypting == 0) stringResource(R.string.vault_pending_action) else null,
+                    icon = Icons.Rounded.Lock,
+                    iconColor = MaterialTheme.palette.indigo,
+                    // Wait for encryption to finish so every original goes in one confirmation.
+                    onClick = if (originals.encrypting == 0 && !originals.busy) originalsViewModel::start else null,
+                    trailing = if (originals.encrypting > 0) {
+                        { CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp)) }
+                    } else {
+                        null
+                    },
+                )
+            }
+        }
+        if (whatsAppApp != null) {
+            add {
+                ListRow(
+                    title = stringResource(R.string.whatsapp_prompt_title),
+                    subtitle = stringResource(R.string.whatsapp_prompt_hint),
+                    icon = Icons.AutoMirrored.Rounded.Chat,
+                    iconColor = MaterialTheme.palette.green,
+                    onClick = { pickWhatsAppFolder(whatsAppApp) },
+                    showChevron = false,
+                    trailing = {
+                        IconButton(onClick = whatsAppViewModel::dismissPrompt) {
+                            Icon(Icons.Rounded.Close, stringResource(R.string.action_not_now), tint = MaterialTheme.colorScheme.outline)
+                        }
+                    },
+                )
+            }
+        }
+    }
+
     LargeTitleScaffold(
         title = stringResource(R.string.app_name),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         actions = {
             IconButton(onClick = actions.openSettings) {
-                Icon(
-                    Icons.Rounded.Settings,
-                    contentDescription = stringResource(R.string.action_settings),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
+                Icon(Icons.Rounded.Settings, contentDescription = stringResource(R.string.action_settings), tint = MaterialTheme.colorScheme.primary)
             }
         },
     ) { padding ->
-        Column(Modifier.padding(padding)) {
-            if (state.isSyncing && summary.total > 0) {
-                LinearProgressIndicator(Modifier.fillMaxWidth().height(2.dp))
+        LazyColumn(
+            contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, top = 4.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize(),
+        ) {
+            when {
+                summary.total == 0 && (state.isSyncing || !state.loaded) -> item { LoadingGalleryCard() }
+                summary.total == 0 -> item { NoPhotosCard() }
+                else -> item { HeroCard(state, onStart = { actions.startSession(SessionFilter.AllPhotos.key) }) }
             }
-            LazyColumn(
-                contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, top = 4.dp, bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                if (access == MediaAccess.PARTIAL) {
-                    item { PartialAccessBanner(onSelectMore = onRequestAccess, onAllowAll = onOpenAppSettings) }
-                }
-                if (missingVideos) {
-                    item { VideoAccessBanner(onAllow = onRequestAccess) }
-                }
-                item { RemoveOriginalsCard(snackbarHostState = snackbarHostState) }
-
-                when {
-                    summary.total == 0 && (state.isSyncing || !state.loaded) -> item { LoadingGalleryCard() }
-                    summary.total == 0 -> item { NoPhotosCard() }
-                    else -> {
-                        item { HeroCard(summary, onStart = { actions.startSession(SessionFilter.AllPhotos.key) }) }
-                        item { ScanStatusCard(state) }
-                        peopleSection(state, actions)
-                        browseSection(state, actions)
-                        sourcesSection(state, actions)
+            if (todo.isNotEmpty()) {
+                item {
+                    GroupedSection {
+                        todo.forEach { content -> row { content() } }
                     }
                 }
-                item { LibrarySection(state, actions) }
-                item { FaceModelNote(state.faceScan.modelState) }
             }
+            if (summary.total > 0) {
+                browseSection(state, actions)
+                peopleSection(state, actions)
+                appsSection(state, actions)
+            }
+            librarySection(state, actions)
         }
+    }
+
+    if (showAccessHelp) {
+        AlertDialog(
+            onDismissRequest = { showAccessHelp = false },
+            title = { Text(stringResource(R.string.partial_access_dialog_title)) },
+            text = { Text(stringResource(R.string.partial_access_dialog_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showAccessHelp = false
+                        onOpenAppSettings()
+                    },
+                ) { Text(stringResource(R.string.permission_open_settings)) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showAccessHelp = false
+                        onRequestAccess()
+                    },
+                ) { Text(stringResource(R.string.partial_access_select_more)) }
+            },
+        )
     }
 }
 
-/** The one big thing to do: how much is left, and a button to start. */
+/** What's left, how far along, Start, and a quiet line while photos are being checked. */
 @Composable
-private fun HeroCard(summary: LibrarySummary, onStart: () -> Unit) {
+private fun HeroCard(state: HomeUiState, onStart: () -> Unit) {
+    val summary = state.summary
+    val sortedPercent = formatCount((summary.sortedFraction * 100).roundToInt())
     GroupedCard {
         Column(Modifier.padding(20.dp)) {
             if (summary.toReview == 0) {
@@ -201,90 +298,67 @@ private fun HeroCard(summary: LibrarySummary, onStart: () -> Unit) {
                         )
                     }
                 }
-                return@Column
+            } else {
+                // Never wrapped: some digit fonts (e.g. Arabic-Indic) would otherwise break the number.
+                Text(formatCount(summary.toReview), style = MaterialTheme.typography.displaySmall, maxLines = 1, softWrap = false)
+                Text(
+                    text = pluralStringResource(R.plurals.home_hero_caption, summary.toReview),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                LinearProgressIndicator(
+                    progress = { summary.sortedFraction },
+                    drawStopIndicator = {},
+                    gapSize = 0.dp,
+                    trackColor = MaterialTheme.palette.fill,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(CircleShape),
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.stats_sorted_percent, sortedPercent),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(16.dp))
+                PillButton(text = stringResource(R.string.home_hero_start), onClick = onStart, icon = Icons.Rounded.Style)
             }
-            // Never wrapped: some digit fonts (e.g. Arabic-Indic) would otherwise break the number.
-            Text(formatCount(summary.toReview), style = MaterialTheme.typography.displaySmall, maxLines = 1, softWrap = false)
-            Text(
-                text = pluralStringResource(R.plurals.home_hero_caption, summary.toReview),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(14.dp))
-            LinearProgressIndicator(
-                progress = { summary.sortedFraction },
-                drawStopIndicator = {},
-                gapSize = 0.dp,
-                trackColor = MaterialTheme.palette.fill,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(CircleShape),
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = stringResource(R.string.home_hero_of_total, formatCount(summary.total)),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(18.dp))
-            PillButton(text = stringResource(R.string.home_hero_start), onClick = onStart, icon = Icons.Rounded.Style)
+            ScanLine(state)
         }
     }
 }
 
-/** Background checking (duplicates and blur, then faces). Shows nothing once everything is done. */
+/** One quiet line under the button while photos are checked or faces found. */
 @Composable
-private fun ScanStatusCard(state: HomeUiState) {
+private fun ScanLine(state: HomeUiState) {
     val analysis = state.browse.analysis
     val scan = state.faceScan
-    when {
-        !analysis.isComplete -> ProgressCard(
-            text = stringResource(R.string.home_analysis_progress, formatCount(analysis.analysed), formatCount(analysis.total)),
-            progress = if (analysis.total == 0) 0f else analysis.analysed.toFloat() / analysis.total,
-            icon = Icons.Rounded.FilterNone,
-            iconColor = MaterialTheme.palette.indigo,
-        )
-        scan.modelState != FaceModelState.READY || scan.progress.isComplete -> Unit
-        scan.status == ScanStatus.WAITING && scan.onlyWhileCharging -> ProgressCard(
-            text = stringResource(R.string.face_scan_waiting_charger),
-            progress = null,
-            icon = Icons.Rounded.Face,
-        )
-        else -> ProgressCard(
-            text = stringResource(R.string.face_scan_progress, formatCount(scan.progress.indexed), formatCount(scan.progress.total)),
-            progress = if (scan.progress.total == 0) 0f else scan.progress.indexed.toFloat() / scan.progress.total,
-            icon = Icons.Rounded.Face,
-        )
+    val (text, progress) = when {
+        !analysis.isComplete -> stringResource(
+            R.string.home_analysis_progress,
+            formatCount(analysis.analysed),
+            formatCount(analysis.total),
+        ) to (if (analysis.total == 0) 0f else analysis.analysed.toFloat() / analysis.total)
+        scan.modelState != FaceModelState.READY || scan.progress.isComplete -> return
+        scan.status == ScanStatus.WAITING && scan.onlyWhileCharging -> stringResource(R.string.face_scan_waiting_charger) to null
+        else -> stringResource(R.string.face_scan_progress, formatCount(scan.progress.indexed), formatCount(scan.progress.total)) to
+            (if (scan.progress.total == 0) 0f else scan.progress.indexed.toFloat() / scan.progress.total)
     }
-}
-
-private fun LazyListScope.peopleSection(state: HomeUiState, actions: HomeActions) {
-    if (state.people.isEmpty() && state.unsortedFaces == 0) return
-    item {
-        SectionTitle(
-            text = stringResource(R.string.people_title),
-            actionLabel = stringResource(R.string.home_people_see_all),
-            onAction = actions.openPeople,
-        )
-    }
-    if (state.people.isNotEmpty()) {
-        item { PeopleRow(state.people, actions.openPerson) }
-    }
-    if (state.unsortedFaces > 0) {
-        item {
-            GroupedSection {
-                row {
-                    ListRow(
-                        title = stringResource(R.string.unsorted_faces_title),
-                        icon = Icons.Rounded.FaceRetouchingNatural,
-                        iconColor = MaterialTheme.palette.purple,
-                        value = formatCount(state.unsortedFaces),
-                        onClick = actions.openUnsorted,
-                    )
-                }
-            }
+    Spacer(Modifier.height(14.dp))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (progress != null) {
+            CircularProgressIndicator(
+                progress = { progress },
+                strokeWidth = 2.dp,
+                trackColor = MaterialTheme.palette.fill,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(10.dp))
         }
+        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -294,65 +368,29 @@ private fun LazyListScope.browseSection(state: HomeUiState, actions: HomeActions
         val counts = state.browse.counts
         val palette = MaterialTheme.palette
         TileGrid(
-            listOf<@Composable (Modifier) -> Unit>(
+            columns = 3,
+            tiles = listOf<@Composable (Modifier) -> Unit>(
+                { m -> SmartTile(stringResource(R.string.tile_by_date), Icons.Rounded.CalendarMonth, palette.red, actions.openDates, m, formatCount(counts.years)) },
+                { m -> SmartTile(stringResource(R.string.tile_albums), Icons.Rounded.Collections, palette.blue, actions.openAlbums, m, formatCount(counts.albums)) },
+                { m ->
+                    SmartTile(stringResource(R.string.tile_similar), Icons.Rounded.FilterNone, palette.indigo, actions.openDuplicates, m, state.browse.similarToReview?.let { formatCount(it) })
+                },
                 { m ->
                     SmartTile(
-                        title = stringResource(R.string.tile_by_date),
-                        icon = Icons.Rounded.CalendarMonth,
-                        color = palette.red,
-                        count = formatCount(counts.years),
-                        onClick = actions.openDates,
-                        modifier = m,
+                        stringResource(R.string.tile_blurry), Icons.Rounded.BlurOn, palette.teal,
+                        { actions.startSession(SessionFilter.Blurry.key) }, m, formatCount(counts.blurryToReview),
                     )
                 },
                 { m ->
                     SmartTile(
-                        title = stringResource(R.string.tile_albums),
-                        icon = Icons.Rounded.Collections,
-                        color = palette.blue,
-                        count = formatCount(counts.albums),
-                        onClick = actions.openAlbums,
-                        modifier = m,
+                        stringResource(R.string.tile_videos), Icons.Rounded.PlayCircle, palette.pink,
+                        { actions.startSession(SessionFilter.Videos.key) }, m, formatCount(counts.videosToReview),
                     )
                 },
                 { m ->
                     SmartTile(
-                        title = stringResource(R.string.tile_similar),
-                        icon = Icons.Rounded.FilterNone,
-                        color = palette.indigo,
-                        count = formatCount(state.browse.similarToReview),
-                        onClick = actions.openDuplicates,
-                        modifier = m,
-                    )
-                },
-                { m ->
-                    SmartTile(
-                        title = stringResource(R.string.tile_blurry),
-                        icon = Icons.Rounded.BlurOn,
-                        color = palette.teal,
-                        count = formatCount(counts.blurryToReview),
-                        onClick = { actions.startSession(SessionFilter.Blurry.key) },
-                        modifier = m,
-                    )
-                },
-                { m ->
-                    SmartTile(
-                        title = stringResource(R.string.tile_videos),
-                        icon = Icons.Rounded.PlayCircle,
-                        color = palette.pink,
-                        count = formatCount(counts.videosToReview),
-                        onClick = { actions.startSession(SessionFilter.Videos.key) },
-                        modifier = m,
-                    )
-                },
-                { m ->
-                    SmartTile(
-                        title = stringResource(R.string.tile_large),
-                        icon = Icons.Rounded.SdStorage,
-                        color = palette.orange,
-                        count = formatCount(counts.largeToReview),
-                        onClick = { actions.startSession(SessionFilter.Largest.key) },
-                        modifier = m,
+                        stringResource(R.string.tile_large), Icons.Rounded.SdStorage, palette.orange,
+                        { actions.startSession(SessionFilter.Largest.key) }, m, formatCount(counts.largeToReview),
                     )
                 },
             ),
@@ -373,26 +411,28 @@ private fun LazyListScope.browseSection(state: HomeUiState, actions: HomeActions
     }
 }
 
-private fun LazyListScope.sourcesSection(state: HomeUiState, actions: HomeActions) {
-    val sources = state.browse.sources
-    if (sources.isEmpty()) return
-    item { SectionTitle(stringResource(R.string.home_section_sources)) }
+private fun LazyListScope.peopleSection(state: HomeUiState, actions: HomeActions) {
+    if (state.people.isEmpty() && state.unsortedFaces == 0) return
     item {
-        GroupedSection {
-            sources.forEach { source ->
-                row {
-                    ListRow(
-                        title = stringResource(source.source.labelRes),
-                        subtitle = pluralStringResource(R.plurals.count_items, source.count, formatCount(source.count)),
-                        icon = source.source.icon,
-                        iconColor = source.source.color,
-                        value = if (source.toReview > 0) formatCount(source.toReview) else null,
-                        trailing = if (source.toReview == 0) {
-                            { Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.palette.green) }
-                        } else {
-                            null
-                        },
-                        onClick = { actions.startSession(SessionFilter.Source(source.source).key) },
+        SectionTitle(
+            text = stringResource(R.string.people_title),
+            actionLabel = stringResource(R.string.home_people_see_all),
+            onAction = actions.openPeople,
+        )
+    }
+    item {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(state.people, key = { it.id }) { person ->
+                PersonCell(person = person, avatarSize = 64.dp, onClick = { actions.openPerson(person.id) }, modifier = Modifier.width(84.dp))
+            }
+            if (state.unsortedFaces > 0) {
+                item(key = "unsorted") {
+                    RoundShortcut(
+                        icon = Icons.Rounded.FaceRetouchingNatural,
+                        color = MaterialTheme.palette.purple,
+                        label = stringResource(R.string.unsorted_faces_short),
+                        value = formatCount(state.unsortedFaces),
+                        onClick = actions.openUnsorted,
                     )
                 }
             }
@@ -400,76 +440,108 @@ private fun LazyListScope.sourcesSection(state: HomeUiState, actions: HomeAction
     }
 }
 
-@Composable
-private fun LibrarySection(state: HomeUiState, actions: HomeActions) {
-    val context = LocalContext.current
-    val summary = state.summary
-    Column {
-        SectionTitle(stringResource(R.string.home_section_library))
-        GroupedSection {
-            row {
-                ListRow(
-                    title = stringResource(R.string.home_trash),
-                    icon = Icons.Rounded.Delete,
-                    iconColor = MaterialTheme.palette.red,
-                    value = if (summary.trashedCount > 0) {
-                        stringResource(R.string.count_with_review, formatCount(summary.trashedCount), formatBytes(context, summary.trashedBytes))
-                    } else {
-                        null
-                    },
-                    subtitle = if (summary.trashedCount == 0) stringResource(R.string.home_trash_empty) else null,
-                    onClick = actions.openTrash,
-                )
-            }
-            row {
-                ListRow(
-                    title = stringResource(R.string.vault_title),
-                    icon = Icons.Rounded.Lock,
-                    iconColor = MaterialTheme.palette.indigo,
-                    subtitle = stringResource(if (state.vaultSetUp) R.string.home_vault_locked else R.string.home_vault_not_set_up),
-                    onClick = actions.openVault,
-                )
-            }
-            row {
-                ListRow(
-                    title = stringResource(R.string.home_stats),
-                    icon = Icons.Rounded.BarChart,
-                    iconColor = MaterialTheme.palette.green,
-                    onClick = actions.openStats,
-                )
-            }
+/** Apps the photos came from, as a row of round icons. WhatsApp opens its own page. */
+private fun LazyListScope.appsSection(state: HomeUiState, actions: HomeActions) {
+    val sources = state.browse.sources.filter { it.source.partOf == null }
+    if (sources.isEmpty()) return
+    item { SectionTitle(stringResource(R.string.home_section_sources)) }
+    item {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(sources, key = { it.source.name }) { source -> AppShortcut(source, actions) }
         }
     }
 }
 
 @Composable
-private fun PeopleRow(people: List<Person>, onOpenPerson: (Long) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        items(people, key = { it.id }) { person ->
-            PersonCell(
-                person = person,
-                avatarSize = 64.dp,
-                onClick = { onOpenPerson(person.id) },
-                modifier = Modifier.width(84.dp),
-            )
-        }
-    }
-}
-
-/** Why face grouping is off, as a quiet note at the bottom. */
-@Composable
-private fun FaceModelNote(modelState: FaceModelState) {
-    val text = when (modelState) {
-        FaceModelState.MISSING -> stringResource(R.string.face_model_missing)
-        FaceModelState.UNSUPPORTED -> stringResource(R.string.face_model_unsupported)
-        else -> return
-    }
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+private fun AppShortcut(source: SourceCount, actions: HomeActions) {
+    RoundShortcut(
+        icon = source.source.icon,
+        color = source.source.color,
+        label = stringResource(source.source.labelRes),
+        value = if (source.toReview > 0) formatCount(source.toReview) else null,
+        done = source.toReview == 0,
+        onClick = {
+            if (source.source == MediaSource.WHATSAPP) {
+                actions.openWhatsApp()
+            } else {
+                actions.startSession(SessionFilter.Source(source.source).key)
+            }
+        },
     )
+}
+
+/** A round icon with a name and a small count underneath, for horizontal rows. */
+@Composable
+private fun RoundShortcut(
+    icon: ImageVector,
+    color: Color,
+    label: String,
+    value: String?,
+    onClick: () -> Unit,
+    done: Boolean = false,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(84.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = 6.dp),
+    ) {
+        IconBadge(icon, color, size = 56.dp, shape = CircleShape)
+        Spacer(Modifier.height(6.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        if (done) {
+            Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.palette.green, modifier = Modifier.size(14.dp))
+        } else if (value != null) {
+            Text(value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Trash, vault and stats as three small tiles side by side. */
+private fun LazyListScope.librarySection(state: HomeUiState, actions: HomeActions) {
+    item { SectionTitle(stringResource(R.string.home_section_library)) }
+    item {
+        val context = LocalContext.current
+        val summary = state.summary
+        val palette = MaterialTheme.palette
+        TileGrid(
+            columns = 3,
+            tiles = listOf<@Composable (Modifier) -> Unit>(
+                { m ->
+                    SmartTile(
+                        title = stringResource(R.string.home_trash),
+                        icon = Icons.Rounded.Delete,
+                        color = palette.red,
+                        onClick = actions.openTrash,
+                        modifier = m,
+                        caption = if (summary.trashedCount > 0) formatBytes(context, summary.trashedBytes) else stringResource(R.string.home_trash_empty),
+                    )
+                },
+                { m ->
+                    SmartTile(
+                        title = stringResource(R.string.vault_title_short),
+                        icon = Icons.Rounded.Lock,
+                        color = palette.indigo,
+                        onClick = actions.openVault,
+                        modifier = m,
+                        caption = stringResource(if (state.vaultSetUp) R.string.vault_tile_locked else R.string.vault_tile_set_up),
+                    )
+                },
+                { m ->
+                    SmartTile(
+                        title = stringResource(R.string.home_stats),
+                        icon = Icons.Rounded.BarChart,
+                        color = palette.green,
+                        onClick = actions.openStats,
+                        modifier = m,
+                        caption = stringResource(R.string.stats_sorted_percent, formatCount((summary.sortedFraction * 100).roundToInt())),
+                    )
+                },
+            ),
+        )
+    }
 }
 
 @Composable
@@ -498,69 +570,5 @@ private fun NoPhotosCard() {
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun VideoAccessBanner(onAllow: () -> Unit) {
-    GroupedCard {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconBadge(Icons.Rounded.Videocam, MaterialTheme.palette.pink)
-                Spacer(Modifier.width(12.dp))
-                Text(stringResource(R.string.video_access_title), style = MaterialTheme.typography.titleMedium)
-            }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                stringResource(R.string.video_access_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(12.dp))
-            TintedButton(text = stringResource(R.string.video_access_allow), onClick = onAllow, compact = true)
-        }
-    }
-}
-
-@Composable
-private fun PartialAccessBanner(onSelectMore: () -> Unit, onAllowAll: () -> Unit) {
-    var showAllowAllHelp by rememberSaveable { mutableStateOf(false) }
-
-    GroupedCard {
-        Column(Modifier.padding(16.dp)) {
-            Text(stringResource(R.string.partial_access_title), style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                stringResource(R.string.partial_access_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TintedButton(text = stringResource(R.string.partial_access_select_more), onClick = onSelectMore, compact = true)
-                TintedButton(text = stringResource(R.string.partial_access_allow_all), onClick = { showAllowAllHelp = true }, compact = true)
-            }
-        }
-    }
-
-    if (showAllowAllHelp) {
-        AlertDialog(
-            onDismissRequest = { showAllowAllHelp = false },
-            title = { Text(stringResource(R.string.partial_access_dialog_title)) },
-            text = { Text(stringResource(R.string.partial_access_dialog_body)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showAllowAllHelp = false
-                        onAllowAll()
-                    },
-                ) { Text(stringResource(R.string.permission_open_settings)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAllowAllHelp = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            },
-        )
     }
 }

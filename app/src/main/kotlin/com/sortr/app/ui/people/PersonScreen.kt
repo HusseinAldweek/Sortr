@@ -16,18 +16,25 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.PersonRemove
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Swipe
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -49,12 +56,16 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sortr.app.R
+import com.sortr.app.media.Sharing
 import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.design.BarTextButton
 import com.sortr.app.ui.design.LargeTitleScaffold
-import com.sortr.app.ui.design.SelectionBar
-import com.sortr.app.ui.design.TintedButton
+import com.sortr.app.ui.design.SelectionToolbar
+import com.sortr.app.ui.design.ToolbarItem
+import com.sortr.app.ui.design.dragToSelect
 import com.sortr.app.ui.theme.palette
+import com.sortr.app.ui.viewer.FullScreenViewer
+import com.sortr.domain.model.Photo
 import com.sortr.domain.model.SessionFilter
 import kotlinx.coroutines.launch
 
@@ -74,6 +85,8 @@ fun PersonScreen(
     var renaming by rememberSaveable { mutableStateOf(false) }
     var pickingMerge by rememberSaveable { mutableStateOf(false) }
     var menuOpen by rememberSaveable { mutableStateOf(false) }
+    var viewing by remember { mutableStateOf<List<Photo>?>(null) }
+    val gridState = rememberLazyGridState()
 
     // The person can disappear, e.g. when every face was removed.
     LaunchedEffect(state.loaded, person) {
@@ -81,12 +94,22 @@ fun PersonScreen(
     }
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
-            val message = when (event) {
-                is PersonEvent.FacesRemoved ->
-                    context.resources.getQuantityString(R.plurals.person_faces_removed, event.count, formatCount(event.count))
-                PersonEvent.Merged -> context.getString(R.string.person_merged)
+            when (event) {
+                is PersonEvent.FacesRemoved -> scope.launch {
+                    snackbarHostState.showSnackbar(
+                        context.resources.getQuantityString(R.plurals.person_faces_removed, event.count, formatCount(event.count)),
+                    )
+                }
+                PersonEvent.Merged -> scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.person_merged)) }
+                is PersonEvent.PhotosTrashed -> scope.launch {
+                    val result = snackbarHostState.showSnackbar(
+                        message = context.resources.getQuantityString(R.plurals.dup_trashed, event.count, formatCount(event.count)),
+                        actionLabel = context.getString(R.string.action_undo),
+                        duration = SnackbarDuration.Long,
+                    )
+                    if (result == SnackbarResult.ActionPerformed) viewModel.undoTrash()
+                }
             }
-            scope.launch { snackbarHostState.showSnackbar(message) }
         }
     }
     BackHandler(enabled = selecting) { viewModel.clearSelection() }
@@ -126,26 +149,33 @@ fun PersonScreen(
         },
         bottomBar = {
             if (selecting) {
-                SelectionBar(count = state.selected.size) {
-                    TintedButton(
-                        text = stringResource(R.string.person_not_this_person),
-                        onClick = viewModel::removeSelected,
-                        color = MaterialTheme.palette.red,
-                        compact = true,
-                    )
-                }
+                SelectionToolbar(
+                    count = state.selected.size,
+                    items = listOf(
+                        ToolbarItem(Icons.Rounded.PersonRemove, stringResource(R.string.person_not_this_person_short), viewModel::removeSelected),
+                        ToolbarItem(Icons.Rounded.Visibility, stringResource(R.string.action_view), {
+                            scope.launch { viewing = viewModel.selectedPhotos() }
+                        }),
+                        ToolbarItem(Icons.Rounded.Share, stringResource(R.string.action_share), {
+                            Sharing.shareUris(context, viewModel.selectedFaces().map { it.photoUri }.distinct())
+                        }),
+                        ToolbarItem(Icons.Rounded.Delete, stringResource(R.string.action_delete), viewModel::trashSelected, tint = MaterialTheme.palette.red),
+                    ),
+                )
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         LazyVerticalGrid(
+            state = gridState,
             columns = GridCells.Adaptive(minSize = 96.dp),
             contentPadding = PaddingValues(12.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier
                 .padding(padding)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .dragToSelect(gridState, state.faces.map { it.faceId }, state.selected, viewModel::setSelection),
         ) {
             if (person != null) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
@@ -191,6 +221,8 @@ fun PersonScreen(
             }
         }
     }
+
+    viewing?.let { photos -> FullScreenViewer(photos, 0, onDismiss = { viewing = null }) }
 
     if (renaming && person != null) {
         RenameDialog(

@@ -14,11 +14,13 @@ import com.sortr.domain.faces.Placement
 import com.sortr.domain.model.FaceIndexProgress
 import com.sortr.domain.repository.AppSettings
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.coroutineContext
@@ -44,6 +46,7 @@ class FaceIndexer @Inject constructor(
 ) {
     private val photoDao = db.photoDao()
     private val faceDao = db.faceDao()
+    private val analysisDispatcher = Dispatchers.Default.limitedParallelism(PARALLEL_PHOTOS)
 
     suspend fun progress(): FaceIndexProgress =
         photoDao.indexProgress().let { FaceIndexProgress(indexed = it.scanned, total = it.total) }
@@ -65,9 +68,14 @@ class FaceIndexer @Inject constructor(
         val photos = photoDao.unindexed(batchSize)
         if (photos.isEmpty()) return 0
 
-        val analysed = photos.map { photo ->
-            coroutineContext.ensureActive()
-            photo.mediaStoreId to withContext(Dispatchers.Default) { analyzer.analyze(photo.uri.toUri()) }
+        // Two photos at a time: decoding and detection overlap; the embedding step is locked.
+        val analysed = coroutineScope {
+            photos.map { photo ->
+                async(analysisDispatcher) {
+                    coroutineContext.ensureActive()
+                    photo.mediaStoreId to analyzer.analyze(photo.uri.toUri())
+                }
+            }.awaitAll()
         }
         val threshold = settings.faceSimilarityThreshold.first()
 
@@ -138,5 +146,6 @@ class FaceIndexer @Inject constructor(
     private companion object {
         const val TAG = "FaceIndexer"
         const val BATCH_SIZE = 16
+        const val PARALLEL_PHOTOS = 2
     }
 }

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,7 +34,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -51,7 +49,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -61,7 +58,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sortr.app.R
-import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.theme.palette
 
 /** Side margin used by every screen. */
@@ -442,47 +438,19 @@ fun SmartTile(
     }
 }
 
-/** Two tiles per line; an odd last tile keeps half the width. */
+/** [columns] tiles per line; a short last line keeps the same tile width. */
 @Composable
-fun TileGrid(tiles: List<@Composable (Modifier) -> Unit>, modifier: Modifier = Modifier) {
+fun TileGrid(tiles: List<@Composable (Modifier) -> Unit>, modifier: Modifier = Modifier, columns: Int = 2) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        tiles.chunked(2).forEach { pair ->
+        tiles.chunked(columns).forEach { line ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                pair.forEach { tile -> tile(Modifier.weight(1f)) }
-                if (pair.size == 1) Spacer(Modifier.weight(1f))
+                line.forEach { tile -> tile(Modifier.weight(1f)) }
+                repeat(columns - line.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
 }
 
-/** A short status line with a thin progress bar, e.g. while photos are being checked. */
-@Composable
-fun ProgressCard(text: String, progress: Float?, modifier: Modifier = Modifier, icon: ImageVector? = null, iconColor: Color = MaterialTheme.colorScheme.primary) {
-    GroupedCard(modifier) {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (icon != null) {
-                    IconBadge(icon, iconColor, size = 26.dp)
-                    Spacer(Modifier.width(12.dp))
-                }
-                Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-            }
-            if (progress != null) {
-                Spacer(Modifier.height(12.dp))
-                LinearProgressIndicator(
-                    progress = { progress.coerceIn(0f, 1f) },
-                    drawStopIndicator = {},
-                    gapSize = 0.dp,
-                    trackColor = MaterialTheme.palette.fill,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(CircleShape),
-                )
-            }
-        }
-    }
-}
 
 /** iOS segmented control: equal parts, the chosen one raised on a white pill. */
 @Composable
@@ -603,24 +571,3 @@ fun EmptyState(
     }
 }
 
-/** Bottom bar while items are selected: how many, then the actions for them. */
-@Composable
-fun SelectionBar(count: Int, actions: @Composable RowScope.() -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Text(
-                text = pluralStringResource(R.plurals.count_selected, count, formatCount(count)),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
-            actions()
-        }
-    }
-}

@@ -26,4 +26,16 @@ interface AppSettings {
     val albumSort: Flow<String?>
 
     suspend fun setAlbumSort(value: String)
+
+    /** Folders outside the gallery the user let Sortr read (document tree URIs). */
+    val hiddenFolders: Flow<Set<String>>
+
+    suspend fun addHiddenFolder(treeUri: String)
+
+    suspend fun removeHiddenFolder(treeUri: String)
+
+    /** The user closed the Home card offering hidden WhatsApp media. */
+    val whatsAppPromptDismissed: Flow<Boolean>
+
+    suspend fun dismissWhatsAppPrompt()
 }

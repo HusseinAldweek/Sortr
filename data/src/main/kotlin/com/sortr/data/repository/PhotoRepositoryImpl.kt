@@ -47,6 +47,11 @@ class PhotoRepositoryImpl @Inject constructor(
         }.map { it.toDomain() }
     }
 
+    override suspend fun photosByIds(ids: Collection<Long>): List<Photo> {
+        val byId = ids.distinct().chunked(SQL_CHUNK).flatMap { libraryDao.byIds(it) }.associateBy { it.mediaStoreId }
+        return ids.mapNotNull { byId[it]?.toDomain() }
+    }
+
     override suspend fun applyDecision(photo: Photo, action: SwipeAction): Decision = db.withTransaction {
         val now = System.currentTimeMillis()
         photoDao.updateStatus(photo.id, action.resultStatus, now)

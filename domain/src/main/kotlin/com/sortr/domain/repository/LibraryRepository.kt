@@ -6,6 +6,7 @@ import com.sortr.domain.model.DateBucket
 import com.sortr.domain.model.DuplicateGroup
 import com.sortr.domain.model.LibraryStats
 import com.sortr.domain.model.MoveResult
+import com.sortr.domain.model.MovedCopy
 import com.sortr.domain.model.Photo
 import com.sortr.domain.model.QuickCounts
 import com.sortr.domain.model.SessionFilter
@@ -46,4 +47,10 @@ interface LibraryRepository {
      * system dialog.
      */
     suspend fun movePhotos(photos: Collection<Photo>, relativePath: String): MoveResult
+
+    /**
+     * After the user was asked to remove the originals of [copies]: keeps copies whose original
+     * is gone, deletes the rest. Returns how many were kept.
+     */
+    suspend fun completeCopies(copies: Collection<MovedCopy>): Int
 }

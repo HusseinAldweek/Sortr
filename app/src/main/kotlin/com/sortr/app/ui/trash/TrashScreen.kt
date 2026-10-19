@@ -18,9 +18,12 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.RestoreFromTrash
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -44,9 +47,12 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sortr.app.R
+import com.sortr.app.media.ShareItem
+import com.sortr.app.media.Sharing
 import com.sortr.app.ui.common.formatBytes
 import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.common.formatDate
@@ -56,8 +62,12 @@ import com.sortr.app.ui.design.IconBadge
 import com.sortr.app.ui.design.LargeTitleScaffold
 import com.sortr.app.ui.design.MediaTile
 import com.sortr.app.ui.design.PillButton
+import com.sortr.app.ui.design.SelectionToolbar
 import com.sortr.app.ui.design.TintedButton
+import com.sortr.app.ui.design.ToolbarItem
+import com.sortr.app.ui.design.dragToSelect
 import com.sortr.app.ui.theme.palette
+import com.sortr.app.ui.whatsapp.HiddenDeleteDialog
 import kotlinx.coroutines.launch
 
 @Composable
@@ -70,6 +80,7 @@ fun TrashScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var freedBytes by rememberSaveable { mutableStateOf<Long?>(null) }
+    var hiddenToConfirm by rememberSaveable { mutableStateOf<Int?>(null) }
     val selecting = state.selected.isNotEmpty()
 
     val deleteLauncher = rememberLauncherForActivityResult(
@@ -84,6 +95,10 @@ fun TrashScreen(
                 is TrashEvent.ConfirmDeletion ->
                     deleteLauncher.launch(IntentSenderRequest.Builder(event.request).build())
                 is TrashEvent.Freed -> freedBytes = event.bytes
+                is TrashEvent.ConfirmHiddenDeletion -> hiddenToConfirm = event.count
+                TrashEvent.HiddenNotDeleted -> scope.launch {
+                    snackbarHostState.showSnackbar(context.getString(R.string.hidden_needs_folder_again))
+                }
                 TrashEvent.DeletionCancelled -> scope.launch {
                     snackbarHostState.showSnackbar(context.getString(R.string.trash_delete_cancelled))
                 }
@@ -110,11 +125,20 @@ fun TrashScreen(
             }
         },
         bottomBar = {
-            if (state.items.isNotEmpty()) {
+            if (selecting) {
+                val chosen = state.items.filter { it.id in state.selected }
+                SelectionToolbar(
+                    count = state.selected.size,
+                    items = listOf(
+                        ToolbarItem(Icons.Rounded.RestoreFromTrash, stringResource(R.string.trash_restore), viewModel::restoreSelected, enabled = !state.busy),
+                        ToolbarItem(Icons.Rounded.Share, stringResource(R.string.action_share), {
+                            Sharing.share(context, chosen.map { ShareItem(it.uri.toUri(), it.mimeType) })
+                        }),
+                    ),
+                )
+            } else if (state.items.isNotEmpty()) {
                 TrashActions(
-                    selectedCount = state.selected.size,
                     busy = state.busy,
-                    onRestoreSelected = viewModel::restoreSelected,
                     onRestoreAll = viewModel::restoreAll,
                     onEmptyTrash = viewModel::emptyTrash,
                 )
@@ -135,9 +159,23 @@ fun TrashScreen(
                     title = stringResource(R.string.trash_empty_title),
                     body = stringResource(R.string.trash_empty_body),
                 )
-                else -> TrashGrid(state = state, onToggle = viewModel::toggleSelection)
+                else -> TrashGrid(state = state, onToggle = viewModel::toggleSelection, onSelectionChange = viewModel::setSelection)
             }
         }
+    }
+
+    hiddenToConfirm?.let { count ->
+        HiddenDeleteDialog(
+            count = count,
+            onConfirm = {
+                hiddenToConfirm = null
+                viewModel.onHiddenDeletionResult(accepted = true)
+            },
+            onDismiss = {
+                hiddenToConfirm = null
+                viewModel.onHiddenDeletionResult(accepted = false)
+            },
+        )
     }
 
     freedBytes?.let { bytes ->
@@ -164,15 +202,20 @@ fun TrashScreen(
 private fun TrashGrid(
     state: TrashUiState,
     onToggle: (Long) -> Unit,
+    onSelectionChange: (Set<Long>) -> Unit,
 ) {
     val context = LocalContext.current
     val selecting = state.selected.isNotEmpty()
+    val gridState = rememberLazyGridState()
     LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Adaptive(minSize = 108.dp),
         contentPadding = PaddingValues(bottom = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .dragToSelect(gridState, state.items.map { it.id }, state.selected, onSelectionChange),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 12.dp)) {
@@ -201,7 +244,6 @@ private fun TrashGrid(
                 photo = photo,
                 selected = if (selecting) photo.id in state.selected else null,
                 onClick = { onToggle(photo.id) },
-                onLongClick = { onToggle(photo.id) },
                 contentDescription = stringResource(R.string.trash_photo_description, formatDate(photo.dateTaken)),
             )
         }
@@ -210,9 +252,7 @@ private fun TrashGrid(
 
 @Composable
 private fun TrashActions(
-    selectedCount: Int,
     busy: Boolean,
-    onRestoreSelected: () -> Unit,
     onRestoreAll: () -> Unit,
     onEmptyTrash: () -> Unit,
 ) {
@@ -225,27 +265,19 @@ private fun TrashActions(
                 .navigationBarsPadding()
                 .padding(16.dp),
         ) {
-            if (selectedCount > 0) {
-                PillButton(
-                    text = pluralStringResource(R.plurals.trash_restore_selected, selectedCount, formatCount(selectedCount)),
-                    onClick = onRestoreSelected,
-                    enabled = !busy,
-                )
-            } else {
-                TintedButton(
-                    text = stringResource(R.string.trash_restore_all),
-                    onClick = onRestoreAll,
-                    enabled = !busy,
-                    modifier = Modifier.weight(1f),
-                )
-                PillButton(
-                    text = stringResource(R.string.trash_empty_action),
-                    onClick = onEmptyTrash,
-                    enabled = !busy,
-                    color = MaterialTheme.palette.red,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            TintedButton(
+                text = stringResource(R.string.trash_restore_all),
+                onClick = onRestoreAll,
+                enabled = !busy,
+                modifier = Modifier.weight(1f),
+            )
+            PillButton(
+                text = stringResource(R.string.trash_empty_action),
+                onClick = onEmptyTrash,
+                enabled = !busy,
+                color = MaterialTheme.palette.red,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

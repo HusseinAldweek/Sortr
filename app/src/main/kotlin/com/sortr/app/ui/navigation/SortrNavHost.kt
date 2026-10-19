@@ -28,6 +28,7 @@ import com.sortr.app.ui.settings.SettingsScreen
 import com.sortr.app.ui.swipe.SwipeScreen
 import com.sortr.app.ui.trash.TrashScreen
 import com.sortr.app.ui.vault.VaultScreen
+import com.sortr.app.ui.whatsapp.WhatsAppScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -68,6 +69,9 @@ data object StatsRoute
 
 @Serializable
 data object CustomSessionRoute
+
+@Serializable
+data object WhatsAppRoute
 
 /** [startBackup] opens Settings straight into exporting a vault backup. */
 @Serializable
@@ -121,7 +125,15 @@ fun SortrNavHost(
                     openDuplicates = { entry.go(DuplicatesRoute) },
                     openStats = { entry.go(StatsRoute) },
                     openCustom = { entry.go(CustomSessionRoute) },
+                    openWhatsApp = { entry.go(WhatsAppRoute) },
                 ),
+            )
+        }
+        composable<WhatsAppRoute> { entry ->
+            WhatsAppScreen(
+                onBack = dropUnlessResumed { navController.popBackStack() },
+                onStartSession = { filterKey -> entry.go(SwipeRoute(filterKey)) },
+                onOpenAlbum = { path -> entry.go(AlbumRoute(path)) },
             )
         }
         composable<DatesRoute> { entry ->

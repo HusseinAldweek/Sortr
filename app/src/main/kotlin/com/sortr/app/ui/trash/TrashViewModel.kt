@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sortr.app.media.DeleteRequestFactory
+import com.sortr.data.media.MediaLocator
 import com.sortr.domain.model.Photo
 import com.sortr.domain.repository.GallerySync
 import com.sortr.domain.repository.PhotoRepository
@@ -33,6 +34,12 @@ data class TrashUiState(
 
 sealed interface TrashEvent {
     data class ConfirmDeletion(val request: IntentSender) : TrashEvent
+
+    /** Hidden WhatsApp files: Android has no dialog for them, so Sortr asks itself. */
+    data class ConfirmHiddenDeletion(val count: Int) : TrashEvent
+
+    /** The folder permission doesn't allow deleting (granted before Sortr asked for that). */
+    data object HiddenNotDeleted : TrashEvent
     data class Freed(val bytes: Long) : TrashEvent
     data object DeletionCancelled : TrashEvent
     data object DeletionFailed : TrashEvent
@@ -44,6 +51,7 @@ class TrashViewModel @Inject constructor(
     private val photos: PhotoRepository,
     private val gallerySync: GallerySync,
     private val deleteRequests: DeleteRequestFactory,
+    private val locator: MediaLocator,
 ) : ViewModel() {
 
     private val selected = MutableStateFlow<Set<Long>>(emptySet())
@@ -51,6 +59,10 @@ class TrashViewModel @Inject constructor(
 
     /** Photos handed to the system dialog, kept until its result comes back. */
     private var awaitingConfirmation: List<Photo> = emptyList()
+
+    /** Hidden-folder photos waiting for Sortr's own confirmation, after the system dialog. */
+    private var awaitingHidden: List<Photo> = emptyList()
+    private var freedSoFar = 0L
 
     val state: StateFlow<TrashUiState> =
         combine(photos.observeTrash(), selected, busy) { items, selected, busy ->
@@ -73,6 +85,11 @@ class TrashViewModel @Inject constructor(
 
     fun clearSelection() {
         selected.value = emptySet()
+    }
+
+    /** Replaces the selection, e.g. while dragging across photos. */
+    fun setSelection(ids: Set<Long>) {
+        selected.value = ids
     }
 
     fun restoreSelected() = restore(state.value.selected)
@@ -103,13 +120,24 @@ class TrashViewModel @Inject constructor(
                     busy.value = false
                     return@launch
                 }
-                awaitingConfirmation = toDelete
-                _events.send(TrashEvent.ConfirmDeletion(deleteRequests.create(toDelete)))
+                // Gallery photos go through Android's dialog; hidden WhatsApp files are confirmed
+                // in Sortr's own dialog afterwards, because Android has none for them.
+                val (hidden, gallery) = toDelete.partition { it.fromHiddenFolder }
+                awaitingHidden = hidden
+                freedSoFar = 0
+                if (gallery.isEmpty()) {
+                    _events.send(TrashEvent.ConfirmHiddenDeletion(hidden.size))
+                    return@launch
+                }
+                val request = deleteRequests.create(gallery) ?: throw IllegalStateException("Nothing can be deleted")
+                awaitingConfirmation = gallery
+                _events.send(TrashEvent.ConfirmDeletion(request))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Couldn't start the delete request", e)
                 awaitingConfirmation = emptyList()
+                awaitingHidden = emptyList()
                 busy.value = false
                 _events.send(TrashEvent.DeletionFailed)
             }
@@ -119,18 +147,26 @@ class TrashViewModel @Inject constructor(
     fun onDeletionResult(accepted: Boolean) {
         val requested = awaitingConfirmation
         awaitingConfirmation = emptyList()
+        var waitingForHidden = false
         viewModelScope.launch {
             try {
                 if (!accepted || requested.isEmpty()) {
+                    // Deny means no deleting at all, hidden files included.
+                    awaitingHidden = emptyList()
                     _events.send(TrashEvent.DeletionCancelled)
                     return@launch
                 }
                 // Count only what is actually gone, in case the system skipped any.
                 val stillThere = gallerySync.existingIds(requested.map { it.id })
                 val deleted = requested.filterNot { it.id in stillThere }
-                val freed = photos.markPurged(deleted)
+                freedSoFar = photos.markPurged(deleted)
                 selected.value = emptySet()
-                _events.send(TrashEvent.Freed(freed))
+                if (awaitingHidden.isNotEmpty()) {
+                    waitingForHidden = true
+                    _events.send(TrashEvent.ConfirmHiddenDeletion(awaitingHidden.size))
+                } else {
+                    _events.send(TrashEvent.Freed(freedSoFar))
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -138,6 +174,33 @@ class TrashViewModel @Inject constructor(
                 gallerySync.requestSync()
                 _events.send(TrashEvent.DeletionFailed)
             } finally {
+                if (!waitingForHidden) busy.value = false
+            }
+        }
+    }
+
+    /** The answer to Sortr's own dialog for hidden WhatsApp files. */
+    fun onHiddenDeletionResult(accepted: Boolean) {
+        val requested = awaitingHidden
+        awaitingHidden = emptyList()
+        viewModelScope.launch {
+            try {
+                if (!accepted || requested.isEmpty()) {
+                    _events.send(if (freedSoFar > 0) TrashEvent.Freed(freedSoFar) else TrashEvent.DeletionCancelled)
+                    return@launch
+                }
+                val deletedIds = locator.deleteHidden(requested.map { it.id })
+                val freed = freedSoFar + photos.markPurged(requested.filter { it.id in deletedIds })
+                selected.value = emptySet()
+                if (freed > 0 || deletedIds.isNotEmpty()) _events.send(TrashEvent.Freed(freed))
+                if (deletedIds.size < requested.size) _events.send(TrashEvent.HiddenNotDeleted)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Couldn't delete hidden files", e)
+                _events.send(TrashEvent.DeletionFailed)
+            } finally {
+                freedSoFar = 0
                 busy.value = false
             }
         }

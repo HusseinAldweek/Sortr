@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.FaceRetouchingNatural
+import androidx.compose.material.icons.rounded.MergeType
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.Visibility
@@ -52,8 +53,8 @@ import com.sortr.app.R
 import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.design.BarTextButton
 import com.sortr.app.ui.design.LargeTitleScaffold
-import com.sortr.app.ui.design.SelectionBar
-import com.sortr.app.ui.design.TintedButton
+import com.sortr.app.ui.design.SelectionToolbar
+import com.sortr.app.ui.design.ToolbarItem
 import com.sortr.domain.model.FaceModelState
 
 @Composable
@@ -96,21 +97,18 @@ fun PeopleScreen(
         },
         bottomBar = {
             if (selecting) {
-                SelectionBar(count = state.selected.size) {
-                    val allHidden = state.selectedPeople.all { it.hidden }
-                    TintedButton(
-                        text = stringResource(if (allHidden) R.string.people_unhide else R.string.people_hide),
-                        onClick = viewModel::toggleHiddenForSelected,
-                        icon = if (allHidden) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
-                        compact = true,
-                    )
-                    TintedButton(
-                        text = stringResource(R.string.people_merge),
-                        onClick = { confirmMerge = true },
-                        enabled = state.selected.size >= 2,
-                        compact = true,
-                    )
-                }
+                val allHidden = state.selectedPeople.all { it.hidden }
+                SelectionToolbar(
+                    count = state.selected.size,
+                    items = listOf(
+                        ToolbarItem(
+                            if (allHidden) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
+                            stringResource(if (allHidden) R.string.people_unhide else R.string.people_hide),
+                            viewModel::toggleHiddenForSelected,
+                        ),
+                        ToolbarItem(Icons.Rounded.MergeType, stringResource(R.string.people_merge), { confirmMerge = true }, enabled = state.selected.size >= 2),
+                    ),
+                )
             }
         },
     ) { padding ->

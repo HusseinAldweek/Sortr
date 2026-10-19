@@ -6,8 +6,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.verticalScroll
@@ -17,12 +17,12 @@ import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.FaceRetouchingOff
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Password
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.RestartAlt
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -58,6 +58,7 @@ import com.sortr.app.ui.design.ListRow
 import com.sortr.app.ui.design.ScreenPadding
 import com.sortr.app.ui.theme.palette
 import com.sortr.app.ui.vault.VaultAuthDialog
+import com.sortr.app.ui.whatsapp.WhatsAppSettingsSection
 import com.sortr.domain.model.FaceModelState
 import com.sortr.domain.model.VaultBackupException
 import kotlinx.coroutines.launch
@@ -186,6 +187,8 @@ fun SettingsScreen(
                     )
                 }
             }
+
+            WhatsAppSettingsSection(snackbarHostState = snackbarHostState)
 
             PeopleSettings(
                 state = state,

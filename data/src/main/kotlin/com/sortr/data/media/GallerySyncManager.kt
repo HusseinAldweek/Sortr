@@ -29,7 +29,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,6 +42,8 @@ class GallerySyncManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val db: SortrDatabase,
     private val media: MediaStoreSource,
+    private val hiddenFolders: HiddenFolders,
+    private val locator: MediaLocator,
     @ApplicationScope scope: CoroutineScope,
 ) : GallerySync {
 
@@ -86,8 +87,7 @@ class GallerySyncManager @Inject constructor(
         awaitClose { context.contentResolver.unregisterContentObserver(observer) }
     }.debounce(CHANGE_DEBOUNCE_MS)
 
-    override suspend fun existingIds(ids: Collection<Long>): Set<Long> =
-        withContext(Dispatchers.IO) { media.existingIds(ids) }
+    override suspend fun existingIds(ids: Collection<Long>): Set<Long> = locator.existingIds(ids)
 
     private suspend fun syncNow() {
         // Without read access MediaStore returns an empty list, which would look like every
@@ -138,7 +138,81 @@ class GallerySyncManager @Inject constructor(
             "Sync: ${items.size} items, +${inserts.size} ~${updates.size} >${moves.size} -${removed.size} " +
                 "in ${SystemClock.elapsedRealtime() - started} ms",
         )
+        syncHiddenFolders(now)
     }
+
+    /**
+     * Same idea for folders the gallery hides (WhatsApp's sent and private media), read through
+     * the folder permission the user gave. If any folder can't be read, nothing is removed.
+     */
+    private suspend fun syncHiddenFolders(now: Long) {
+        val started = SystemClock.elapsedRealtime()
+        val scans = hiddenFolders.grantedFolders().map { tree -> hiddenFolders.scan(tree) ?: return }
+        val items = scans.flatten().distinctBy { it.id }
+        val known = photoDao.hiddenFolderKeys().associateBy { it.mediaStoreId }
+        val inserts = ArrayList<PhotoEntity>()
+        val updates = ArrayList<PhotoMetadataUpdate>()
+        for (item in items) {
+            val existing = known[item.id]
+            when {
+                existing == null -> inserts += item.toNewEntity(now)
+                existing.dateModified != item.lastModified / 1000 || existing.size != item.size -> updates += item.toMetadataUpdate()
+            }
+        }
+        val seen = items.mapTo(HashSet()) { it.id }
+        val removed = known.keys.filterNot(seen::contains)
+        if (inserts.isEmpty() && updates.isEmpty() && removed.isEmpty()) return
+
+        inserts.chunked(SQL_CHUNK).forEach { db.withTransaction { photoDao.insertAll(it) } }
+        updates.chunked(SQL_CHUNK).forEach { chunk ->
+            db.withTransaction {
+                photoDao.updateMetadata(chunk)
+                db.faceDao().deleteForPhotos(chunk.map { it.mediaStoreId })
+            }
+        }
+        removed.chunked(SQL_CHUNK).forEach { photoDao.deleteByIds(it) }
+        Log.i(
+            TAG,
+            "Hidden folders: ${items.size} items, +${inserts.size} ~${updates.size} -${removed.size} " +
+                "in ${SystemClock.elapsedRealtime() - started} ms",
+        )
+    }
+
+    private fun FolderItem.toNewEntity(now: Long) = PhotoEntity(
+        mediaStoreId = id,
+        uri = uri.toString(),
+        displayName = displayName,
+        mimeType = mimeType,
+        // WhatsApp strips capture dates; the file's time is when it was sent or received.
+        dateTaken = lastModified,
+        size = size,
+        // Filled in by the similar/blurry check, which decodes the photo anyway.
+        width = 0,
+        height = 0,
+        bucketName = bucketName,
+        relativePath = relativePath,
+        dateModified = lastModified / 1000,
+        status = PhotoStatus.UNREVIEWED,
+        statusChangedAt = now,
+        mediaType = mediaType,
+        fromHiddenFolder = true,
+    )
+
+    private fun FolderItem.toMetadataUpdate() = PhotoMetadataUpdate(
+        mediaStoreId = id,
+        uri = uri.toString(),
+        displayName = displayName,
+        mimeType = mimeType,
+        dateTaken = lastModified,
+        size = size,
+        width = 0,
+        height = 0,
+        bucketName = bucketName,
+        relativePath = relativePath,
+        dateModified = lastModified / 1000,
+        mediaType = mediaType,
+        durationMs = null,
+    )
 
     private fun MediaItem.toNewEntity(now: Long) = PhotoEntity(
         mediaStoreId = id,

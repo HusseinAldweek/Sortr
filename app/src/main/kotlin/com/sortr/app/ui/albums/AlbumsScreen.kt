@@ -13,8 +13,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
@@ -32,6 +34,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,15 +51,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.sortr.app.R
+import com.sortr.app.media.DeleteRequestFactory
 import com.sortr.app.media.WriteRequestFactory
 import com.sortr.app.ui.common.formatCount
+import com.sortr.app.ui.common.formatYear
+import com.sortr.app.ui.common.yearOf
 import com.sortr.app.ui.design.BarTextButton
 import com.sortr.app.ui.design.EmptyState
 import com.sortr.app.ui.design.LargeTitleScaffold
 import com.sortr.app.ui.design.PillButton
 import com.sortr.app.ui.design.ScreenPadding
 import com.sortr.app.ui.design.SelectionMark
+import com.sortr.app.ui.design.dragToSelect
 import com.sortr.app.ui.theme.palette
+import com.sortr.data.media.MediaLocator
 import com.sortr.domain.model.Album
 import com.sortr.domain.model.AlbumPaths
 import com.sortr.domain.repository.AppSettings
@@ -72,14 +80,17 @@ import kotlinx.coroutines.launch
 import java.text.Collator
 import javax.inject.Inject
 
-enum class AlbumSort { MOST, LARGEST, NAME, RECENT }
+/** How the album list is ordered; YEAR groups albums under the year of their newest item. */
+enum class AlbumSort { MOST, LARGEST, NAME, RECENT, YEAR }
 
 @HiltViewModel
 class AlbumsViewModel @Inject constructor(
     private val library: LibraryRepository,
     private val settings: AppSettings,
     writeRequests: WriteRequestFactory,
-) : MovingViewModel(library, writeRequests) {
+    deleteRequests: DeleteRequestFactory,
+    locator: MediaLocator,
+) : MovingViewModel(library, writeRequests, deleteRequests, locator) {
 
     /** Remembered between visits, like the Photos app. */
     val sort: StateFlow<AlbumSort> = settings.albumSort
@@ -96,7 +107,7 @@ class AlbumsViewModel @Inject constructor(
             AlbumSort.MOST -> albums.sortedByDescending { it.count }
             AlbumSort.LARGEST -> albums.sortedByDescending { it.sizeBytes }
             AlbumSort.NAME -> Collator.getInstance().let { collator -> albums.sortedWith { a, b -> collator.compare(a.name, b.name) } }
-            AlbumSort.RECENT -> albums.sortedByDescending { it.newest }
+            AlbumSort.RECENT, AlbumSort.YEAR -> albums.sortedByDescending { it.newest }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -202,25 +213,55 @@ fun AlbumsScreen(
                     title = stringResource(R.string.albums_empty_title),
                     body = stringResource(R.string.albums_empty_body),
                 )
-                else -> LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 150.dp),
-                    contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, top = 8.dp, bottom = 32.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    items(list, key = { it.relativePath }) { album ->
-                        AlbumCell(
-                            album = album,
-                            selected = if (selecting) album.relativePath in selected else null,
-                            onClick = {
-                                if (selecting) {
-                                    selected = if (album.relativePath in selected) selected - album.relativePath else selected + album.relativePath
-                                } else {
-                                    onOpenAlbum(album.relativePath)
-                                }
+                else -> {
+                    val gridState = rememberLazyGridState()
+                    // A new order starts at the top, so the first year heading isn't left scrolled away.
+                    var shownSort by rememberSaveable { mutableStateOf(sort) }
+                    LaunchedEffect(sort) {
+                        if (sort != shownSort) {
+                            shownSort = sort
+                            gridState.scrollToItem(0)
+                        }
+                    }
+                    // By year: albums under the year of their newest item; otherwise one plain grid.
+                    val groups = if (sort == AlbumSort.YEAR) list.groupBy { yearOf(it.newest) }.toList() else listOf(null to list)
+                    LazyVerticalGrid(
+                        state = gridState,
+                        columns = GridCells.Adaptive(minSize = 150.dp),
+                        contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, top = 8.dp, bottom = 32.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .dragToSelect(gridState, list.map { it.relativePath }, selected) {
+                                selected = it
+                                if (it.isNotEmpty()) selecting = true
                             },
-                        )
+                    ) {
+                        groups.forEach { (year, albumsOfYear) ->
+                            if (year != null) {
+                                item(span = { GridItemSpan(maxLineSpan) }, key = "year-$year") {
+                                    Text(
+                                        text = formatYear(year),
+                                        style = MaterialTheme.typography.titleLarge,
+                                        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+                                    )
+                                }
+                            }
+                            items(albumsOfYear, key = { it.relativePath }) { album ->
+                                AlbumCell(
+                                    album = album,
+                                    selected = if (selecting) album.relativePath in selected else null,
+                                    onClick = {
+                                        if (selecting) {
+                                            selected = if (album.relativePath in selected) selected - album.relativePath else selected + album.relativePath
+                                        } else {
+                                            onOpenAlbum(album.relativePath)
+                                        }
+                                    },
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -288,4 +329,5 @@ private val AlbumSort.labelRes: Int
         AlbumSort.LARGEST -> R.string.albums_sort_largest
         AlbumSort.NAME -> R.string.albums_sort_name
         AlbumSort.RECENT -> R.string.albums_sort_recent
+        AlbumSort.YEAR -> R.string.albums_sort_year
     }

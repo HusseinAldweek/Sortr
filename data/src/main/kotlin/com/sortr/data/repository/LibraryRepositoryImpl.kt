@@ -13,6 +13,7 @@ import com.sortr.domain.model.DuplicateGroup
 import com.sortr.domain.model.LibraryStats
 import com.sortr.domain.model.MediaSource
 import com.sortr.domain.model.MoveResult
+import com.sortr.domain.model.MovedCopy
 import com.sortr.domain.model.Photo
 import com.sortr.domain.model.PhotoStatus
 import com.sortr.domain.model.QuickCounts
@@ -111,6 +112,8 @@ class LibraryRepositoryImpl @Inject constructor(
 
     override suspend fun movePhotos(photos: Collection<Photo>, relativePath: String): MoveResult =
         mover.move(photos, relativePath)
+
+    override suspend fun completeCopies(copies: Collection<MovedCopy>): Int = mover.completeCopies(copies)
 
     private companion object {
         val TO_REVIEW = setOf(PhotoStatus.UNREVIEWED, PhotoStatus.SKIPPED)

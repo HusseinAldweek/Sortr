@@ -39,6 +39,12 @@ data class PhotoEntity(
     /** Video length in milliseconds; null for photos. */
     @ColumnInfo(defaultValue = "NULL")
     val durationMs: Long? = null,
+    /**
+     * Found by reading a folder the gallery hides (e.g. WhatsApp's sent media), not through
+     * MediaStore. Such rows have negative ids and a document [uri].
+     */
+    @ColumnInfo(defaultValue = "0")
+    val fromHiddenFolder: Boolean = false,
 )
 
 @Entity(

@@ -19,6 +19,9 @@ interface PhotoRepository {
      */
     suspend fun loadSession(filter: SessionFilter): List<Photo>
 
+    /** The photos with these ids that are still known, in the order of [ids]. */
+    suspend fun photosByIds(ids: Collection<Long>): List<Photo>
+
     suspend fun applyDecision(photo: Photo, action: SwipeAction): Decision
 
     /** The same decision for several photos at once, e.g. "keep the best, trash the rest". */

@@ -23,6 +23,9 @@ class PhotoFingerprint(
     val blurScore: Double,
     /** When the photo says it was taken (EXIF), in epoch millis; null if it doesn't say. */
     val exifDateTaken: Long?,
+    /** Full size of the photo, before it was shrunk for analysis. */
+    val width: Int,
+    val height: Int,
 )
 
 /** Photo → perceptual hash and sharpness score, from a small greyscale copy. Fully on-device. */
@@ -32,7 +35,12 @@ class PhotoAnalyzer @Inject constructor(
 ) {
     /** Null when the photo can't be decoded. */
     fun analyze(uri: Uri): PhotoFingerprint? {
-        val bitmap = decode(uri) ?: return null
+        var fullWidth = 0
+        var fullHeight = 0
+        val bitmap = decode(uri) { w, h ->
+            fullWidth = w
+            fullHeight = h
+        } ?: return null
         return try {
             val width = bitmap.width
             val height = bitmap.height
@@ -46,6 +54,8 @@ class PhotoAnalyzer @Inject constructor(
                 hash = PerceptualHash.dHash(gray, width, height),
                 blurScore = BlurMeter.laplacianVariance(gray, width, height),
                 exifDateTaken = exifDateTaken(uri),
+                width = fullWidth,
+                height = fullHeight,
             )
         } finally {
             bitmap.recycle()
@@ -73,8 +83,9 @@ class PhotoAnalyzer @Inject constructor(
         null
     }
 
-    private fun decode(uri: Uri): Bitmap? = try {
+    private fun decode(uri: Uri, onFullSize: (Int, Int) -> Unit): Bitmap? = try {
         val bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri)) { decoder, info, _ ->
+            onFullSize(info.size.width, info.size.height)
             val longest = max(info.size.width, info.size.height)
             if (longest > MAX_SIDE) {
                 val scale = MAX_SIDE.toFloat() / longest

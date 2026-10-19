@@ -16,8 +16,15 @@ interface PhotoDao {
     @Query("SELECT mediaStoreId, dateModified, size, relativePath FROM photos")
     suspend fun syncKeys(): List<PhotoSyncKey>
 
-    @Query("SELECT mediaStoreId FROM photos WHERE mediaType IN (:typeNames)")
+    /** Ids of MediaStore items of these types; rows from hidden folders are synced separately. */
+    @Query("SELECT mediaStoreId FROM photos WHERE mediaType IN (:typeNames) AND fromHiddenFolder = 0")
     suspend fun idsOfTypeNames(typeNames: List<String>): List<Long>
+
+    @Query("SELECT mediaStoreId, dateModified, size, relativePath FROM photos WHERE fromHiddenFolder = 1")
+    suspend fun hiddenFolderKeys(): List<PhotoSyncKey>
+
+    @Query("SELECT mediaStoreId, uri FROM photos WHERE mediaStoreId IN (:ids)")
+    suspend fun urisOf(ids: List<Long>): List<PhotoUriRow>
 
     suspend fun idsOfTypes(types: Collection<MediaType>): List<Long> = idsOfTypeNames(types.map { it.name })
 
@@ -105,6 +112,8 @@ const val SQL_CHUNK = 500
 private const val SCANNABLE = "status IN ('UNREVIEWED', 'KEPT', 'SKIPPED') AND mediaType = 'IMAGE'"
 
 data class IndexProgressRow(val total: Int, val scanned: Int)
+
+data class PhotoUriRow(val mediaStoreId: Long, val uri: String)
 
 data class PhotoSyncKey(
     val mediaStoreId: Long,

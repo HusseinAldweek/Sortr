@@ -21,6 +21,13 @@ class LibraryTest {
         assertFalse(MediaSource.CAMERA.matches("Pictures/Camera roll copy/"))
         assertFalse(MediaSource.DOWNLOADS.matches("Pictures/Downloaded stuff/"))
         assertFalse(MediaSource.SNAPCHAT.matches(null))
+        val sent = "Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/Sent/"
+        assertTrue(MediaSource.WHATSAPP_SENT.matches(sent))
+        assertTrue(MediaSource.WHATSAPP_PHOTOS.matches(sent))
+        assertFalse(MediaSource.WHATSAPP_VIDEOS.matches(sent))
+        assertTrue(MediaSource.WHATSAPP_VIDEOS.matches("Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Video/"))
+        assertTrue(MediaSource.WHATSAPP_PRIVATE.matches("Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Video/Private/"))
+        assertFalse(MediaSource.WHATSAPP_PRIVATE.matches("Pictures/Private/"))
     }
 
     @Test
@@ -58,6 +65,14 @@ class LibraryTest {
     fun `display name is the last folder`() {
         assertEquals("Camera", AlbumPaths.displayName("DCIM/Camera/"))
         assertEquals("WhatsApp Images", AlbumPaths.displayName("Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/"))
+        assertEquals(
+            "WhatsApp Images · Sent",
+            AlbumPaths.displayName("Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/Sent/"),
+        )
+        assertEquals(
+            "WhatsApp Business Video · Private",
+            AlbumPaths.displayName("Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Video/Private/"),
+        )
     }
 
     @Test

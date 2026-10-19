@@ -9,6 +9,7 @@ import android.graphics.Matrix
 import android.graphics.Rect
 import android.media.ExifInterface
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.core.net.toUri
 import com.sortr.domain.model.FaceBox
@@ -17,6 +18,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.InputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.max
@@ -103,7 +105,7 @@ class FaceCropLoader @Inject constructor(
             ExifInterface.ORIENTATION_ROTATE_270 -> 270
             else -> return null
         }
-        val decoder = resolver.openInputStream(uri)?.use { BitmapRegionDecoder.newInstance(it) } ?: return null
+        val decoder = resolver.openInputStream(uri)?.use { regionDecoder(it) } ?: return null
         try {
             val rawW = decoder.width
             val rawH = decoder.height
@@ -176,3 +178,12 @@ class FaceCropLoader @Inject constructor(
         }
     }
 }
+
+/** Android 11 only has the older form of [BitmapRegionDecoder.newInstance]. */
+@Suppress("DEPRECATION")
+private fun regionDecoder(stream: InputStream): BitmapRegionDecoder? =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        BitmapRegionDecoder.newInstance(stream)
+    } else {
+        BitmapRegionDecoder.newInstance(stream, false)
+    }

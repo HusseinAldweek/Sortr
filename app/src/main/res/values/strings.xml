@@ -34,9 +34,7 @@
 
     <!-- Partial access (Android 14+) -->
     <string name="partial_access_title">Sortr can only see some of your photos</string>
-    <string name="partial_access_body">You chose specific photos. To sort your whole gallery, allow access to all photos.</string>
     <string name="partial_access_select_more">Select more</string>
-    <string name="partial_access_allow_all">Allow all</string>
     <string name="partial_access_dialog_title">Allow access to all photos</string>
     <string name="partial_access_dialog_body">On the next screen, tap Permissions, then Photos and videos, and choose Allow all.</string>
 
@@ -88,17 +86,13 @@
         <item quantity="one">%1$s photo · %2$s to free</item>
         <item quantity="other">%1$s photos · %2$s to free</item>
     </plurals>
-    <string name="trash_select_hint">Tap photos to select them.</string>
+    <string name="trash_select_hint">Tap photos to select them, or hold one and drag across others.</string>
     <plurals name="trash_selected">
         <item quantity="one">%1$s selected</item>
         <item quantity="other">%1$s selected</item>
     </plurals>
     <string name="trash_empty_title">Trash is empty</string>
     <string name="trash_empty_body">Photos you swipe left wait here until you empty the Trash.</string>
-    <plurals name="trash_restore_selected">
-        <item quantity="one">Restore %1$s</item>
-        <item quantity="other">Restore %1$s</item>
-    </plurals>
     <string name="trash_restore_all">Restore all</string>
     <string name="trash_empty_action">Empty Trash</string>
     <string name="trash_freed_title">Trash emptied</string>
@@ -129,8 +123,6 @@
 
     <!-- Vault: home and general -->
     <string name="vault_title">Private vault</string>
-    <string name="home_vault_locked">Locked with your PIN</string>
-    <string name="home_vault_not_set_up">Hide photos behind a PIN</string>
     <string name="vault_lock_now">Lock</string>
 
     <!-- Vault: first-time setup -->
@@ -319,8 +311,7 @@
     <string name="person_name_label">Name</string>
     <string name="person_add_name">Add a name</string>
     <string name="person_sort_photos">Sort these photos</string>
-    <string name="person_faces_hint">Tap any face that isn\'t this person, then choose Not this person.</string>
-    <string name="person_not_this_person">Not this person</string>
+    <string name="person_faces_hint">Tap any face that isn\'t this person, then choose Not them. Hold and drag to pick several.</string>
     <string name="person_merge_with">Merge with…</string>
     <string name="person_merged">People merged</string>
     <plurals name="person_faces_removed">
@@ -330,6 +321,7 @@
 
     <!-- Unsorted faces -->
     <string name="unsorted_faces_title">Unsorted faces</string>
+    <string name="unsorted_faces_short">Unsorted</string>
     <string name="unsorted_hint">Faces Sortr wasn\'t sure about. Select faces of the same person to group them.</string>
     <string name="unsorted_empty">No unsorted faces. Faces Sortr isn\'t sure about will show up here.</string>
     <string name="unsorted_sort_photos">Sort these photos</string>
@@ -390,7 +382,6 @@
         <item quantity="one">photo or video left to sort</item>
         <item quantity="other">photos and videos left to sort</item>
     </plurals>
-    <string name="home_hero_of_total">Out of %1$s in your library</string>
     <string name="home_hero_start">Start sorting</string>
     <string name="home_hero_done_title">All caught up</string>
     <string name="home_hero_done_body">Everything has been sorted. New photos will show up here.</string>
@@ -408,8 +399,6 @@
     <string name="home_stats">Stats</string>
     <string name="home_analysis_progress">Checking for duplicates and blur… %1$s of %2$s</string>
     <string name="video_access_title">Sort your videos too</string>
-    <string name="video_access_body">Allow access to videos and they\'ll appear in your sessions.</string>
-    <string name="video_access_allow">Allow videos</string>
 
     <!-- Phase 4: sources -->
     <string name="source_camera">Camera</string>
@@ -422,6 +411,10 @@
     <string name="source_messenger">Messenger and Facebook</string>
     <string name="source_tiktok">TikTok</string>
     <string name="source_downloads">Downloads</string>
+    <string name="source_whatsapp_photos">WhatsApp photos</string>
+    <string name="source_whatsapp_videos">WhatsApp videos</string>
+    <string name="source_whatsapp_sent">WhatsApp sent</string>
+    <string name="source_whatsapp_private">WhatsApp private chats</string>
 
     <!-- Phase 4: session titles -->
     <string name="session_videos">Videos</string>
@@ -445,6 +438,7 @@
     <string name="albums_sort_largest">Largest</string>
     <string name="albums_sort_name">Name</string>
     <string name="albums_sort_recent">Recent</string>
+    <string name="albums_sort_year">By year</string>
     <string name="albums_merge">Merge</string>
     <string name="albums_select_hint">Choose two or more albums to merge.</string>
     <string name="albums_empty_title">No albums yet</string>
@@ -472,6 +466,10 @@
         <item quantity="other">%1$s items couldn\'t be moved</item>
     </plurals>
     <string name="move_cancelled">Nothing was moved</string>
+    <plurals name="moved_result_albums">
+        <item quantity="one">Moved %1$s item into %2$s albums</item>
+        <item quantity="other">Moved %1$s items into %2$s albums</item>
+    </plurals>
 
     <!-- Phase 4: similar photos -->
     <string name="dup_title">Similar photos</string>
@@ -543,4 +541,64 @@
         <item quantity="other">Start · %1$s items</item>
     </plurals>
     <string name="custom_nothing">Nothing matches</string>
+
+    <!-- WhatsApp hidden media -->
+    <string name="whatsapp_section">WhatsApp</string>
+    <string name="whatsapp_name">WhatsApp</string>
+    <string name="whatsapp_business_name">WhatsApp Business</string>
+    <string name="whatsapp_include_title">Include hidden %1$s media</string>
+    <string name="whatsapp_include_body">Photos and videos you sent, and chats with media visibility off. Android will ask to allow the app\'s media folder.</string>
+    <string name="whatsapp_included">Included</string>
+    <string name="whatsapp_section_footer">Received photos and videos already appear in Sortr. Hidden ones are read from WhatsApp\'s folder. Android can\'t confirm deleting those, so Sortr asks you itself first.</string>
+    <string name="whatsapp_remove_title">Stop including hidden %1$s media?</string>
+    <string name="whatsapp_remove_body">Its sent and private photos and videos leave Sortr. Nothing is deleted from your phone.</string>
+    <string name="whatsapp_remove_action">Stop including</string>
+    <string name="whatsapp_added">Hidden WhatsApp media will appear in a moment.</string>
+    <string name="whatsapp_wrong_folder">That isn\'t WhatsApp\'s folder. Tap Use this folder on the folder the picker opens, then Allow.</string>
+    <string name="whatsapp_prompt_title">Sort all your WhatsApp media</string>
+    <string name="whatsapp_prompt_body">Photos and videos you sent, and chats with media visibility off, are hidden from the gallery. Allow WhatsApp\'s folder to include them.</string>
+    <string name="whatsapp_prompt_action">Choose folder</string>
+    <string name="whatsapp_prompt_hint">In the next screen, tap Use this folder, then Allow.</string>
+    <string name="action_not_now">Not now</string>
+    <string name="action_share">Share</string>
+    <string name="vault_title_short">Vault</string>
+    <string name="vault_tile_locked">Locked</string>
+    <string name="vault_tile_set_up">Not set up</string>
+    <string name="trash_restore">Restore</string>
+    <string name="action_deselect">Deselect</string>
+    <string name="album_organize_by_year">Organize by year</string>
+    <string name="album_organize_title">Organize by year?</string>
+    <string name="album_organize_body">Everything moves into %1$s albums, one per year, from “%2$s” to “%3$s”. Android will ask you to allow it.</string>
+    <string name="album_organize_action">Organize</string>
+    <string name="person_not_this_person_short">Not them</string>
+    <string name="unsorted_try_again">Try again</string>
+    <plurals name="unsorted_regrouped">
+        <item quantity="one">Grouped again. %1$s face is still unsorted.</item>
+        <item quantity="other">Grouped again. %1$s faces are still unsorted.</item>
+    </plurals>
+    <string name="action_view">View</string>
+    <string name="share_title">Share with</string>
+    <plurals name="hidden_delete_title">
+        <item quantity="one">Delete %1$s hidden WhatsApp item?</item>
+        <item quantity="other">Delete %1$s hidden WhatsApp items?</item>
+    </plurals>
+    <string name="hidden_delete_body">These are hidden from the gallery, so Android can\'t ask you itself and Sortr asks instead. They\'ll be deleted from your phone for good.</string>
+    <plurals name="hidden_remove_originals_title">
+        <item quantity="one">Remove %1$s hidden WhatsApp original?</item>
+        <item quantity="other">Remove %1$s hidden WhatsApp originals?</item>
+    </plurals>
+    <string name="hidden_remove_originals_body">The copies stay safe in the vault. The originals are hidden from the gallery, so Android can\'t ask you itself and Sortr asks instead.</string>
+    <string name="hidden_moved_originals_body">Copies are now in the album. The originals are in WhatsApp\'s hidden folder, so Android can\'t ask you itself and Sortr asks instead. If you cancel, the copies are removed again.</string>
+    <string name="hidden_delete_action">Delete</string>
+    <string name="hidden_needs_folder_again">Some hidden WhatsApp items couldn\'t be deleted. In Settings, stop including WhatsApp\'s hidden media and include it again to allow deleting.</string>
+    <plurals name="whatsapp_hub_caption">
+        <item quantity="one">WhatsApp photo or video left to sort</item>
+        <item quantity="other">WhatsApp photos and videos left to sort</item>
+    </plurals>
+    <string name="whatsapp_hub_of_total">Out of %1$s · %2$s</string>
+    <string name="whatsapp_hub_folders">Folders</string>
+    <string name="whatsapp_hub_empty_title">No WhatsApp media yet</string>
+    <string name="whatsapp_hub_empty_body">Photos and videos from WhatsApp will show up here.</string>
+    <string name="whatsapp_tile_sent">Sent</string>
+    <string name="whatsapp_tile_private">Private chats</string>
 </resources>

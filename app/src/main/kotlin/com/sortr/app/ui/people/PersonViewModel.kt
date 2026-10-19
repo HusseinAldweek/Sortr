@@ -5,8 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.sortr.app.ui.navigation.PersonRoute
+import com.sortr.domain.model.Decision
 import com.sortr.domain.model.FaceRef
 import com.sortr.domain.model.Person
+import com.sortr.domain.model.Photo
 import com.sortr.domain.repository.PeopleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -32,6 +34,7 @@ data class PersonUiState(
 
 sealed interface PersonEvent {
     data class FacesRemoved(val count: Int) : PersonEvent
+    data class PhotosTrashed(val count: Int) : PersonEvent
     data object Merged : PersonEvent
 }
 
@@ -39,6 +42,7 @@ sealed interface PersonEvent {
 class PersonViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: PeopleRepository,
+    private val photoActions: FacePhotoActions,
 ) : ViewModel() {
 
     val personId: Long = savedStateHandle.toRoute<PersonRoute>().personId
@@ -71,6 +75,35 @@ class PersonViewModel @Inject constructor(
     fun clearSelection() {
         selected.value = emptySet()
     }
+
+    /** Replaces the selection, e.g. while dragging across faces. */
+    fun setSelection(faceIds: Set<Long>) {
+        selected.value = faceIds
+    }
+
+    private var lastTrash: List<Decision> = emptyList()
+
+    /** Moves the photos of the selected faces to the Trash, with Undo. */
+    fun trashSelected() {
+        val faces = selectedFaces()
+        if (faces.isEmpty()) return
+        viewModelScope.launch {
+            lastTrash = photoActions.trash(faces)
+            selected.value = emptySet()
+            _events.send(PersonEvent.PhotosTrashed(lastTrash.size))
+        }
+    }
+
+    fun undoTrash() {
+        val decisions = lastTrash
+        lastTrash = emptyList()
+        viewModelScope.launch { photoActions.undo(decisions) }
+    }
+
+    fun selectedFaces(): List<FaceRef> = state.value.faces.filter { it.faceId in state.value.selected }
+
+    /** The photos behind the selected faces, for viewing. */
+    suspend fun selectedPhotos(): List<Photo> = photoActions.photosOf(selectedFaces())
 
     fun rename(name: String?) {
         viewModelScope.launch { repository.rename(personId, name) }

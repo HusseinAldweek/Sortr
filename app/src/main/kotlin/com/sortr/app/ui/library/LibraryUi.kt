@@ -9,9 +9,12 @@ import androidx.compose.material.icons.rounded.ChatBubble
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Photo
 import androidx.compose.material.icons.rounded.PhotoCamera
+import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.Screenshot
 import androidx.compose.material.icons.rounded.Videocam
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
@@ -39,6 +42,10 @@ val MediaSource.labelRes: Int
         MediaSource.MESSENGER -> R.string.source_messenger
         MediaSource.TIKTOK -> R.string.source_tiktok
         MediaSource.DOWNLOADS -> R.string.source_downloads
+        MediaSource.WHATSAPP_PHOTOS -> R.string.source_whatsapp_photos
+        MediaSource.WHATSAPP_VIDEOS -> R.string.source_whatsapp_videos
+        MediaSource.WHATSAPP_SENT -> R.string.source_whatsapp_sent
+        MediaSource.WHATSAPP_PRIVATE -> R.string.source_whatsapp_private
     }
 
 val MediaSource.icon: ImageVector
@@ -53,6 +60,10 @@ val MediaSource.icon: ImageVector
         MediaSource.MESSENGER -> Icons.Rounded.Forum
         MediaSource.TIKTOK -> Icons.Rounded.MusicNote
         MediaSource.DOWNLOADS -> Icons.Rounded.Download
+        MediaSource.WHATSAPP_PHOTOS -> Icons.Rounded.Photo
+        MediaSource.WHATSAPP_VIDEOS -> Icons.Rounded.PlayCircle
+        MediaSource.WHATSAPP_SENT -> Icons.AutoMirrored.Rounded.Send
+        MediaSource.WHATSAPP_PRIVATE -> Icons.Rounded.VisibilityOff
     }
 
 val MediaSource.color: Color
@@ -68,6 +79,10 @@ val MediaSource.color: Color
             MediaSource.MESSENGER -> indigo
             MediaSource.TIKTOK -> Color(0xFF1C1C1E)
             MediaSource.DOWNLOADS -> orange
+            MediaSource.WHATSAPP_PHOTOS -> blue
+            MediaSource.WHATSAPP_VIDEOS -> pink
+            MediaSource.WHATSAPP_SENT -> teal
+            MediaSource.WHATSAPP_PRIVATE -> indigo
         }
     }
 

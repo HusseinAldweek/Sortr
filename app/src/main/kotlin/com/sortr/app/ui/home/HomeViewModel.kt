@@ -41,8 +41,8 @@ data class FaceScanUiState(
 
 data class BrowseUiState(
     val counts: QuickCounts = QuickCounts(),
-    /** Extra copies in groups of similar photos that are still to be sorted. */
-    val similarToReview: Int = 0,
+    /** Extra copies in groups of similar photos that are still to be sorted; null until counted. */
+    val similarToReview: Int? = null,
     val sources: List<SourceCount> = emptyList(),
     val analysis: AnalysisProgress = AnalysisProgress(0, 0),
 )
@@ -87,11 +87,11 @@ class HomeViewModel @Inject constructor(
     // most every few seconds, always ending with the latest state.
     private val similarToReview = combine(photos.observeSummary(), library.observeAnalysisProgress(), ::Pair)
         .conflate()
-        .transform {
+        .transform<Pair<LibrarySummary, AnalysisProgress>, Int?> {
             emit(library.countToReview(SessionFilter.Duplicates))
             delay(SIMILAR_THROTTLE_MS)
         }
-        .onStart { emit(0) }
+        .onStart { emit(null) }
         .distinctUntilChanged()
 
     private val browse = combine(

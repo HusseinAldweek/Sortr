@@ -6,8 +6,10 @@ import androidx.room.withTransaction
 import com.sortr.data.db.SortrDatabase
 import com.sortr.domain.model.AnalysisProgress
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.coroutineContext
@@ -23,6 +25,7 @@ class PhotoAnalysisIndexer @Inject constructor(
     private val analyzer: PhotoAnalyzer,
 ) {
     private val libraryDao = db.libraryDao()
+    private val analysisDispatcher = Dispatchers.Default.limitedParallelism(PARALLEL_PHOTOS)
 
     suspend fun progress(): AnalysisProgress =
         libraryDao.analysisProgress().let { AnalysisProgress(analysed = it.analysed, total = it.total) }
@@ -31,9 +34,14 @@ class PhotoAnalysisIndexer @Inject constructor(
     suspend fun analyseNextBatch(batchSize: Int = BATCH_SIZE): Int {
         val photos = libraryDao.unanalysed(batchSize)
         if (photos.isEmpty()) return 0
-        val results = photos.map { photo ->
-            coroutineContext.ensureActive()
-            photo to withContext(Dispatchers.Default) { analyzer.analyze(photo.uri.toUri()) }
+        // Several photos at once: each one is mostly decoding, which runs well side by side.
+        val results = coroutineScope {
+            photos.map { photo ->
+                async(analysisDispatcher) {
+                    coroutineContext.ensureActive()
+                    photo to analyzer.analyze(photo.uri.toUri())
+                }
+            }.awaitAll()
         }
         db.withTransaction {
             results.forEach { (photo, result) ->
@@ -42,6 +50,10 @@ class PhotoAnalysisIndexer @Inject constructor(
                 // Without a MediaStore capture date the photo was filed under the day it was
                 // added to the phone. Its own date wins when it's clearly different; a real
                 // MediaStore date is never more than a time-zone difference away from it.
+                // Photos read from hidden folders arrive without a size.
+                if (result != null && photo.width == 0 && result.width > 0) {
+                    libraryDao.setDimensions(photo.mediaStoreId, result.width, result.height)
+                }
                 val exifDate = result?.exifDateTaken
                 if (exifDate != null && abs(exifDate - photo.dateTaken) > DATE_TOLERANCE_MS) {
                     libraryDao.setDateTaken(photo.mediaStoreId, exifDate)
@@ -54,7 +66,10 @@ class PhotoAnalysisIndexer @Inject constructor(
 
     private companion object {
         const val TAG = "PhotoAnalysis"
-        const val BATCH_SIZE = 32
+        const val BATCH_SIZE = 48
+
+        /** Up to four photos at once, leaving the phone's other cores free. */
+        val PARALLEL_PHOTOS = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(2, 4)
         const val UNREADABLE = -1.0
         const val DATE_TOLERANCE_MS = 26L * 60 * 60 * 1000
     }
