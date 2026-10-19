@@ -10,11 +10,13 @@ import com.sortr.data.crypto.PinHasher
 import com.sortr.data.db.SortrDatabase
 import com.sortr.data.media.GallerySyncManager
 import com.sortr.data.repository.AppSettingsImpl
+import com.sortr.data.repository.PeopleRepositoryImpl
 import com.sortr.data.repository.PhotoRepositoryImpl
 import com.sortr.data.vault.VaultAuthImpl
 import com.sortr.data.vault.VaultRepositoryImpl
 import com.sortr.domain.repository.AppSettings
 import com.sortr.domain.repository.GallerySync
+import com.sortr.domain.repository.PeopleRepository
 import com.sortr.domain.repository.PhotoRepository
 import com.sortr.domain.repository.VaultAuth
 import com.sortr.domain.repository.VaultRepository
@@ -83,4 +85,7 @@ abstract class DataBindingsModule {
 
     @Binds
     abstract fun vaultAuth(impl: VaultAuthImpl): VaultAuth
+
+    @Binds
+    abstract fun peopleRepository(impl: PeopleRepositoryImpl): PeopleRepository
 }

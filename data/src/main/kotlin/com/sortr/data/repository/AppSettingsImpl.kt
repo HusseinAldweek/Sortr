@@ -4,11 +4,14 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.sortr.domain.faces.FaceClusterer
 import com.sortr.domain.repository.AppSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 import javax.inject.Inject
@@ -33,7 +36,32 @@ class AppSettingsImpl @Inject constructor(
         store.edit { it[ONBOARDING_DONE] = true }
     }
 
+    override val faceSimilarityThreshold: Flow<Float> = preferences
+        .map { (it[FACE_THRESHOLD] ?: FaceClusterer.DEFAULT_THRESHOLD).coerceIn(FaceClusterer.MIN_THRESHOLD, FaceClusterer.MAX_THRESHOLD) }
+        .distinctUntilChanged()
+
+    override suspend fun setFaceSimilarityThreshold(value: Float) {
+        store.edit { it[FACE_THRESHOLD] = value.coerceIn(FaceClusterer.MIN_THRESHOLD, FaceClusterer.MAX_THRESHOLD) }
+    }
+
+    override val scanOnlyWhileCharging: Flow<Boolean> =
+        preferences.map { it[SCAN_ONLY_WHILE_CHARGING] ?: false }.distinctUntilChanged()
+
+    override suspend fun setScanOnlyWhileCharging(value: Boolean) {
+        store.edit { it[SCAN_ONLY_WHILE_CHARGING] = value }
+    }
+
+    override val notificationPermissionAsked: Flow<Boolean> =
+        preferences.map { it[NOTIFICATION_PERMISSION_ASKED] ?: false }
+
+    override suspend fun setNotificationPermissionAsked() {
+        store.edit { it[NOTIFICATION_PERMISSION_ASKED] = true }
+    }
+
     private companion object {
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
+        val FACE_THRESHOLD = floatPreferencesKey("face_similarity_threshold")
+        val SCAN_ONLY_WHILE_CHARGING = booleanPreferencesKey("scan_only_while_charging")
+        val NOTIFICATION_PERMISSION_ASKED = booleanPreferencesKey("notification_permission_asked")
     }
 }

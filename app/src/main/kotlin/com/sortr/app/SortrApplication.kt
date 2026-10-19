@@ -1,12 +1,15 @@
 package com.sortr.app
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.work.Configuration
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.memory.MemoryCache
 import coil3.request.crossfade
+import com.sortr.app.faces.ScanNotifications
 import com.sortr.app.image.MediaThumbnailFetcher
 import com.sortr.app.image.MediaThumbnailKeyer
 import com.sortr.app.vault.VaultLock
@@ -14,15 +17,22 @@ import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
 @HiltAndroidApp
-class SortrApplication : Application(), SingletonImageLoader.Factory {
+class SortrApplication : Application(), SingletonImageLoader.Factory, Configuration.Provider {
 
     @Inject
     lateinit var vaultLock: VaultLock
+
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
     override fun onCreate() {
         super.onCreate()
         // Lock the vault whenever the app leaves the screen.
         ProcessLifecycleOwner.get().lifecycle.addObserver(vaultLock)
+        ScanNotifications.createChannel(this)
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =

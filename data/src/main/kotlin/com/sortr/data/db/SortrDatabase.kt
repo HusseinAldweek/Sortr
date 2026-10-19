@@ -13,11 +13,13 @@ import androidx.room.TypeConverters
         VaultItemEntity::class,
         ActionEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
     autoMigrations = [
         // v2: vault content hash and dimensions.
         AutoMigration(from = 1, to = 2),
+        // v3: face quality, rejected-person links, pinned people, index on photos.indexed.
+        AutoMigration(from = 2, to = 3),
     ],
 )
 @TypeConverters(Converters::class)
@@ -25,4 +27,5 @@ abstract class SortrDatabase : RoomDatabase() {
     abstract fun photoDao(): PhotoDao
     abstract fun actionDao(): ActionDao
     abstract fun vaultDao(): VaultDao
+    abstract fun faceDao(): FaceDao
 }

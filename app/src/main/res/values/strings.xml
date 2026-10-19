@@ -296,4 +296,89 @@
     <string name="change_pin_confirm">Repeat the new PIN</string>
     <string name="change_pin_done">Vault PIN changed</string>
     <string name="auth_pin_title">Enter your vault PIN</string>
+
+    <string name="action_save">Save</string>
+    <string name="action_more">More options</string>
+
+    <!-- People -->
+    <string name="people_title">People</string>
+    <string name="person_unnamed">Unnamed person</string>
+    <!-- Under a small face picture, where "Unnamed person" doesn't fit. -->
+    <string name="person_unnamed_short">Unnamed</string>
+    <string name="person_hidden_label">Hidden</string>
+    <plurals name="photo_count_short">
+        <item quantity="one">%1$s photo</item>
+        <item quantity="other">%1$s photos</item>
+    </plurals>
+    <plurals name="face_count">
+        <item quantity="one">%1$s face</item>
+        <item quantity="other">%1$s faces</item>
+    </plurals>
+    <string name="home_people_see_all">See all</string>
+    <string name="people_empty_scanning">People will appear here as your photos are scanned.</string>
+    <string name="people_empty">No people found yet.</string>
+    <string name="people_picker_empty">No other people yet.</string>
+    <string name="people_show_hidden">Show hidden people</string>
+    <string name="people_merge">Merge</string>
+    <string name="people_hide">Hide</string>
+    <string name="people_unhide">Show</string>
+    <plurals name="people_merge_title">
+        <item quantity="one">Merge %1$s person?</item>
+        <item quantity="other">Merge %1$s people?</item>
+    </plurals>
+    <string name="people_merge_body">Their faces will be combined into one person.</string>
+    <string name="people_merge_body_named">Their faces will be combined into %1$s.</string>
+
+    <!-- One person -->
+    <string name="person_rename_title">Name this person</string>
+    <string name="person_name_label">Name</string>
+    <string name="person_add_name">Add a name</string>
+    <string name="person_sort_photos">Sort these photos</string>
+    <string name="person_faces_hint">Tap any face that isn\'t this person, then choose Not this person.</string>
+    <string name="person_not_this_person">Not this person</string>
+    <string name="person_merge_with">Merge with…</string>
+    <string name="person_merged">People merged</string>
+    <plurals name="person_faces_removed">
+        <item quantity="one">Removed %1$s face from this person</item>
+        <item quantity="other">Removed %1$s faces from this person</item>
+    </plurals>
+
+    <!-- Unsorted faces -->
+    <string name="unsorted_faces_title">Unsorted faces</string>
+    <string name="unsorted_hint">Faces Sortr wasn\'t sure about. Select faces of the same person to group them.</string>
+    <string name="unsorted_empty">No unsorted faces. Faces Sortr isn\'t sure about will show up here.</string>
+    <string name="unsorted_sort_photos">Sort these photos</string>
+    <string name="unsorted_add_to_person">Add to person</string>
+    <string name="unsorted_new_person">New person</string>
+    <plurals name="unsorted_grouped">
+        <item quantity="one">Grouped %1$s face</item>
+        <item quantity="other">Grouped %1$s faces</item>
+    </plurals>
+
+    <!-- Face scanning -->
+    <string name="face_scan_progress">Scanning faces: %1$s / %2$s</string>
+    <string name="face_scan_waiting_charger">Face scanning will continue while charging.</string>
+    <string name="face_model_missing">Face grouping is off because the face model file is missing. The README says where to put mobilefacenet.tflite.</string>
+    <string name="face_model_unsupported">Face grouping is off because the face model file can\'t be used. The README describes the format Sortr expects.</string>
+    <string name="notification_channel_scan">Face scanning</string>
+    <string name="notification_channel_scan_body">Shows progress while Sortr finds people in your photos.</string>
+    <string name="notification_scan_title">Finding people in your photos</string>
+    <string name="notification_scan_progress">%1$s of %2$s photos</string>
+
+    <!-- Settings: people -->
+    <string name="settings_section_people">People</string>
+    <string name="settings_faces_off">Face grouping is off</string>
+    <string name="settings_face_strictness">Grouping strictness</string>
+    <string name="settings_face_strictness_body">Stricter keeps look-alikes apart. Looser groups more faces together, with more mistakes.</string>
+    <string name="settings_face_strictness_looser">Looser</string>
+    <string name="settings_face_strictness_stricter">Stricter</string>
+    <string name="settings_people_regrouped">People regrouped</string>
+    <string name="settings_scan_charging">Scan only while charging</string>
+    <string name="settings_scan_charging_body">Finding faces uses battery. Turn this on to wait for the charger.</string>
+    <string name="settings_rescan">Rescan all faces</string>
+    <string name="settings_rescan_body">Start face grouping again from scratch.</string>
+    <string name="settings_rescan_confirm_title">Rescan all faces?</string>
+    <string name="settings_rescan_confirm_body">All people, names, merges and corrections will be forgotten, and every photo will be scanned again.</string>
+    <string name="settings_rescan_confirm">Rescan</string>
+    <string name="settings_rescan_started">Scanning all photos again</string>
 </resources>

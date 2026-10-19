@@ -17,7 +17,7 @@ cloud services.
 |---|---|---|
 | 1 | Setup, permissions, gallery loading, swipe (Keep/Delete/Skip), Trash, undo | Done |
 | 2 | Private vault: encryption, fingerprint, PIN, restore, backup | Done |
-| 3 | Offline face grouping, People grid, person sessions | Not started |
+| 3 | Offline face grouping, People grid, person sessions | Done |
 | 4 | Duplicates, blurry photos, screenshots, year/month sessions, albums (merge, sort), stats | Not started |
 | 5 | Polish, performance on large galleries | Not started |
 
@@ -53,7 +53,15 @@ Gradle and target SDK.
 final manifest. The list of permissions that remain is written to
 `app/build/reports/permissions/<variant>.txt`.
 
+ML Kit bundles Google's usage-logging library (`datatransport`). Without `INTERNET` it can't send
+anything. On top of that, the manifest removes its upload backend (`cct`), so it drops events
+at once instead of storing them and scheduling upload jobs; the log shows "Transport backend
+'cct' is not registered". The same build task fails if an upload backend comes back.
+
 App data is also excluded from Android's cloud backup and device-to-device transfer.
+
+The permissions that remain are photo access, fingerprint, notifications and foreground
+service (both for the face scan), plus WorkManager's wake lock and restart after reboot.
 
 ## Installing on your phone
 
@@ -112,25 +120,59 @@ or fingerprint first.
   file and a file that isn't a backup each get their own message.
 - **There is no way to recover a backup if the password is forgotten.**
 
-## Face model (Phase 3)
+## Face model
 
 Face grouping needs a MobileFaceNet model that you supply. It is not committed to git.
 
-- Location: `app/src/main/assets/models/mobilefacenet.tflite`
-- Expected input: one 112×112 RGB face, float32, shape `[1, 112, 112, 3]`, pixel values scaled
-  as `(value − 127.5) / 128`.
-- Expected output: one embedding, shape `[1, 128]` or `[1, 192]`.
+- **File:** `app/src/main/assets/models/mobilefacenet.tflite` (exactly this name).
+- **Input:** float32 tensor `[N, S, S, 3]`, RGB, values scaled as `(value − 127.5) / 128`
+  (about −1 to 1). A uint8 `[N, S, S, 3]` input also works. S is read from the file and is
+  usually 112. With N > 1, only the first slot is used.
+- **Output:** float32 `[N, D]`, D between 64 and 2048 (usually 128 or 192). Sortr
+  L2-normalises it.
+- **Tested with:** the 5,233,552-byte `mobilefacenet.tflite` from
+  [MCarlomagno/FaceRecognitionAuth](https://github.com/MCarlomagno/FaceRecognitionAuth)
+  (input `[1, 112, 112, 3]`, output `[1, 192]`). The log line
+  `Face model loaded: input 112×112, embedding 192` confirms it was read.
 
-The code reads the real input and output shapes from the file when it loads it. If the file is
-missing, the app still works with face grouping turned off and says so. These details will be
-confirmed against your file in Phase 3.
+If the file is missing, or its shapes don't fit the rules above, the app still works with face
+grouping turned off. Home and Settings explain why.
+
+## Face grouping
+
+- **Scanning** runs as a WorkManager job, in batches of 16 photos, newest first. It shows a
+  progress notification and also appears on Home as "Scanning faces: x / y". Progress is
+  saved after every batch, so the job carries on where it stopped after being interrupted, and
+  later runs only scan new or edited photos. There's an optional "Scan only while charging"
+  setting, and the job always waits if the battery is low.
+- **Per photo:** decode a copy at most 1280 px on its longest side (EXIF rotation applied),
+  detect faces with ML Kit's bundled model (landmarks on), drop duplicate detections of the
+  same face, and skip faces under 80 px or with the head turned too far (yaw over 40°, pitch
+  over 30°, roll over 45°). Each face is rotated and scaled so the eyes land on the standard
+  112×112 ArcFace positions, then embedded with MobileFaceNet.
+- **Grouping:** each face is compared with every person's average embedding by cosine
+  similarity. At or above the threshold (0.60 by default, set by "Grouping strictness" in
+  Settings) it joins the closest person, whose average is updated. Within 0.08 below the
+  threshold it goes to Unsorted faces instead of being guessed. Clearly below, a clear face
+  starts a new person. Small or turned faces never start a new person.
+- **People** show up once they have a name or at least two faces. One-off faces of unnamed
+  people are listed under Unsorted faces.
+- **Editing:** rename, merge (from the person page, or long-press several people in the grid),
+  hide, "Not this person" for wrong faces (they're never matched to that person again), and
+  grouping faces from Unsorted into a new or existing person. People you've edited are kept as
+  they are when the strictness changes; everyone else is regrouped from the stored embeddings,
+  without scanning photos again. **Rescan all faces** starts over from scratch.
+- **Privacy:** faces in photos that are in the vault or the Trash are never shown or counted,
+  and those photos aren't scanned.
 
 ## Project layout
 
 ```
-domain/   Plain Kotlin: models, repository interfaces, swipe session logic. No Android code.
-data/     Room database, MediaStore access, gallery sync, settings (DataStore).
-app/      Compose UI, ViewModels, navigation, dependency injection (Hilt).
+domain/   Plain Kotlin: models, repository interfaces, swipe sessions, face maths, alignment
+          and grouping, PIN rules. No Android code; unit-tested on the PC.
+data/     Room database, MediaStore access, gallery sync, settings (DataStore), vault crypto
+          and storage, face detection (ML Kit) and embedding (LiteRT).
+app/      Compose UI, ViewModels, navigation, dependency injection (Hilt), face scan worker.
 scripts/  env.ps1 for the local toolchain.
 ```
 
@@ -170,4 +212,13 @@ losing data.
   If you later deselect a photo, Sortr forgets whether you had reviewed it.
 - In the full-screen view, a zoomed photo can be panned into the black border around it.
 - Uninstalling Sortr deletes its review history and the vault. Export a vault backup first.
-- Debug builds are about 60 MB because unused code isn't stripped. Release builds are about 4 MB.
+- Face grouping is only as good as the model. Very similar-looking people, babies, and photos
+  years apart can be grouped wrongly or split. Use merge and "Not this person" to correct it.
+- Grouping is incremental, so the order photos are scanned in has a small effect on the result.
+  Changing the strictness regroups everyone except people you've edited.
+- Face pictures are cut from the full photo each time they're shown, so person and Unsorted
+  pages with many faces load slowly on big galleries. Phase 5 will look at caching them.
+- Faces smaller than 80 px in the 1280 px scan copy (about 6% of the photo's width) are ignored,
+  so people in the far background of group photos aren't grouped.
+- ML Kit's native code makes the app larger: release builds are about 49 MB, debug builds
+  bigger still.

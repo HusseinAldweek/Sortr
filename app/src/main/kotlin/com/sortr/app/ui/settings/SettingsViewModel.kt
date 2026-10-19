@@ -6,9 +6,14 @@ import android.provider.DocumentsContract
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sortr.app.faces.FaceScanScheduler
 import com.sortr.app.ui.vault.PinFeedback
 import com.sortr.app.vault.VaultLock
+import com.sortr.domain.faces.FaceClusterer
+import com.sortr.domain.model.FaceModelState
 import com.sortr.domain.model.VaultBackupException
+import com.sortr.domain.repository.AppSettings
+import com.sortr.domain.repository.PeopleRepository
 import com.sortr.domain.repository.PhotoRepository
 import com.sortr.domain.repository.VaultAuth
 import com.sortr.domain.repository.VaultRepository
@@ -35,6 +40,10 @@ import javax.inject.Inject
 data class SettingsUiState(
     val vaultSetUp: Boolean = false,
     val lastBackupAt: Long? = null,
+    val faceThreshold: Float = FaceClusterer.DEFAULT_THRESHOLD,
+    val scanOnlyWhileCharging: Boolean = false,
+    val faceModelState: FaceModelState = FaceModelState.READY,
+    val regrouping: Boolean = false,
 )
 
 /** A running export or import. [total] is 0 until the item count is known. */
@@ -48,6 +57,8 @@ sealed interface SettingsEvent {
     data class ImportDone(val imported: Int, val skipped: Int) : SettingsEvent
     data class ImportFailed(val reason: VaultBackupException.Reason?) : SettingsEvent
     data object PinChanged : SettingsEvent
+    data object Regrouped : SettingsEvent
+    data object RescanStarted : SettingsEvent
 }
 
 @HiltViewModel
@@ -57,12 +68,60 @@ class SettingsViewModel @Inject constructor(
     private val vault: VaultRepository,
     private val vaultAuth: VaultAuth,
     private val vaultLock: VaultLock,
+    private val settings: AppSettings,
+    private val people: PeopleRepository,
+    private val faceScan: FaceScanScheduler,
 ) : ViewModel() {
 
-    val state: StateFlow<SettingsUiState> =
-        combine(vaultAuth.isSetUp, vaultAuth.lastBackupAt) { setUp, lastBackup ->
-            SettingsUiState(vaultSetUp = setUp, lastBackupAt = lastBackup)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
+    private val regrouping = MutableStateFlow(false)
+
+    val state: StateFlow<SettingsUiState> = combine(
+        combine(vaultAuth.isSetUp, vaultAuth.lastBackupAt, ::Pair),
+        settings.faceSimilarityThreshold,
+        settings.scanOnlyWhileCharging,
+        people.modelState,
+        regrouping,
+    ) { (setUp, lastBackup), threshold, charging, model, regrouping ->
+        SettingsUiState(
+            vaultSetUp = setUp,
+            lastBackupAt = lastBackup,
+            faceThreshold = threshold,
+            scanOnlyWhileCharging = charging,
+            faceModelState = model,
+            regrouping = regrouping,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
+
+    /** Saves the new threshold and regroups everyone with it. */
+    fun setFaceThreshold(value: Float) {
+        if (regrouping.value) return
+        regrouping.value = true
+        viewModelScope.launch {
+            try {
+                settings.setFaceSimilarityThreshold(value)
+                people.regroup(value)
+                _events.send(SettingsEvent.Regrouped)
+            } finally {
+                regrouping.value = false
+            }
+        }
+    }
+
+    fun setScanOnlyWhileCharging(value: Boolean) {
+        viewModelScope.launch {
+            settings.setScanOnlyWhileCharging(value)
+            faceScan.schedule(restart = true)
+        }
+    }
+
+    /** Forgets all faces and people and scans every photo again. */
+    fun rescanFaces() {
+        viewModelScope.launch {
+            people.resetAll()
+            faceScan.schedule(restart = true)
+            _events.send(SettingsEvent.RescanStarted)
+        }
+    }
 
     private val _progress = MutableStateFlow<BackupProgress?>(null)
     val progress: StateFlow<BackupProgress?> = _progress.asStateFlow()

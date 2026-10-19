@@ -114,7 +114,13 @@ class GallerySyncManager @Inject constructor(
         val removed = known.keys.filterNot(seen::contains)
 
         inserts.chunked(SQL_CHUNK).forEach { db.withTransaction { photoDao.insertAll(it) } }
-        updates.chunked(SQL_CHUNK).forEach { db.withTransaction { photoDao.updateMetadata(it) } }
+        updates.chunked(SQL_CHUNK).forEach { chunk ->
+            db.withTransaction {
+                photoDao.updateMetadata(chunk)
+                // An edited photo gets its faces found again.
+                db.faceDao().deleteForPhotos(chunk.map { it.mediaStoreId })
+            }
+        }
         removed.chunked(SQL_CHUNK).forEach { photoDao.deleteByIds(it) }
 
         Log.i(TAG, "Sync: ${images.size} images, +${inserts.size} ~${updates.size} -${removed.size}")

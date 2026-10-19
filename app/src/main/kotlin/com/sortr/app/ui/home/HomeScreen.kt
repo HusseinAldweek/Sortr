@@ -1,5 +1,9 @@
 package com.sortr.app.ui.home
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,10 +17,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Face
+import androidx.compose.material.icons.rounded.FaceRetouchingNatural
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Settings
@@ -39,6 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,11 +65,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sortr.app.R
+import com.sortr.app.faces.ScanStatus
 import com.sortr.app.ui.common.formatBytes
 import com.sortr.app.ui.common.formatCount
+import com.sortr.app.ui.people.PersonCell
 import com.sortr.app.ui.permission.MediaAccess
 import com.sortr.app.ui.theme.SwipeColors
 import com.sortr.app.ui.vault.RemoveOriginalsCard
+import com.sortr.domain.model.FaceModelState
+import com.sortr.domain.model.Person
 import com.sortr.domain.model.SessionFilter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,6 +83,9 @@ fun HomeScreen(
     onRequestAccess: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onStartSession: (filterKey: String) -> Unit,
+    onOpenPeople: () -> Unit,
+    onOpenPerson: (Long) -> Unit,
+    onOpenUnsorted: () -> Unit,
     onOpenTrash: () -> Unit,
     onOpenVault: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -79,6 +95,16 @@ fun HomeScreen(
     val summary = state.summary
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Ask once to show the scanning notification, when there's a scan to show.
+    val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    val scanPending = state.faceScan.modelState == FaceModelState.READY && !state.faceScan.progress.isComplete
+    LaunchedEffect(state.loaded, scanPending, state.notificationAsked) {
+        if (state.loaded && scanPending && !state.notificationAsked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            viewModel.onNotificationPermissionAsked()
+            notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -108,6 +134,9 @@ fun HomeScreen(
                     }
                 }
                 item { RemoveOriginalsCard(snackbarHostState = snackbarHostState) }
+                if (summary.total > 0) {
+                    item { FaceScanCard(state.faceScan) }
+                }
 
                 when {
                     summary.total == 0 && (state.isSyncing || !state.loaded) -> item { LoadingGalleryCard() }
@@ -124,6 +153,17 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                        if (state.people.isNotEmpty()) {
+                            item {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    SectionHeader(stringResource(R.string.people_title), Modifier.weight(1f))
+                                    TextButton(onClick = onOpenPeople, modifier = Modifier.padding(top = 8.dp)) {
+                                        Text(stringResource(R.string.home_people_see_all))
+                                    }
+                                }
+                            }
+                            item { PeopleRow(state.people, onOpenPerson) }
+                        }
                         item { SectionHeader(stringResource(R.string.home_sessions_header)) }
                         item {
                             NavigationCard(
@@ -137,6 +177,17 @@ fun HomeScreen(
                                 },
                                 onClick = { onStartSession(SessionFilter.AllPhotos.key) },
                             )
+                        }
+                        if (state.unsortedFaces > 0) {
+                            item {
+                                NavigationCard(
+                                    icon = Icons.Rounded.FaceRetouchingNatural,
+                                    iconTint = MaterialTheme.colorScheme.tertiary,
+                                    title = stringResource(R.string.unsorted_faces_title),
+                                    subtitle = pluralStringResource(R.plurals.face_count, state.unsortedFaces, formatCount(state.unsortedFaces)),
+                                    onClick = onOpenUnsorted,
+                                )
+                            }
                         }
                     }
                 }
@@ -177,12 +228,57 @@ fun HomeScreen(
 }
 
 @Composable
-private fun SectionHeader(text: String) {
+private fun SectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.padding(top = 8.dp),
+        modifier = modifier.padding(top = 8.dp),
     )
+}
+
+@Composable
+private fun PeopleRow(people: List<Person>, onOpenPerson: (Long) -> Unit) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        items(people, key = { it.id }) { person ->
+            PersonCell(
+                person = person,
+                avatarSize = 64.dp,
+                onClick = { onOpenPerson(person.id) },
+                modifier = Modifier.width(84.dp),
+            )
+        }
+    }
+}
+
+/** Face scanning status. Shows nothing once every photo has been scanned. */
+@Composable
+private fun FaceScanCard(scan: FaceScanUiState) {
+    val message = when {
+        scan.modelState == FaceModelState.MISSING -> stringResource(R.string.face_model_missing)
+        scan.modelState == FaceModelState.UNSUPPORTED -> stringResource(R.string.face_model_unsupported)
+        scan.progress.isComplete -> return
+        scan.status == ScanStatus.WAITING && scan.onlyWhileCharging -> stringResource(R.string.face_scan_waiting_charger)
+        else -> null
+    }
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.Face, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = message ?: stringResource(R.string.face_scan_progress, formatCount(scan.progress.indexed), formatCount(scan.progress.total)),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            if (scan.modelState == FaceModelState.READY) {
+                Spacer(Modifier.height(10.dp))
+                LinearProgressIndicator(
+                    progress = { if (scan.progress.total == 0) 0f else scan.progress.indexed.toFloat() / scan.progress.total },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
 }
 
 @Composable

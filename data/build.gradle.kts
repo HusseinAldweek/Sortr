@@ -47,6 +47,9 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
+    implementation(libs.mlkit.face.detection)
+    implementation(libs.litert)
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)
 }

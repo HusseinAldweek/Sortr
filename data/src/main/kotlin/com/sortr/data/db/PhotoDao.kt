@@ -30,6 +30,39 @@ interface PhotoDao {
     @Query("SELECT * FROM photos WHERE mediaStoreId = :id")
     suspend fun byId(id: Long): PhotoEntity?
 
+    @Query(
+        "SELECT * FROM photos WHERE status = :status AND mediaStoreId IN " +
+            "(SELECT photoId FROM faces WHERE personId = :personId) ORDER BY dateTaken DESC, mediaStoreId DESC",
+    )
+    suspend fun byStatusWithPerson(status: PhotoStatus, personId: Long): List<PhotoEntity>
+
+    @Query(
+        "SELECT * FROM photos WHERE status = :status AND mediaStoreId IN " +
+            "(SELECT f.photoId FROM faces f WHERE $IS_UNSORTED_FACE) ORDER BY dateTaken DESC, mediaStoreId DESC",
+    )
+    suspend fun byStatusWithUnsortedFaces(status: PhotoStatus): List<PhotoEntity>
+
+    /** Photos still to be scanned for faces, newest first. Trashed and vaulted ones are skipped. */
+    // "indexed" is an SQLite keyword, so the column is always quoted.
+
+    @Query("SELECT * FROM photos WHERE `indexed` = 0 AND $SCANNABLE ORDER BY dateTaken DESC, mediaStoreId DESC LIMIT :limit")
+    suspend fun unindexed(limit: Int): List<PhotoEntity>
+
+    @Query("SELECT mediaStoreId FROM photos WHERE mediaStoreId IN (:ids) AND $SCANNABLE")
+    suspend fun stillScannable(ids: List<Long>): List<Long>
+
+    @Query("UPDATE photos SET `indexed` = 1 WHERE mediaStoreId IN (:ids)")
+    suspend fun markIndexed(ids: List<Long>)
+
+    @Query("UPDATE photos SET `indexed` = 0")
+    suspend fun resetIndexed()
+
+    @Query("SELECT COUNT(*) AS total, COALESCE(SUM(`indexed`), 0) AS scanned FROM photos WHERE $SCANNABLE")
+    fun observeIndexProgress(): Flow<IndexProgressRow>
+
+    @Query("SELECT COUNT(*) AS total, COALESCE(SUM(`indexed`), 0) AS scanned FROM photos WHERE $SCANNABLE")
+    suspend fun indexProgress(): IndexProgressRow
+
     /** Photos swiped into the vault whose encryption never finished, e.g. the app was killed. */
     @Query(
         "SELECT * FROM photos WHERE status = 'VAULTED' AND mediaStoreId NOT IN " +
@@ -69,13 +102,18 @@ interface PhotoDao {
 
 const val SQL_CHUNK = 500
 
+/** Photos that get scanned for faces. */
+private const val SCANNABLE = "status IN ('UNREVIEWED', 'KEPT', 'SKIPPED')"
+
+data class IndexProgressRow(val total: Int, val scanned: Int)
+
 data class PhotoSyncKey(
     val mediaStoreId: Long,
     val dateModified: Long,
     val size: Long,
 )
 
-/** Partial update that leaves status and indexing columns alone. */
+/** Partial update for an edited photo: keeps its review status but marks it for a new face scan. */
 data class PhotoMetadataUpdate(
     val mediaStoreId: Long,
     val uri: String,
@@ -88,6 +126,7 @@ data class PhotoMetadataUpdate(
     val bucketName: String?,
     val relativePath: String?,
     val dateModified: Long,
+    val indexed: Boolean = false,
 )
 
 data class SummaryRow(

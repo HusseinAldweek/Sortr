@@ -5,14 +5,20 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Backup
+import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.FaceRetouchingOff
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Password
@@ -24,14 +30,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -47,6 +56,7 @@ import com.sortr.app.R
 import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.common.formatDate
 import com.sortr.app.ui.vault.VaultAuthDialog
+import com.sortr.domain.model.FaceModelState
 import com.sortr.domain.model.VaultBackupException
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -70,6 +80,7 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var confirmReset by rememberSaveable { mutableStateOf(false) }
+    var confirmRescan by rememberSaveable { mutableStateOf(false) }
     var authFor by rememberSaveable { mutableStateOf<VaultAction?>(null) }
     var askExportPassword by rememberSaveable { mutableStateOf(false) }
     var importUri by rememberSaveable { mutableStateOf<Uri?>(null) }
@@ -142,6 +153,8 @@ fun SettingsScreen(
                     },
                 )
                 SettingsEvent.PinChanged -> context.getString(R.string.change_pin_done)
+                SettingsEvent.Regrouped -> context.getString(R.string.settings_people_regrouped)
+                SettingsEvent.RescanStarted -> context.getString(R.string.settings_rescan_started)
             }
             scope.launch { snackbarHostState.showSnackbar(message) }
         }
@@ -171,6 +184,14 @@ fun SettingsScreen(
                 supportingContent = { Text(stringResource(R.string.settings_reset_reviewed_body)) },
                 leadingContent = { Icon(Icons.Rounded.RestartAlt, contentDescription = null) },
                 modifier = Modifier.clickable { confirmReset = true },
+            )
+
+            SectionTitle(stringResource(R.string.settings_section_people))
+            PeopleSettings(
+                state = state,
+                onThresholdChosen = viewModel::setFaceThreshold,
+                onChargingChanged = viewModel::setScanOnlyWhileCharging,
+                onRescan = { confirmRescan = true },
             )
 
             SectionTitle(stringResource(R.string.settings_section_vault))
@@ -242,6 +263,25 @@ fun SettingsScreen(
         )
     }
 
+    if (confirmRescan) {
+        AlertDialog(
+            onDismissRequest = { confirmRescan = false },
+            title = { Text(stringResource(R.string.settings_rescan_confirm_title)) },
+            text = { Text(stringResource(R.string.settings_rescan_confirm_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmRescan = false
+                        viewModel.rescanFaces()
+                    },
+                ) { Text(stringResource(R.string.settings_rescan_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRescan = false }) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
+    }
+
     authFor?.let { action ->
         VaultAuthDialog(
             onAuthenticated = {
@@ -292,6 +332,77 @@ fun SettingsScreen(
 
     progress?.let { BackupProgressDialog(it) }
 }
+
+@Composable
+private fun PeopleSettings(
+    state: SettingsUiState,
+    onThresholdChosen: (Float) -> Unit,
+    onChargingChanged: (Boolean) -> Unit,
+    onRescan: () -> Unit,
+) {
+    when (state.faceModelState) {
+        FaceModelState.MISSING, FaceModelState.UNSUPPORTED -> {
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_faces_off)) },
+                supportingContent = {
+                    Text(
+                        stringResource(
+                            if (state.faceModelState == FaceModelState.MISSING) R.string.face_model_missing else R.string.face_model_unsupported,
+                        ),
+                    )
+                },
+                leadingContent = { Icon(Icons.Rounded.FaceRetouchingOff, contentDescription = null) },
+            )
+            return
+        }
+        FaceModelState.READY -> Unit
+    }
+
+    // Moves freely while dragging; people are regrouped once the finger lifts.
+    var threshold by remember(state.faceThreshold) { mutableFloatStateOf(state.faceThreshold) }
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.settings_face_strictness)) },
+        supportingContent = {
+            Column {
+                Text(stringResource(R.string.settings_face_strictness_body))
+                Slider(
+                    value = threshold,
+                    onValueChange = { threshold = it },
+                    onValueChangeFinished = { if (threshold != state.faceThreshold) onThresholdChosen(threshold) },
+                    valueRange = STRICTNESS_MIN..STRICTNESS_MAX,
+                    steps = STRICTNESS_STEPS,
+                    enabled = !state.regrouping,
+                    // At the ends the handle sits near the screen edge, where a drag would
+                    // otherwise trigger the system back gesture.
+                    modifier = Modifier.systemGestureExclusion(),
+                )
+                Row {
+                    Text(stringResource(R.string.settings_face_strictness_looser), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.settings_face_strictness_stricter), style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        },
+        leadingContent = { Icon(Icons.Rounded.Tune, contentDescription = null) },
+    )
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.settings_scan_charging)) },
+        supportingContent = { Text(stringResource(R.string.settings_scan_charging_body)) },
+        leadingContent = { Icon(Icons.Rounded.BatteryChargingFull, contentDescription = null) },
+        trailingContent = { Switch(checked = state.scanOnlyWhileCharging, onCheckedChange = onChargingChanged) },
+        modifier = Modifier.clickable { onChargingChanged(!state.scanOnlyWhileCharging) },
+    )
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.settings_rescan)) },
+        supportingContent = { Text(stringResource(R.string.settings_rescan_body)) },
+        leadingContent = { Icon(Icons.Rounded.Refresh, contentDescription = null) },
+        modifier = Modifier.clickable(onClick = onRescan),
+    )
+}
+
+private const val STRICTNESS_MIN = 0.45f
+private const val STRICTNESS_MAX = 0.8f
+/** 0.05 apart: 0.45, 0.50, … 0.80. */
+private const val STRICTNESS_STEPS = 6
 
 @Composable
 private fun SectionTitle(text: String) {

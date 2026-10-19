@@ -10,6 +10,7 @@ import com.sortr.domain.model.Photo
 import com.sortr.domain.model.SessionFilter
 import com.sortr.domain.model.SwipeAction
 import com.sortr.domain.repository.GallerySync
+import com.sortr.domain.repository.PeopleRepository
 import com.sortr.domain.repository.PhotoRepository
 import com.sortr.domain.repository.VaultAuth
 import com.sortr.domain.repository.VaultRepository
@@ -22,6 +23,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -68,6 +71,7 @@ class SwipeViewModel @Inject constructor(
     private val vault: VaultRepository,
     private val gallerySync: GallerySync,
     vaultAuth: VaultAuth,
+    people: PeopleRepository,
 ) : ViewModel() {
 
     val filter: SessionFilter = SessionFilter.fromKey(savedStateHandle.toRoute<SwipeRoute>().filterKey)
@@ -77,6 +81,12 @@ class SwipeViewModel @Inject constructor(
     /** Swiping up needs a vault PIN first. */
     val vaultReady: StateFlow<Boolean> =
         vaultAuth.isSetUp.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /** The person's name, for a person session. */
+    val personName: StateFlow<String?> = when (val f = filter) {
+        is SessionFilter.Person -> people.observePerson(f.personId).map { it?.name }
+        else -> flowOf(null)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     // Decisions and undos are applied one at a time, in the order the user made them.
     private val mutex = Mutex()

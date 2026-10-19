@@ -10,7 +10,7 @@ import com.sortr.domain.model.PhotoStatus
 
 @Entity(
     tableName = "photos",
-    indices = [Index("status"), Index("dateTaken")],
+    indices = [Index("status"), Index("dateTaken"), Index("indexed")],
 )
 data class PhotoEntity(
     @PrimaryKey val mediaStoreId: Long,
@@ -53,24 +53,42 @@ data class PhotoEntity(
 class FaceEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val photoId: Long,
+    /** Bounding box in units of 1/10,000 of the photo's displayed width and height. */
     val left: Int,
     val top: Int,
     val right: Int,
     val bottom: Int,
+    /** L2-normalised embedding, little-endian float32. */
     val embedding: ByteArray,
     val personId: Long?,
+    /** Similarity to the person's average when the face was placed. */
     val confidence: Float,
+    /** FaceQuality ordinal: 0 weak, 1 good. */
+    @ColumnInfo(defaultValue = "0")
+    val quality: Int = 0,
+    /** The user said this face isn't this person. */
+    @ColumnInfo(defaultValue = "NULL")
+    val rejectedPersonId: Long? = null,
 )
 
 @Entity(tableName = "people")
 class PersonEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String?,
+    /** Plain average of the member embeddings (not re-normalised). */
     val averageEmbedding: ByteArray,
+    /** Reserved for a user-chosen cover; screens use the person's largest clear face. */
     val coverFaceId: Long?,
     val hidden: Boolean = false,
+    /** Members counted in [averageEmbedding]. */
     val faceCount: Int = 0,
+    /** Named, merged, hidden or corrected by the user, so regrouping leaves it alone. */
+    @ColumnInfo(defaultValue = "0")
+    val pinned: Boolean = false,
 )
+
+/** BOX_SCALE units per photo width or height. */
+const val BOX_SCALE = 10_000
 
 @Entity(
     tableName = "vault_items",

@@ -20,6 +20,12 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+
+        ndk {
+            // Phones (64- and 32-bit ARM) plus the x86_64 emulator. 32-bit x86 only exists on
+            // old emulators and would add ~16 MB of native face-detection code.
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
     }
 
     buildTypes {
@@ -83,6 +89,9 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.androidx.compiler)
+    implementation(libs.androidx.work.runtime.ktx)
 
     implementation(libs.coil.compose)
     implementation(libs.kotlinx.coroutines.android)
@@ -124,6 +133,15 @@ abstract class VerifyNoNetworkPermissions : DefaultTask() {
                 "Sortr must stay offline, but the merged manifest requests: " +
                     offending.joinToString() +
                     ". Add a tools:node=\"remove\" entry for it in app/src/main/AndroidManifest.xml.",
+            )
+        }
+        // Upload backends for Google's usage-logging library (pulled in by ML Kit).
+        val telemetryBackends = Regex("""android:name="(backend:[^"]+)"""").findAll(manifest).map { it.groupValues[1] }.toList()
+        if (telemetryBackends.isNotEmpty()) {
+            throw GradleException(
+                "Sortr must stay offline, but the merged manifest registers telemetry upload backends: " +
+                    telemetryBackends.joinToString() +
+                    ". Remove them with tools:node=\"remove\" in app/src/main/AndroidManifest.xml.",
             )
         }
         report.get().asFile.writeText(declared.joinToString(separator = "\n", postfix = "\n"))

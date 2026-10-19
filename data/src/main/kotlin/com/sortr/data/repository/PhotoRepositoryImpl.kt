@@ -2,6 +2,7 @@ package com.sortr.data.repository
 
 import androidx.room.withTransaction
 import com.sortr.data.db.ActionEntity
+import com.sortr.data.db.PhotoEntity
 import com.sortr.data.db.SQL_CHUNK
 import com.sortr.data.db.SortrDatabase
 import com.sortr.data.db.toDomain
@@ -32,10 +33,14 @@ class PhotoRepositoryImpl @Inject constructor(
     override fun observeTrash(): Flow<List<Photo>> =
         photoDao.observeByStatusRecentlyChanged(PhotoStatus.TRASHED).map { rows -> rows.map { it.toDomain() } }
 
-    override suspend fun loadSession(filter: SessionFilter): List<Photo> = when (filter) {
-        SessionFilter.AllPhotos -> db.withTransaction {
-            photoDao.byStatusNewestFirst(PhotoStatus.UNREVIEWED) +
-                photoDao.byStatusNewestFirst(PhotoStatus.SKIPPED)
+    override suspend fun loadSession(filter: SessionFilter): List<Photo> {
+        val query: suspend (PhotoStatus) -> List<PhotoEntity> = when (filter) {
+            SessionFilter.AllPhotos -> { status -> photoDao.byStatusNewestFirst(status) }
+            is SessionFilter.Person -> { status -> photoDao.byStatusWithPerson(status, filter.personId) }
+            SessionFilter.UnsortedFaces -> { status -> photoDao.byStatusWithUnsortedFaces(status) }
+        }
+        return db.withTransaction {
+            query(PhotoStatus.UNREVIEWED) + query(PhotoStatus.SKIPPED)
         }.map { it.toDomain() }
     }
 

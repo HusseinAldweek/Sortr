@@ -41,8 +41,11 @@ internal val SwipeAction.labelRes: Int
 /** Buttons under the stack, left to right, matching the physical swipe directions. */
 internal val ButtonOrder = listOf(SwipeAction.DELETE, SwipeAction.SKIP, SwipeAction.PRIVATE, SwipeAction.KEEP)
 
+/** Fallback title; a person session shows the person's name when they have one. */
 @get:StringRes
 internal val SessionFilter.titleRes: Int
     get() = when (this) {
         SessionFilter.AllPhotos -> R.string.session_all_photos
+        is SessionFilter.Person -> R.string.person_unnamed
+        SessionFilter.UnsortedFaces -> R.string.unsorted_faces_title
     }

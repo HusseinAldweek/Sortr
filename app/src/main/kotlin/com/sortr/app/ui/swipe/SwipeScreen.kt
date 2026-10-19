@@ -76,6 +76,7 @@ fun SwipeScreen(
     viewModel: SwipeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val personName by viewModel.personName.collectAsStateWithLifecycle()
     val ready = state as? SwipeUiState.Ready
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -97,7 +98,7 @@ fun SwipeScreen(
     Scaffold(
         topBar = {
             SwipeTopBar(
-                title = stringResource(viewModel.filter.titleRes),
+                title = personName ?: stringResource(viewModel.filter.titleRes),
                 state = ready,
                 onBack = onBack,
                 onUndo = viewModel::onUndo,

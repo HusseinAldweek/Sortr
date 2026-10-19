@@ -16,6 +16,9 @@ coil = "3.2.0"
 coroutines = "1.10.2"
 serialization = "1.8.1"
 biometric = "1.1.0"
+mlkitFaceDetection = "16.1.7"
+litert = "1.4.2"
+work = "2.10.5"
 fragment = "1.8.6"
 javaxInject = "1"
 junit = "4.13.2"
@@ -48,6 +51,13 @@ room-compiler = { group = "androidx.room", name = "room-compiler", version.ref =
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltAndroidx" }
+hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltAndroidx" }
+hilt-androidx-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltAndroidx" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+
+# Bundled model: works fully offline, nothing downloaded at runtime.
+mlkit-face-detection = { group = "com.google.mlkit", name = "face-detection", version.ref = "mlkitFaceDetection" }
+litert = { group = "com.google.ai.edge.litert", name = "litert", version.ref = "litert" }
 
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 
