@@ -6,11 +6,13 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.sortr.app.ui.home.HomeScreen
 import com.sortr.app.ui.permission.MediaAccess
 import com.sortr.app.ui.settings.SettingsScreen
 import com.sortr.app.ui.swipe.SwipeScreen
 import com.sortr.app.ui.trash.TrashScreen
+import com.sortr.app.ui.vault.VaultScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -23,7 +25,11 @@ data class SwipeRoute(val filterKey: String)
 data object TrashRoute
 
 @Serializable
-data object SettingsRoute
+data object VaultRoute
+
+/** [startBackup] opens Settings straight into exporting a vault backup. */
+@Serializable
+data class SettingsRoute(val startBackup: Boolean = false)
 
 @Composable
 fun SortrNavHost(
@@ -46,7 +52,8 @@ fun SortrNavHost(
                     }
                 },
                 onOpenTrash = dropUnlessResumed { navController.navigate(TrashRoute) },
-                onOpenSettings = dropUnlessResumed { navController.navigate(SettingsRoute) },
+                onOpenVault = dropUnlessResumed { navController.navigate(VaultRoute) },
+                onOpenSettings = dropUnlessResumed { navController.navigate(SettingsRoute()) },
             )
         }
         composable<SwipeRoute> {
@@ -55,13 +62,24 @@ fun SortrNavHost(
                 onOpenTrash = dropUnlessResumed {
                     navController.navigate(TrashRoute) { popUpTo(HomeRoute) }
                 },
+                onOpenVault = dropUnlessResumed { navController.navigate(VaultRoute) },
             )
         }
         composable<TrashRoute> {
             TrashScreen(onBack = dropUnlessResumed { navController.popBackStack() })
         }
-        composable<SettingsRoute> {
-            SettingsScreen(onBack = dropUnlessResumed { navController.popBackStack() })
+        composable<VaultRoute> {
+            VaultScreen(
+                onBack = dropUnlessResumed { navController.popBackStack() },
+                onBackUp = dropUnlessResumed { navController.navigate(SettingsRoute(startBackup = true)) },
+            )
+        }
+        composable<SettingsRoute> { entry ->
+            SettingsScreen(
+                startBackup = entry.toRoute<SettingsRoute>().startBackup,
+                onBack = dropUnlessResumed { navController.popBackStack() },
+                onOpenVault = dropUnlessResumed { navController.navigate(VaultRoute) },
+            )
         }
     }
 }

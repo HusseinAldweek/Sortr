@@ -18,7 +18,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.TaskAlt
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
@@ -59,6 +62,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sortr.app.R
 import com.sortr.app.ui.common.formatCount
+import com.sortr.app.ui.vault.RemoveOriginalsCard
 import com.sortr.app.ui.viewer.FullScreenViewer
 import com.sortr.domain.model.Photo
 import com.sortr.domain.model.SwipeAction
@@ -197,6 +201,8 @@ private fun SwipeContent(
     current: Photo,
     state: SwipeUiState.Ready,
     enabledActions: Set<SwipeAction>,
+    canCommit: (SwipeAction) -> Boolean,
+    onBlocked: (SwipeAction) -> Unit,
     onCommit: (Photo, SwipeAction) -> Unit,
     onOpen: (Photo) -> Unit,
 ) {
@@ -226,6 +232,8 @@ private fun SwipeContent(
                 cardState = cardState,
                 cardSize = cardSize,
                 enabledActions = enabledActions,
+                canCommit = canCommit,
+                onBlocked = onBlocked,
                 onCommit = commitWithHaptics,
                 onOpen = onOpen,
                 modifier = Modifier.fillMaxSize(),
@@ -234,8 +242,10 @@ private fun SwipeContent(
         SwipeButtons(
             enabledActions = enabledActions,
             onAction = { action ->
-                if (cardSize != IntSize.Zero) {
-                    scope.launch {
+                when {
+                    cardSize == IntSize.Zero -> Unit
+                    !canCommit(action) -> onBlocked(action)
+                    else -> scope.launch {
                         if (cardState.flyOut(action, cardSize)) commitWithHaptics(current, action)
                     }
                 }
@@ -286,6 +296,8 @@ private fun SwipeButtons(
 @Composable
 private fun SessionDone(
     counts: SessionCounts,
+    snackbarHostState: SnackbarHostState,
+    onOriginalsRemoved: () -> Unit,
     onOpenTrash: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -297,12 +309,18 @@ private fun SessionDone(
         val lines = buildList {
             if (counts.kept > 0) add(pluralStringResource(R.plurals.swipe_done_kept, counts.kept, formatCount(counts.kept)))
             if (counts.trashed > 0) add(pluralStringResource(R.plurals.swipe_done_trashed, counts.trashed, formatCount(counts.trashed)))
+            if (counts.vaulted > 0) add(pluralStringResource(R.plurals.swipe_done_vaulted, counts.vaulted, formatCount(counts.vaulted)))
             if (counts.skipped > 0) add(pluralStringResource(R.plurals.swipe_done_skipped, counts.skipped, formatCount(counts.skipped)))
         }
         lines.forEach { line ->
             Text(line, style = MaterialTheme.typography.bodyLarge)
         }
         Spacer(Modifier.height(24.dp))
+        RemoveOriginalsCard(
+            snackbarHostState = snackbarHostState,
+            onRemoved = onOriginalsRemoved,
+            modifier = Modifier.padding(bottom = 16.dp),
+        )
         if (counts.trashed > 0) {
             Button(onClick = onOpenTrash, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.swipe_go_to_trash))

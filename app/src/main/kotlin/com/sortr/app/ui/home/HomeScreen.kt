@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
@@ -31,6 +32,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,6 +41,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,6 +59,8 @@ import com.sortr.app.R
 import com.sortr.app.ui.common.formatBytes
 import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.permission.MediaAccess
+import com.sortr.app.ui.theme.SwipeColors
+import com.sortr.app.ui.vault.RemoveOriginalsCard
 import com.sortr.domain.model.SessionFilter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,14 +71,17 @@ fun HomeScreen(
     onOpenAppSettings: () -> Unit,
     onStartSession: (filterKey: String) -> Unit,
     onOpenTrash: () -> Unit,
+    onOpenVault: () -> Unit,
     onOpenSettings: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val summary = state.summary
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
@@ -98,6 +107,7 @@ fun HomeScreen(
                         PartialAccessBanner(onSelectMore = onRequestAccess, onAllowAll = onOpenAppSettings)
                     }
                 }
+                item { RemoveOriginalsCard(snackbarHostState = snackbarHostState) }
 
                 when {
                     summary.total == 0 && (state.isSyncing || !state.loaded) -> item { LoadingGalleryCard() }
@@ -148,6 +158,17 @@ fun HomeScreen(
                             stringResource(R.string.home_trash_empty)
                         },
                         onClick = onOpenTrash,
+                    )
+                }
+                item {
+                    NavigationCard(
+                        icon = Icons.Rounded.Lock,
+                        iconTint = SwipeColors.Private,
+                        title = stringResource(R.string.vault_title),
+                        subtitle = stringResource(
+                            if (state.vaultSetUp) R.string.home_vault_locked else R.string.home_vault_not_set_up,
+                        ),
+                        onClick = onOpenVault,
                     )
                 }
             }

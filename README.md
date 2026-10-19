@@ -16,9 +16,9 @@ cloud services.
 | Phase | Contents | State |
 |---|---|---|
 | 1 | Setup, permissions, gallery loading, swipe (Keep/Delete/Skip), Trash, undo | Done |
-| 2 | Private vault: encryption, biometrics, PIN, restore, backup | Not started |
+| 2 | Private vault: encryption, fingerprint, PIN, restore, backup | Done |
 | 3 | Offline face grouping, People grid, person sessions | Not started |
-| 4 | Duplicates, blurry photos, screenshots, sessions by date, stats | Not started |
+| 4 | Duplicates, blurry photos, screenshots, year/month sessions, albums (merge, sort), stats | Not started |
 | 5 | Polish, performance on large galleries | Not started |
 
 ## Building
@@ -72,6 +72,46 @@ App data is also excluded from Android's cloud backup and device-to-device trans
 Without a cable: copy `app-debug.apk` to the phone, open it in the Files app, and allow
 "Install unknown apps" for the Files app when asked.
 
+## Private vault
+
+Swiping up moves a photo into an encrypted vault inside the app.
+
+- **First use.** The first swipe up asks you to set up the vault. Setup warns that uninstalling
+  Sortr deletes the vault, then asks for a 4 to 12 digit PIN.
+- **Encryption.** Each photo gets its own random AES-256 key and is encrypted with AES-GCM
+  into the app's private storage (`no_backup/vault/`). The per-photo key is itself encrypted
+  by a master key held in the Android Keystore, which can't be copied off the phone. A small
+  encrypted thumbnail is stored too, so the grid opens quickly.
+- **Verification before removal.** After encrypting, Sortr decrypts the copy and compares
+  SHA-256 hashes. Only verified photos are offered for removal from the gallery, in one batch
+  behind Android's confirmation dialog. If you tap Deny, the originals stay where they are and a
+  reminder appears on Home.
+- **Unlocking.** Fingerprint (strong biometrics only), with the PIN as a fallback. The PIN
+  is stored only as an HMAC made with another Keystore key. After 5 wrong PINs there is a wait,
+  starting at 30 seconds and doubling up to 15 minutes.
+- **Privacy on screen.** Vault screens block screenshots and screen recording, and Sortr's
+  preview in the recent apps list goes blank. The vault locks whenever Sortr leaves the screen.
+- **Memory only.** Photos are decrypted into memory for viewing, through a separate image
+  loader with no disk cache, which is cleared when the vault locks. Nothing decrypted is
+  written to disk.
+- **Restore** saves the photo to `Pictures/Sortr` and removes it from the vault. **Delete**
+  removes it permanently, after a confirmation.
+- **Undo** works on a swipe up until the original has been removed from the gallery.
+
+### Backups
+
+Settings has **Export vault backup** and **Import vault backup**. Both ask for the vault PIN
+or fingerprint first.
+
+- Because the Keystore key can't leave the phone, a backup is encrypted with a separate backup
+  password you choose (at least 8 characters). The key is derived with PBKDF2-HMAC-SHA256 at
+  600,000 iterations.
+- File format: a `SORTRBAK` header, then AES-GCM chunks. Each chunk is authenticated together
+  with the header and its position, so tampering, reordering or truncation is detected.
+- Import skips photos already in the vault, matched by SHA-256. A wrong password, a damaged
+  file and a file that isn't a backup each get their own message.
+- **There is no way to recover a backup if the password is forgotten.**
+
 ## Face model (Phase 3)
 
 Face grouping needs a MobileFaceNet model that you supply. It is not committed to git.
@@ -110,16 +150,24 @@ losing data.
   tap Deny, nothing is deleted and the photos stay in the Trash. Sortr can't delete a photo
   without that system confirmation.
 
-## Known limitations (Phase 1)
+## Known limitations
 
-- Images only; videos are ignored.
-- Swiping up (Private) is turned off until the vault arrives in Phase 2.
+- Images only; videos are ignored for now.
 - Undo history covers the current session only. Your decisions are kept when you leave a
   session, but they can no longer be undone from the swipe screen. Kept and skipped photos can
   be reset in Settings, and deleted ones restored from the Trash.
+- The fingerprint and PIN guard the vault screens, but they aren't part of the encryption key.
+  This is so photos can be encrypted while you swipe, without a prompt each time. The vault
+  protects against someone who picks up your unlocked phone. It doesn't protect against an
+  attacker who can run their own code on a rooted phone.
+- Vault photo names and dates are stored unencrypted in the app's private database. The photos
+  and thumbnails themselves are encrypted.
+- Restored vault photos go to `Pictures/Sortr`, not the album they came from.
+- Opening the file picker for a backup sends Sortr to the background, so the vault locks.
+  That's expected: you'll be asked for the PIN again next time.
 - Photos restored from the Trash come back as unreviewed.
 - With "Select photos" access (Android 14+), Sortr only knows about the photos you selected.
   If you later deselect a photo, Sortr forgets whether you had reviewed it.
 - In the full-screen view, a zoomed photo can be panned into the black border around it.
-- Uninstalling Sortr deletes its review history (and, from Phase 2, the vault).
-- Debug builds are about 60 MB because unused code isn't stripped. Release builds are smaller.
+- Uninstalling Sortr deletes its review history and the vault. Export a vault backup first.
+- Debug builds are about 60 MB because unused code isn't stripped. Release builds are about 4 MB.
