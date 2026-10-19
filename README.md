@@ -1,14 +1,15 @@
 # Sortr
 
-An Android app for cleaning up your photo gallery by swiping, with photos grouped by the people
-in them. Everything runs on the phone. The app has no internet permission, no analytics and no
+An Android app for cleaning up your photo and video gallery by swiping, with photos grouped by
+the people in them, similar and blurry photos found for you, and albums you can merge and
+rename. Everything runs on the phone. The app has no internet permission, no analytics and no
 cloud services.
 
 | Swipe | Meaning |
 |---|---|
 | Right | **Keep.** Won't show up again unless you reset reviewed photos. |
 | Left | **Delete.** Goes to Sortr's Trash. Nothing leaves the phone until you empty the Trash and confirm. |
-| Up | **Private.** Moves the photo into the encrypted vault *(Phase 2)*. |
+| Up | **Private.** Moves the photo into the encrypted vault. Photos only, not videos. |
 | Down | **Skip.** No decision. It comes back in the next session. |
 
 ## Status
@@ -18,7 +19,7 @@ cloud services.
 | 1 | Setup, permissions, gallery loading, swipe (Keep/Delete/Skip), Trash, undo | Done |
 | 2 | Private vault: encryption, fingerprint, PIN, restore, backup | Done |
 | 3 | Offline face grouping, People grid, person sessions | Done |
-| 4 | Duplicates, blurry photos, screenshots, year/month sessions, albums (merge, sort), stats | Not started |
+| 4 | Videos, similar and blurry photos, sessions by year/month/album/app/size, albums (merge, rename, move), custom sessions, stats, new look | Done |
 | 5 | Polish, performance on large galleries | Not started |
 
 ## Building
@@ -60,8 +61,9 @@ at once instead of storing them and scheduling upload jobs; the log shows "Trans
 
 App data is also excluded from Android's cloud backup and device-to-device transfer.
 
-The permissions that remain are photo access, fingerprint, notifications and foreground
-service (both for the face scan), plus WorkManager's wake lock and restart after reboot.
+The permissions that remain are photo and video access, fingerprint, notifications and
+foreground service (both for the background scan), plus WorkManager's wake lock and restart
+after reboot.
 
 ## Installing on your phone
 
@@ -140,8 +142,9 @@ grouping turned off. Home and Settings explain why.
 
 ## Face grouping
 
-- **Scanning** runs as a WorkManager job, in batches of 16 photos, newest first. It shows a
-  progress notification and also appears on Home as "Scanning faces: x / y". Progress is
+- **Scanning** runs as a WorkManager job, after the similar/blurry check, in batches of 16
+  photos, newest first. It shows a progress notification and also appears on Home as "Finding
+  people… x of y". Progress is
   saved after every batch, so the job carries on where it stopped after being interrupted, and
   later runs only scan new or edited photos. There's an optional "Scan only while charging"
   setting, and the job always waits if the battery is low.
@@ -165,14 +168,76 @@ grouping turned off. Home and Settings explain why.
 - **Privacy:** faces in photos that are in the vault or the Trash are never shown or counted,
   and those photos aren't scanned.
 
+## Browsing and cleaning up
+
+Home starts with how much is left to sort and a **Start sorting** button. Below it:
+
+- **Browse.** Tiles with a count each:
+  - **By date:** years, each opening into months. Every year and month can be sorted on its own.
+  - **Albums:** every folder with photos or videos.
+  - **Similar:** groups of near-identical photos.
+  - **Blurry:** photos that look out of focus.
+  - **Videos.**
+  - **Large files:** 5 MB and over, largest first.
+- **Custom session.** Mix a type (photos or videos), a year and month, any albums and a
+  minimum size. The button shows how many items match before you start.
+- **From apps.** Camera, Screenshots, Screen recordings, WhatsApp, Snapchat, Telegram,
+  Instagram, Messenger/Facebook, TikTok and Downloads, recognised by their folder names. Only
+  the ones you have show up. Tapping one starts a session.
+- **Library.** Trash, the private vault, and **Stats**: how much you've sorted, space freed,
+  every kind of decision, and photos per year.
+
+### Similar and blurry photos
+
+A background job checks every photo once, newest first, in batches of 32. It shares the
+notification and the charging setting with the face scan, and runs even without the face model.
+
+- **Similar** uses a 64-bit difference hash (dHash) of a 9×8 greyscale thumbnail. Photos whose
+  hashes differ in 6 bits or fewer are grouped. A BK-tree finds the matches without comparing
+  every pair. Resized, recompressed, lightly edited and blurred copies all land in the same
+  group.
+- In each group the **best copy** is the one with the most pixels, then the sharpest, then the
+  largest file, then the oldest. Tap another photo to keep that one instead. **Keep best, trash
+  N** sends the others to the Trash, with Undo. **Keep all** marks the group as not duplicates.
+  **Clean up all groups** does every group at once, after a confirmation.
+- **Blurry** uses the variance of the Laplacian (an edge filter) on a copy at most 512 px wide.
+  Below 60 counts as blurry.
+- While checking, Sortr also reads the date stored in the photo itself. MediaStore leaves the
+  date empty for photos whose camera didn't record a time zone, and those photos would
+  otherwise be filed under the day they were added to the phone.
+
+### Albums
+
+- Sort the album list by most items, largest, name or most recent.
+- **Merge:** tap Select, choose two or more albums, tap Merge, and pick one of them or create a
+  new album.
+- In an album: **Sort this album** starts a session; **Select** (or long-press a photo) then
+  **Move to…** moves photos to another album; **⋯ → Rename** renames it.
+- Android shows one "Allow Sortr to modify N photos?" dialog per move, covering up to 1,000
+  items. Nothing moves if you tap Deny.
+- Moving only changes the folder. The photo, its review status, its faces and its
+  similar/blurry results stay the same.
+- Android only allows moving into folders under `DCIM/` or `Pictures/`. Other albums, like
+  Downloads or WhatsApp's, can be moved *from* but not *into*, and the picker shows them greyed
+  out. New albums go in `Pictures/`.
+
+### Videos
+
+Videos appear in sessions, albums and the date and app groupings, with a play symbol and their
+length. Tapping a video card plays it full screen (tap to pause). You can keep, skip or trash
+them; the vault is photos only for now. Videos aren't checked for similarity or faces.
+
 ## Project layout
 
 ```
 domain/   Plain Kotlin: models, repository interfaces, swipe sessions, face maths, alignment
-          and grouping, PIN rules. No Android code; unit-tested on the PC.
-data/     Room database, MediaStore access, gallery sync, settings (DataStore), vault crypto
-          and storage, face detection (ML Kit) and embedding (LiteRT).
-app/      Compose UI, ViewModels, navigation, dependency injection (Hilt), face scan worker.
+          and grouping, perceptual hash, blur score, duplicate grouping, session filters, album
+          rules, PIN rules. No Android code; unit-tested on the PC.
+data/     Room database, MediaStore access (photos and videos), gallery sync, album moves,
+          settings (DataStore), vault crypto and storage, photo analysis, face detection (ML Kit)
+          and embedding (LiteRT).
+app/      Compose UI (design system in ui/design), ViewModels, navigation, dependency injection
+          (Hilt), background scan worker.
 scripts/  env.ps1 for the local toolchain.
 ```
 
@@ -182,11 +247,13 @@ losing data.
 ## How it works
 
 - **Gallery sync.** On launch, on resume, and whenever the gallery changes, Sortr compares
-  MediaStore with its database. It adds new photos, updates edited ones, and removes rows for
-  photos deleted outside the app. It never touches the database when it has no photo access,
-  so revoking permission can't wipe your progress.
-- **Sessions.** A session is a snapshot: unreviewed photos first, then previously skipped
-  ones, newest first. Each decision is saved immediately, so leaving halfway loses nothing.
+  MediaStore's photos and videos with its database. It adds new items, updates edited ones,
+  follows items moved to another album, and removes rows for items deleted outside the app. It
+  never touches rows of a type (photos or videos) it currently has no access to, so revoking
+  permission can't wipe your progress.
+- **Sessions.** A session is a snapshot: unreviewed items first, then previously skipped ones,
+  newest first (blurriest first for Blurry, largest first for Large files). Each decision is
+  saved immediately, so leaving halfway loses nothing.
 - **Undo.** The last 50 decisions of the current session can be undone, one at a time.
 - **Deleting.** Empty Trash asks Android for one confirmation covering every photo. If you
   tap Deny, nothing is deleted and the photos stay in the Trash. Sortr can't delete a photo
@@ -194,7 +261,14 @@ losing data.
 
 ## Known limitations
 
-- Images only; videos are ignored for now.
+- Videos can't go in the vault yet, and aren't checked for similarity or faces.
+- The blur check can't tell a blurry photo from a plain one: a clear sky, a white wall or a
+  dark night shot can also show up under Blurry. Look before trashing.
+- Similar photos are found by overall structure, so the same drawing in different colours, or
+  photos of the same scene taken seconds apart, also count as similar. That's usually what you
+  want for bursts, but check the group before cleaning up.
+- Merging or renaming leaves the old, now empty folder on the phone's storage. Gallery apps
+  don't show empty folders.
 - Undo history covers the current session only. Your decisions are kept when you leave a
   session, but they can no longer be undone from the swipe screen. Kept and skipped photos can
   be reset in Settings, and deleted ones restored from the Trash.
@@ -220,5 +294,7 @@ losing data.
   pages with many faces load slowly on big galleries. Phase 5 will look at caching them.
 - Faces smaller than 80 px in the 1280 px scan copy (about 6% of the photo's width) are ignored,
   so people in the far background of group photos aren't grouped.
-- ML Kit's native code makes the app larger: release builds are about 49 MB, debug builds
+- ML Kit's native code makes the app larger: release builds are about 52 MB, debug builds
   bigger still.
+- Counts like "in your library" include photos in the Trash and the vault until they're
+  deleted or their originals removed.

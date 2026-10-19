@@ -22,9 +22,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BrokenImage
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -69,6 +71,7 @@ import com.sortr.app.R
 import com.sortr.app.image.cardImageRequest
 import com.sortr.app.ui.common.formatBytes
 import com.sortr.app.ui.common.formatDate
+import com.sortr.app.ui.common.formatDuration
 import com.sortr.domain.model.Photo
 import com.sortr.domain.model.SwipeAction
 import kotlinx.coroutines.CancellationException
@@ -354,7 +357,11 @@ internal fun PhotoCardContent(
         ) {
             AsyncImage(
                 model = request,
-                contentDescription = stringResource(R.string.swipe_card_description, formatDate(photo.dateTaken)),
+                contentDescription = if (photo.isVideo) {
+                    stringResource(R.string.swipe_video_description, formatDate(photo.dateTaken), formatDuration(photo.durationMs ?: 0))
+                } else {
+                    stringResource(R.string.swipe_card_description, formatDate(photo.dateTaken))
+                },
                 contentScale = ContentScale.Fit,
                 onState = { loadState = it },
                 modifier = Modifier.fillMaxSize(),
@@ -372,6 +379,19 @@ internal fun PhotoCardContent(
                     Spacer(Modifier.height(8.dp))
                     Text(stringResource(R.string.swipe_image_error), color = Color.White)
                 }
+                is AsyncImagePainter.State.Success -> if (photo.isVideo) {
+                    // Tapping the card plays the video full screen.
+                    Icon(
+                        imageVector = Icons.Rounded.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(76.dp)
+                            .background(Color.Black.copy(alpha = 0.4f), CircleShape)
+                            .padding(14.dp),
+                    )
+                }
                 else -> Unit
             }
             CardDetails(photo, Modifier.align(Alignment.BottomCenter))
@@ -388,12 +408,13 @@ private fun CardDetails(photo: Photo, modifier: Modifier = Modifier) {
             .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f))))
             .padding(start = 20.dp, end = 20.dp, top = 32.dp, bottom = 16.dp),
     ) {
+        val details = stringResource(
+            R.string.swipe_card_details,
+            formatDate(photo.dateTaken),
+            formatBytes(context, photo.sizeBytes),
+        )
         Text(
-            text = stringResource(
-                R.string.swipe_card_details,
-                formatDate(photo.dateTaken),
-                formatBytes(context, photo.sizeBytes),
-            ),
+            text = photo.durationMs?.let { stringResource(R.string.count_with_review, details, formatDuration(it)) } ?: details,
             color = Color.White,
             style = MaterialTheme.typography.titleMedium,
         )

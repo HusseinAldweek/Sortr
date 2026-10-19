@@ -20,14 +20,37 @@ enum class MediaAccess {
 
 object MediaPermissions {
 
-    /** What to ask for. On Android 14+ asking for both shows the "Allow all / Select photos" choice. */
+    /**
+     * What to ask for: photos and videos in one prompt. On Android 14+ adding the "user
+     * selected" permission shows the "Allow all / Select photos" choice.
+     */
     val requested: Array<String> = when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> arrayOf(
             Manifest.permission.READ_MEDIA_IMAGES,
+            Manifest.permission.READ_MEDIA_VIDEO,
             Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED,
         )
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> arrayOf(
+            Manifest.permission.READ_MEDIA_IMAGES,
+            Manifest.permission.READ_MEDIA_VIDEO,
+        )
         else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+    }
+
+    /**
+     * False when photos are allowed but videos aren't, e.g. access granted before Sortr
+     * handled videos. "Select photos" access covers both, since the user picks items themselves.
+     * Android also reports the "selected" permission as granted alongside full photo access,
+     * so it only counts when full photo access is missing.
+     */
+    fun hasVideoAccess(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
+        fun granted(permission: String) =
+            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        if (granted(Manifest.permission.READ_MEDIA_VIDEO)) return true
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            !granted(Manifest.permission.READ_MEDIA_IMAGES) &&
+            granted(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
     }
 
     fun currentAccess(context: Context): MediaAccess {

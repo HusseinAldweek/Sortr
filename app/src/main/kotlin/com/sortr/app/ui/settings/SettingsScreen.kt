@@ -3,15 +3,15 @@ package com.sortr.app.ui.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.CloudOff
@@ -24,19 +24,14 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Password
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -55,6 +51,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sortr.app.R
 import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.common.formatDate
+import com.sortr.app.ui.design.GroupedSection
+import com.sortr.app.ui.design.IconBadge
+import com.sortr.app.ui.design.LargeTitleScaffold
+import com.sortr.app.ui.design.ListRow
+import com.sortr.app.ui.design.ScreenPadding
+import com.sortr.app.ui.theme.palette
 import com.sortr.app.ui.vault.VaultAuthDialog
 import com.sortr.domain.model.FaceModelState
 import com.sortr.domain.model.VaultBackupException
@@ -64,7 +66,6 @@ import java.time.LocalDate
 /** Vault actions that need the PIN or fingerprint first. */
 private enum class VaultAction { EXPORT, IMPORT }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     startBackup: Boolean,
@@ -160,33 +161,32 @@ fun SettingsScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
-                },
-            )
-        },
+    LargeTitleScaffold(
+        title = stringResource(R.string.settings_title),
+        onBack = onBack,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
+        val palette = MaterialTheme.palette
         Column(
             Modifier
                 .padding(padding)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(start = ScreenPadding, end = ScreenPadding, bottom = 32.dp),
         ) {
-            SectionTitle(stringResource(R.string.settings_section_sorting))
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_reset_reviewed)) },
-                supportingContent = { Text(stringResource(R.string.settings_reset_reviewed_body)) },
-                leadingContent = { Icon(Icons.Rounded.RestartAlt, contentDescription = null) },
-                modifier = Modifier.clickable { confirmReset = true },
-            )
+            GroupedSection(
+                header = stringResource(R.string.settings_section_sorting),
+                footer = stringResource(R.string.settings_reset_reviewed_body),
+            ) {
+                row {
+                    ListRow(
+                        title = stringResource(R.string.settings_reset_reviewed),
+                        icon = Icons.Rounded.RestartAlt,
+                        iconColor = palette.blue,
+                        onClick = { confirmReset = true },
+                    )
+                }
+            }
 
-            SectionTitle(stringResource(R.string.settings_section_people))
             PeopleSettings(
                 state = state,
                 onThresholdChosen = viewModel::setFaceThreshold,
@@ -194,53 +194,69 @@ fun SettingsScreen(
                 onRescan = { confirmRescan = true },
             )
 
-            SectionTitle(stringResource(R.string.settings_section_vault))
-            if (!state.vaultSetUp) {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.settings_vault_set_up)) },
-                    supportingContent = { Text(stringResource(R.string.settings_vault_set_up_body)) },
-                    leadingContent = { Icon(Icons.Rounded.Lock, contentDescription = null) },
-                    modifier = Modifier.clickable(onClick = onOpenVault),
-                )
-            } else {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.settings_change_pin)) },
-                    leadingContent = { Icon(Icons.Rounded.Password, contentDescription = null) },
-                    modifier = Modifier.clickable {
-                        viewModel.clearPinFeedback()
-                        changingPin = true
-                    },
-                )
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.settings_export_backup)) },
-                    supportingContent = {
-                        Text(
-                            state.lastBackupAt?.let { stringResource(R.string.settings_last_backup, formatDate(it)) }
-                                ?: stringResource(R.string.settings_never_backed_up),
+            GroupedSection(header = stringResource(R.string.settings_section_vault)) {
+                if (!state.vaultSetUp) {
+                    row {
+                        ListRow(
+                            title = stringResource(R.string.settings_vault_set_up),
+                            subtitle = stringResource(R.string.settings_vault_set_up_body),
+                            icon = Icons.Rounded.Lock,
+                            iconColor = palette.indigo,
+                            onClick = onOpenVault,
                         )
-                    },
-                    leadingContent = { Icon(Icons.Rounded.Backup, contentDescription = null) },
-                    modifier = Modifier.clickable { begin(VaultAction.EXPORT) },
-                )
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.settings_import_backup)) },
-                    supportingContent = { Text(stringResource(R.string.settings_import_backup_body)) },
-                    leadingContent = { Icon(Icons.Rounded.Download, contentDescription = null) },
-                    modifier = Modifier.clickable { begin(VaultAction.IMPORT) },
-                )
+                    }
+                } else {
+                    row {
+                        ListRow(
+                            title = stringResource(R.string.settings_change_pin),
+                            icon = Icons.Rounded.Password,
+                            iconColor = palette.gray,
+                            onClick = {
+                                viewModel.clearPinFeedback()
+                                changingPin = true
+                            },
+                        )
+                    }
+                    row {
+                        ListRow(
+                            title = stringResource(R.string.settings_export_backup),
+                            subtitle = state.lastBackupAt?.let { stringResource(R.string.settings_last_backup, formatDate(it)) }
+                                ?: stringResource(R.string.settings_never_backed_up),
+                            icon = Icons.Rounded.Backup,
+                            iconColor = palette.blue,
+                            onClick = { begin(VaultAction.EXPORT) },
+                        )
+                    }
+                    row {
+                        ListRow(
+                            title = stringResource(R.string.settings_import_backup),
+                            subtitle = stringResource(R.string.settings_import_backup_body),
+                            icon = Icons.Rounded.Download,
+                            iconColor = palette.green,
+                            onClick = { begin(VaultAction.IMPORT) },
+                        )
+                    }
+                }
             }
 
-            SectionTitle(stringResource(R.string.settings_section_about))
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_privacy_title)) },
-                supportingContent = { Text(stringResource(R.string.settings_privacy_body)) },
-                leadingContent = { Icon(Icons.Rounded.CloudOff, contentDescription = null) },
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.app_name)) },
-                supportingContent = { Text(stringResource(R.string.settings_version, versionName)) },
-                leadingContent = { Icon(Icons.Rounded.Info, contentDescription = null) },
-            )
+            GroupedSection(header = stringResource(R.string.settings_section_about)) {
+                row {
+                    ListRow(
+                        title = stringResource(R.string.settings_privacy_title),
+                        subtitle = stringResource(R.string.settings_privacy_body),
+                        icon = Icons.Rounded.CloudOff,
+                        iconColor = palette.teal,
+                    )
+                }
+                row {
+                    ListRow(
+                        title = stringResource(R.string.app_name),
+                        icon = Icons.Rounded.Info,
+                        iconColor = palette.gray,
+                        value = stringResource(R.string.settings_version, versionName),
+                    )
+                }
+            }
         }
     }
 
@@ -340,19 +356,22 @@ private fun PeopleSettings(
     onChargingChanged: (Boolean) -> Unit,
     onRescan: () -> Unit,
 ) {
+    val palette = MaterialTheme.palette
+    val header = stringResource(R.string.settings_section_people)
     when (state.faceModelState) {
         FaceModelState.MISSING, FaceModelState.UNSUPPORTED -> {
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_faces_off)) },
-                supportingContent = {
-                    Text(
-                        stringResource(
+            GroupedSection(header = header) {
+                row {
+                    ListRow(
+                        title = stringResource(R.string.settings_faces_off),
+                        subtitle = stringResource(
                             if (state.faceModelState == FaceModelState.MISSING) R.string.face_model_missing else R.string.face_model_unsupported,
                         ),
+                        icon = Icons.Rounded.FaceRetouchingOff,
+                        iconColor = palette.gray,
                     )
-                },
-                leadingContent = { Icon(Icons.Rounded.FaceRetouchingOff, contentDescription = null) },
-            )
+                }
+            }
             return
         }
         FaceModelState.READY -> Unit
@@ -360,11 +379,20 @@ private fun PeopleSettings(
 
     // Moves freely while dragging; people are regrouped once the finger lifts.
     var threshold by remember(state.faceThreshold) { mutableFloatStateOf(state.faceThreshold) }
-    ListItem(
-        headlineContent = { Text(stringResource(R.string.settings_face_strictness)) },
-        supportingContent = {
-            Column {
-                Text(stringResource(R.string.settings_face_strictness_body))
+    GroupedSection(header = header) {
+        row {
+            Column(Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconBadge(Icons.Rounded.Tune, palette.purple)
+                    Spacer(Modifier.width(14.dp))
+                    Text(stringResource(R.string.settings_face_strictness), style = MaterialTheme.typography.bodyLarge)
+                }
+                Text(
+                    stringResource(R.string.settings_face_strictness_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
                 Slider(
                     value = threshold,
                     onValueChange = { threshold = it },
@@ -377,39 +405,50 @@ private fun PeopleSettings(
                     modifier = Modifier.systemGestureExclusion(),
                 )
                 Row {
-                    Text(stringResource(R.string.settings_face_strictness_looser), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-                    Text(stringResource(R.string.settings_face_strictness_stricter), style = MaterialTheme.typography.labelSmall)
+                    Text(
+                        stringResource(R.string.settings_face_strictness_looser),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        stringResource(R.string.settings_face_strictness_stricter),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
-        },
-        leadingContent = { Icon(Icons.Rounded.Tune, contentDescription = null) },
-    )
-    ListItem(
-        headlineContent = { Text(stringResource(R.string.settings_scan_charging)) },
-        supportingContent = { Text(stringResource(R.string.settings_scan_charging_body)) },
-        leadingContent = { Icon(Icons.Rounded.BatteryChargingFull, contentDescription = null) },
-        trailingContent = { Switch(checked = state.scanOnlyWhileCharging, onCheckedChange = onChargingChanged) },
-        modifier = Modifier.clickable { onChargingChanged(!state.scanOnlyWhileCharging) },
-    )
-    ListItem(
-        headlineContent = { Text(stringResource(R.string.settings_rescan)) },
-        supportingContent = { Text(stringResource(R.string.settings_rescan_body)) },
-        leadingContent = { Icon(Icons.Rounded.Refresh, contentDescription = null) },
-        modifier = Modifier.clickable(onClick = onRescan),
-    )
+        }
+        row {
+            ListRow(
+                title = stringResource(R.string.settings_scan_charging),
+                subtitle = stringResource(R.string.settings_scan_charging_body),
+                icon = Icons.Rounded.BatteryChargingFull,
+                iconColor = palette.green,
+                onClick = { onChargingChanged(!state.scanOnlyWhileCharging) },
+                showChevron = false,
+                trailing = {
+                    Switch(
+                        checked = state.scanOnlyWhileCharging,
+                        onCheckedChange = onChargingChanged,
+                        colors = SwitchDefaults.colors(checkedTrackColor = palette.green, checkedBorderColor = palette.green),
+                    )
+                },
+            )
+        }
+        row {
+            ListRow(
+                title = stringResource(R.string.settings_rescan),
+                subtitle = stringResource(R.string.settings_rescan_body),
+                icon = Icons.Rounded.Refresh,
+                iconColor = palette.orange,
+                onClick = onRescan,
+            )
+        }
+    }
 }
 
 private const val STRICTNESS_MIN = 0.45f
 private const val STRICTNESS_MAX = 0.8f
 /** 0.05 apart: 0.45, 0.50, … 0.80. */
 private const val STRICTNESS_STEPS = 6
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 4.dp),
-    )
-}

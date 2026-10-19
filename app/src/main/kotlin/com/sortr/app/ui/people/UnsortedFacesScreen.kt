@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.FaceRetouchingNatural
 import androidx.compose.material.icons.rounded.Swipe
@@ -51,6 +50,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.sortr.app.R
+import com.sortr.app.ui.design.BackButton
 import com.sortr.app.ui.common.formatCount
 import com.sortr.domain.model.FaceRef
 import com.sortr.domain.model.Person
@@ -156,9 +156,7 @@ fun UnsortedFacesScreen(
                             Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.trash_clear_selection))
                         }
                     } else {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                        }
+                        BackButton(onBack)
                     }
                 },
                 actions = {

@@ -12,30 +12,25 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.TaskAlt
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -46,7 +41,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -54,7 +48,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -62,6 +58,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sortr.app.R
 import com.sortr.app.ui.common.formatCount
+import com.sortr.app.ui.design.BackButton
+import com.sortr.app.ui.design.EmptyState
+import com.sortr.app.ui.design.GroupedSection
+import com.sortr.app.ui.design.ListRow
+import com.sortr.app.ui.design.PillButton
+import com.sortr.app.ui.design.TintedButton
+import com.sortr.app.ui.library.sessionTitle
+import com.sortr.app.ui.theme.palette
 import com.sortr.app.ui.vault.RemoveOriginalsCard
 import com.sortr.app.ui.viewer.FullScreenViewer
 import com.sortr.domain.model.Photo
@@ -98,7 +102,7 @@ fun SwipeScreen(
     Scaffold(
         topBar = {
             SwipeTopBar(
-                title = personName ?: stringResource(viewModel.filter.titleRes),
+                title = sessionTitle(viewModel.filter, personName),
                 state = ready,
                 onBack = onBack,
                 onUndo = viewModel::onUndo,
@@ -126,9 +130,15 @@ fun SwipeScreen(
                     current = current,
                     state = ready,
                     enabledActions = viewModel.enabledActions,
-                    canCommit = viewModel::canCommit,
-                    onBlocked = { askVaultSetup = true },
-                    onCommit = { photo, action -> viewModel.onSwipe(photo.id, action) },
+                    canCommit = { action -> viewModel.canCommit(current, action) },
+                    onBlocked = {
+                        if (current.isVideo) {
+                            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.swipe_video_private_blocked)) }
+                        } else {
+                            askVaultSetup = true
+                        }
+                    },
+                    onCommit = { photo, action -> viewModel.onSwipe(photo, action) },
                     onOpen = { viewerPhoto = it },
                 )
             }
@@ -168,32 +178,29 @@ private fun SwipeTopBar(
     onBack: () -> Unit,
     onUndo: () -> Unit,
 ) {
-    TopAppBar(
+    CenterAlignedTopAppBar(
         title = {
-            Column {
-                Text(title)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (state != null && state.total > 0) {
                     val shown = (state.position + 1).coerceAtMost(state.total)
                     Text(
                         text = stringResource(R.string.swipe_progress, formatCount(shown), formatCount(state.total)),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
         },
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
-            }
-        },
+        navigationIcon = { BackButton(onBack) },
         actions = {
             TextButton(onClick = onUndo, enabled = state?.canUndo == true) {
                 Icon(Icons.AutoMirrored.Rounded.Undo, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.swipe_undo))
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(R.string.swipe_undo), style = MaterialTheme.typography.bodyLarge)
             }
         },
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background),
     )
 }
 
@@ -272,20 +279,24 @@ private fun SwipeButtons(
             ButtonOrder.filter { it in enabledActions }.forEach { action ->
                 val label = stringResource(action.labelRes)
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    FilledIconButton(
+                    Surface(
                         onClick = { onAction(action) },
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = action.color,
-                            contentColor = Color.White,
-                        ),
-                        modifier = Modifier.size(64.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        shadowElevation = 4.dp,
+                        modifier = Modifier
+                            .size(62.dp)
+                            .semantics { contentDescription = label },
                     ) {
-                        Icon(action.icon, contentDescription = label, modifier = Modifier.size(30.dp))
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(action.icon, contentDescription = null, tint = action.color, modifier = Modifier.size(30.dp))
+                        }
                     }
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(6.dp))
                     Text(
                         text = label,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.clearAndSetSemantics { },
                     )
                 }
@@ -302,8 +313,9 @@ private fun SessionDone(
     onOpenTrash: () -> Unit,
     onBack: () -> Unit,
 ) {
-    CenteredMessage(
-        icon = { Icon(Icons.Rounded.TaskAlt, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(72.dp)) },
+    EmptyState(
+        icon = Icons.Rounded.Check,
+        iconColor = MaterialTheme.palette.green,
         title = stringResource(R.string.swipe_done_title),
         body = stringResource(R.string.swipe_done_body),
     ) {
@@ -313,67 +325,41 @@ private fun SessionDone(
             if (counts.vaulted > 0) add(pluralStringResource(R.plurals.swipe_done_vaulted, counts.vaulted, formatCount(counts.vaulted)))
             if (counts.skipped > 0) add(pluralStringResource(R.plurals.swipe_done_skipped, counts.skipped, formatCount(counts.skipped)))
         }
-        lines.forEach { line ->
-            Text(line, style = MaterialTheme.typography.bodyLarge)
+        if (lines.isNotEmpty()) {
+            GroupedSection(separatorIndent = 16.dp) {
+                lines.forEach { line -> row { ListRow(title = line) } }
+            }
+            Spacer(Modifier.height(20.dp))
         }
-        Spacer(Modifier.height(24.dp))
         RemoveOriginalsCard(
             snackbarHostState = snackbarHostState,
             onRemoved = onOriginalsRemoved,
             modifier = Modifier.padding(bottom = 16.dp),
         )
         if (counts.trashed > 0) {
-            Button(onClick = onOpenTrash, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.swipe_go_to_trash))
-            }
+            PillButton(text = stringResource(R.string.swipe_go_to_trash), onClick = onOpenTrash)
             Spacer(Modifier.height(8.dp))
         }
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.swipe_back_home))
-        }
+        TintedButton(
+            text = stringResource(R.string.swipe_back_home),
+            onClick = onBack,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
 @Composable
 private fun EmptySession(onBack: () -> Unit) {
-    CenteredMessage(
-        icon = { Icon(Icons.Rounded.CheckCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(72.dp)) },
+    EmptyState(
+        icon = Icons.Rounded.CheckCircle,
+        iconColor = MaterialTheme.palette.green,
         title = stringResource(R.string.swipe_empty_title),
         body = stringResource(R.string.swipe_empty_body),
     ) {
-        Spacer(Modifier.height(24.dp))
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.swipe_back_home))
-        }
-    }
-}
-
-@Composable
-private fun CenteredMessage(
-    icon: @Composable () -> Unit,
-    title: String,
-    body: String,
-    content: @Composable () -> Unit,
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(32.dp),
-    ) {
-        icon()
-        Spacer(Modifier.height(16.dp))
-        Text(title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        TintedButton(
+            text = stringResource(R.string.swipe_back_home),
+            onClick = onBack,
+            modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(Modifier.height(16.dp))
-        content()
     }
 }

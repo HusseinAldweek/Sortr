@@ -131,7 +131,7 @@ fun PersonCell(
         Spacer(Modifier.height(6.dp))
         Text(
             text = person.name ?: stringResource(R.string.person_unnamed_short),
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.titleSmall,
             color = if (person.name == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

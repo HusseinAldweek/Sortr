@@ -15,11 +15,16 @@ interface PhotoRepository {
 
     /**
      * Snapshot of the photos for a new session: unreviewed first, then previously skipped,
-     * each newest first.
+     * each in the filter's order (usually newest first).
      */
     suspend fun loadSession(filter: SessionFilter): List<Photo>
 
     suspend fun applyDecision(photo: Photo, action: SwipeAction): Decision
+
+    /** The same decision for several photos at once, e.g. "keep the best, trash the rest". */
+    suspend fun applyDecisions(photos: Collection<Photo>, action: SwipeAction): List<Decision>
+
+    suspend fun undoDecisions(decisions: Collection<Decision>)
 
     /** Puts the photo back to the status it had before [decision] and drops the log entry. */
     suspend fun undoDecision(decision: Decision)

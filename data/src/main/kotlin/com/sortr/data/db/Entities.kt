@@ -6,11 +6,12 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.sortr.domain.model.ActionType
+import com.sortr.domain.model.MediaType
 import com.sortr.domain.model.PhotoStatus
 
 @Entity(
     tableName = "photos",
-    indices = [Index("status"), Index("dateTaken"), Index("indexed")],
+    indices = [Index("status"), Index("dateTaken"), Index("indexed"), Index("relativePath")],
 )
 data class PhotoEntity(
     @PrimaryKey val mediaStoreId: Long,
@@ -27,9 +28,17 @@ data class PhotoEntity(
     val dateModified: Long,
     val status: PhotoStatus,
     val statusChangedAt: Long,
+    /** Scanned for faces. */
     val indexed: Boolean = false,
+    /** Perceptual hash for finding duplicates; null until analysed. */
     val dHash: Long? = null,
+    /** Sharpness score; null until analysed, −1 if the photo couldn't be read. */
     val blurScore: Double? = null,
+    @ColumnInfo(defaultValue = "'IMAGE'")
+    val mediaType: MediaType = MediaType.IMAGE,
+    /** Video length in milliseconds; null for photos. */
+    @ColumnInfo(defaultValue = "NULL")
+    val durationMs: Long? = null,
 )
 
 @Entity(

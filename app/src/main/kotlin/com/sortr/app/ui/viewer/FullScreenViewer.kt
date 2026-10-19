@@ -1,5 +1,7 @@
 package com.sortr.app.ui.viewer
 
+import android.net.Uri
+import android.widget.VideoView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
@@ -9,14 +11,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +48,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.net.toUri
+import kotlinx.coroutines.delay
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
@@ -54,7 +64,10 @@ import com.sortr.domain.model.Photo
 private const val MAX_ZOOM = 5f
 private const val DOUBLE_TAP_ZOOM = 2.5f
 
-/** Full screen photo with pinch to zoom, drag to pan and double tap to zoom in or out. */
+/**
+ * Full screen photo with pinch to zoom, drag to pan and double tap to zoom in or out. Videos
+ * play instead, with a tap to pause or resume.
+ */
 @Composable
 fun FullScreenViewer(photo: Photo, onDismiss: () -> Unit) {
     Dialog(
@@ -74,11 +87,15 @@ fun FullScreenViewer(photo: Photo, onDismiss: () -> Unit) {
                 .fillMaxSize()
                 .background(Color.Black),
         ) {
-            ZoomableImage(
-                model = request,
-                contentDescription = stringResource(R.string.swipe_card_description, formatDate(photo.dateTaken)),
-                modifier = Modifier.fillMaxSize(),
-            )
+            if (photo.isVideo) {
+                VideoPlayer(uri = photo.uri.toUri(), modifier = Modifier.fillMaxSize())
+            } else {
+                ZoomableImage(
+                    model = request,
+                    contentDescription = stringResource(R.string.swipe_card_description, formatDate(photo.dateTaken)),
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             IconButton(
                 onClick = onDismiss,
                 modifier = Modifier
@@ -166,3 +183,81 @@ fun ZoomableImage(
             },
     )
 }
+
+/** Plays a video from MediaStore. Tap to pause or resume; a thin bar shows how far along it is. */
+@Composable
+private fun VideoPlayer(uri: Uri, modifier: Modifier = Modifier) {
+    var view by remember { mutableStateOf<VideoView?>(null) }
+    var playing by remember { mutableStateOf(true) }
+    var failed by remember { mutableStateOf(false) }
+    var progress by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(view) {
+        val player = view ?: return@LaunchedEffect
+        while (true) {
+            if (player.duration > 0) progress = player.currentPosition.toFloat() / player.duration
+            delay(PROGRESS_TICK_MS)
+        }
+    }
+
+    Box(
+        modifier.pointerInput(Unit) {
+            detectTapGestures {
+                val player = view ?: return@detectTapGestures
+                if (player.isPlaying) player.pause() else player.start()
+                playing = player.isPlaying
+            }
+        },
+    ) {
+        AndroidView(
+            factory = { context ->
+                VideoView(context).apply {
+                    setOnPreparedListener { start() }
+                    setOnCompletionListener { playing = false }
+                    setOnErrorListener { _, _, _ ->
+                        failed = true
+                        true
+                    }
+                    setVideoURI(uri)
+                    view = this
+                }
+            },
+            onRelease = { it.stopPlayback() },
+            modifier = Modifier.align(Alignment.Center),
+        )
+        if (failed) {
+            Text(
+                text = stringResource(R.string.viewer_video_error),
+                color = Color.White,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.align(Alignment.Center).padding(32.dp),
+            )
+        } else if (!playing) {
+            Icon(
+                imageVector = Icons.Rounded.PlayArrow,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(72.dp)
+                    .background(Color.Black.copy(alpha = 0.45f), CircleShape)
+                    .padding(12.dp),
+            )
+        }
+        LinearProgressIndicator(
+            progress = { progress },
+            color = Color.White,
+            trackColor = Color.White.copy(alpha = 0.25f),
+            drawStopIndicator = {},
+            gapSize = 0.dp,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .safeDrawingPadding()
+                .padding(start = 24.dp, end = 24.dp, bottom = 72.dp)
+                .height(3.dp),
+        )
+    }
+}
+
+private const val PROGRESS_TICK_MS = 250L

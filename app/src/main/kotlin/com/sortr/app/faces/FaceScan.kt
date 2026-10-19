@@ -22,8 +22,8 @@ import androidx.work.WorkerParameters
 import com.sortr.app.MainActivity
 import com.sortr.app.R
 import com.sortr.app.ui.common.formatCount
+import com.sortr.data.analysis.PhotoAnalysisIndexer
 import com.sortr.data.faces.FaceIndexer
-import com.sortr.domain.model.FaceIndexProgress
 import com.sortr.domain.model.FaceModelState
 import com.sortr.domain.repository.AppSettings
 import com.sortr.domain.repository.PeopleRepository
@@ -46,18 +46,19 @@ enum class ScanStatus {
     RUNNING,
 }
 
-/** Starts the background face scan. Safe to call often: an active scan is left alone. */
+/**
+ * Starts the background library scan: duplicates and blur first, then faces when the face
+ * model is available. Safe to call often: an active scan is left alone.
+ */
 @Singleton
 class FaceScanScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
     private val settings: AppSettings,
-    private val people: PeopleRepository,
 ) {
     private val workManager: WorkManager get() = WorkManager.getInstance(context)
 
     /** [restart] replaces a running scan, e.g. after the charging setting changed. Progress is kept. */
     suspend fun schedule(restart: Boolean = false) {
-        if (people.modelState.value != FaceModelState.READY) return
         val constraints = Constraints.Builder()
             .setRequiresCharging(settings.scanOnlyWhileCharging.first())
             .setRequiresBatteryNotLow(true)
@@ -87,28 +88,32 @@ class FaceScanScheduler @Inject constructor(
 }
 
 /**
- * Scans photos for faces until none are left. Runs in the foreground with a progress
- * notification so Android doesn't pause it; if that isn't allowed (e.g. started while the app is
- * in the background) it carries on as a normal job. Progress is saved after every batch.
+ * Checks photos for duplicates and blur, then scans them for faces, until nothing is left.
+ * Runs in the foreground with a progress notification so Android doesn't pause it; if that
+ * isn't allowed (e.g. started while the app is in the background) it carries on as a normal
+ * job. Progress is saved after every batch.
  */
 @HiltWorker
 class FaceScanWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
+    private val analysis: PhotoAnalysisIndexer,
     private val indexer: FaceIndexer,
     private val people: PeopleRepository,
 ) : CoroutineWorker(context, params) {
 
     private var inForeground = false
 
+    private val facesEnabled: Boolean get() = people.modelState.value == FaceModelState.READY
+
     override suspend fun doWork(): Result {
-        if (people.modelState.value != FaceModelState.READY) return Result.success()
-        indexer.cleanUp()
-        var progress = indexer.progress()
-        if (progress.isComplete) return Result.success()
+        if (facesEnabled) indexer.cleanUp()
+        val analysed = analysis.progress()
+        val faces = if (facesEnabled) indexer.progress() else null
+        if (analysed.isComplete && (faces == null || faces.isComplete)) return Result.success()
 
         inForeground = try {
-            setForeground(foregroundInfo(progress))
+            setForeground(foregroundInfo(currentStage()))
             true
         } catch (e: CancellationException) {
             throw e
@@ -117,35 +122,60 @@ class FaceScanWorker @AssistedInject constructor(
             false
         }
 
-        while (true) {
-            val handled = try {
-                indexer.indexNextBatch()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.w(TAG, "Face scan batch failed", e)
-                return if (people.modelState.value == FaceModelState.UNSUPPORTED) Result.failure() else Result.retry()
+        val analysisResult = runBatches(ScanStage.Kind.ANALYSIS) { analysis.analyseNextBatch() }
+        if (analysisResult != null) return analysisResult
+        if (facesEnabled) {
+            val faceResult = runBatches(ScanStage.Kind.FACES) { indexer.indexNextBatch() }
+            if (faceResult != null) {
+                return if (people.modelState.value == FaceModelState.UNSUPPORTED) Result.failure() else faceResult
             }
-            if (handled == 0) break
-            progress = indexer.progress()
-            if (inForeground) runCatching { setForeground(foregroundInfo(progress)) }
+            indexer.cleanUp()
         }
-        indexer.cleanUp()
         return Result.success()
     }
 
-    override suspend fun getForegroundInfo(): ForegroundInfo = foregroundInfo(indexer.progress())
+    /** Runs [batch] until it reports nothing left. Returns a result only if it has to stop early. */
+    private suspend fun runBatches(kind: ScanStage.Kind, batch: suspend () -> Int): Result? {
+        while (true) {
+            val handled = try {
+                batch()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Scan batch failed ($kind)", e)
+                return Result.retry()
+            }
+            if (handled == 0) return null
+            if (inForeground) runCatching { setForeground(foregroundInfo(currentStage())) }
+        }
+    }
 
-    private fun foregroundInfo(progress: FaceIndexProgress): ForegroundInfo =
+    private suspend fun currentStage(): ScanStage {
+        val analysed = analysis.progress()
+        if (!analysed.isComplete || !facesEnabled) {
+            return ScanStage(ScanStage.Kind.ANALYSIS, analysed.analysed, analysed.total)
+        }
+        val faces = indexer.progress()
+        return ScanStage(ScanStage.Kind.FACES, faces.indexed, faces.total)
+    }
+
+    override suspend fun getForegroundInfo(): ForegroundInfo = foregroundInfo(currentStage())
+
+    private fun foregroundInfo(stage: ScanStage): ForegroundInfo =
         ForegroundInfo(
             ScanNotifications.NOTIFICATION_ID,
-            ScanNotifications.build(applicationContext, progress),
+            ScanNotifications.build(applicationContext, stage),
             ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
         )
 
     private companion object {
-        const val TAG = "FaceScanWorker"
+        const val TAG = "LibraryScan"
     }
+}
+
+/** What the background scan is doing, for its notification. */
+data class ScanStage(val kind: Kind, val done: Int, val total: Int) {
+    enum class Kind { ANALYSIS, FACES }
 }
 
 object ScanNotifications {
@@ -161,7 +191,7 @@ object ScanNotifications {
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
-    fun build(context: Context, progress: FaceIndexProgress): Notification {
+    fun build(context: Context, stage: ScanStage): Notification {
         val open = PendingIntent.getActivity(
             context,
             0,
@@ -172,9 +202,13 @@ object ScanNotifications {
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(R.string.notification_scan_title))
             .setContentText(
-                context.getString(R.string.notification_scan_progress, formatCount(progress.indexed), formatCount(progress.total)),
+                context.getString(
+                    if (stage.kind == ScanStage.Kind.ANALYSIS) R.string.notification_analysis_progress else R.string.notification_scan_progress,
+                    formatCount(stage.done),
+                    formatCount(stage.total),
+                ),
             )
-            .setProgress(progress.total.coerceAtLeast(1), progress.indexed, false)
+            .setProgress(stage.total.coerceAtLeast(1), stage.done, false)
             .setOngoing(true)
             .setSilent(true)
             .setOnlyAlertOnce(true)

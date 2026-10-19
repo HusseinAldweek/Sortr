@@ -30,7 +30,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
@@ -74,6 +73,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.sortr.app.R
+import com.sortr.app.ui.design.BackButton
 import com.sortr.app.image.MediaThumbnail
 import com.sortr.app.ui.common.formatBytes
 import com.sortr.app.ui.common.formatCount
@@ -141,9 +141,7 @@ fun TrashScreen(
                             Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.trash_clear_selection))
                         }
                     } else {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                        }
+                        BackButton(onBack)
                     }
                 },
             )

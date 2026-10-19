@@ -356,14 +356,15 @@
     </plurals>
 
     <!-- Face scanning -->
-    <string name="face_scan_progress">Scanning faces: %1$s / %2$s</string>
+    <string name="face_scan_progress">Finding people… %1$s of %2$s</string>
     <string name="face_scan_waiting_charger">Face scanning will continue while charging.</string>
     <string name="face_model_missing">Face grouping is off because the face model file is missing. The README says where to put mobilefacenet.tflite.</string>
     <string name="face_model_unsupported">Face grouping is off because the face model file can\'t be used. The README describes the format Sortr expects.</string>
     <string name="notification_channel_scan">Face scanning</string>
     <string name="notification_channel_scan_body">Shows progress while Sortr finds people in your photos.</string>
-    <string name="notification_scan_title">Finding people in your photos</string>
-    <string name="notification_scan_progress">%1$s of %2$s photos</string>
+    <string name="notification_scan_title">Getting your library ready</string>
+    <string name="notification_scan_progress">Finding people: %1$s of %2$s photos</string>
+    <string name="notification_analysis_progress">Checking for duplicates and blur: %1$s of %2$s photos</string>
 
     <!-- Settings: people -->
     <string name="settings_section_people">People</string>
@@ -381,4 +382,184 @@
     <string name="settings_rescan_confirm_body">All people, names, merges and corrections will be forgotten, and every photo will be scanned again.</string>
     <string name="settings_rescan_confirm">Rescan</string>
     <string name="settings_rescan_started">Scanning all photos again</string>
+
+    <!-- Phase 4: common -->
+    <string name="action_undo">Undo</string>
+    <string name="action_select">Select</string>
+    <string name="action_select_all">Select all</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_create">Create</string>
+    <string name="action_start">Start</string>
+    <plurals name="count_items">
+        <item quantity="one">%1$s item</item>
+        <item quantity="other">%1$s items</item>
+    </plurals>
+    <plurals name="count_selected">
+        <item quantity="one">%1$s selected</item>
+        <item quantity="other">%1$s selected</item>
+    </plurals>
+    <string name="count_with_review">%1$s · %2$s</string>
+    <string name="video_badge_description">Video, %1$s</string>
+
+    <!-- Phase 4: home -->
+    <plurals name="home_hero_caption">
+        <item quantity="one">photo or video left to sort</item>
+        <item quantity="other">photos and videos left to sort</item>
+    </plurals>
+    <string name="home_hero_of_total">Out of %1$s in your library</string>
+    <string name="home_hero_start">Start sorting</string>
+    <string name="home_hero_done_title">All caught up</string>
+    <string name="home_hero_done_body">Everything has been sorted. New photos will show up here.</string>
+    <string name="home_section_browse">Browse</string>
+    <string name="home_section_sources">From apps</string>
+    <string name="home_section_library">Library</string>
+    <string name="tile_by_date">By date</string>
+    <string name="tile_albums">Albums</string>
+    <string name="tile_similar">Similar</string>
+    <string name="tile_blurry">Blurry</string>
+    <string name="tile_videos">Videos</string>
+    <string name="tile_large">Large files</string>
+    <string name="home_custom_session">Custom session</string>
+    <string name="home_custom_session_body">Pick a type, date, album or size</string>
+    <string name="home_stats">Stats</string>
+    <string name="home_analysis_progress">Checking for duplicates and blur… %1$s of %2$s</string>
+    <string name="video_access_title">Sort your videos too</string>
+    <string name="video_access_body">Allow access to videos and they\'ll appear in your sessions.</string>
+    <string name="video_access_allow">Allow videos</string>
+
+    <!-- Phase 4: sources -->
+    <string name="source_camera">Camera</string>
+    <string name="source_screenshots">Screenshots</string>
+    <string name="source_screen_recordings">Screen recordings</string>
+    <string name="source_whatsapp">WhatsApp</string>
+    <string name="source_snapchat">Snapchat</string>
+    <string name="source_telegram">Telegram</string>
+    <string name="source_instagram">Instagram</string>
+    <string name="source_messenger">Messenger and Facebook</string>
+    <string name="source_tiktok">TikTok</string>
+    <string name="source_downloads">Downloads</string>
+
+    <!-- Phase 4: session titles -->
+    <string name="session_videos">Videos</string>
+    <string name="session_blurry">Blurry photos</string>
+    <string name="session_duplicates">Similar photos</string>
+    <string name="session_largest">Large files</string>
+    <string name="session_custom">Custom session</string>
+    <string name="session_album">Album</string>
+    <string name="swipe_video_private_blocked">Videos can\'t go in the vault yet.</string>
+    <string name="swipe_video_description">Video from %1$s, %2$s long</string>
+    <string name="viewer_video_error">This video can\'t be played.</string>
+
+    <!-- Phase 4: by date -->
+    <string name="dates_title">By date</string>
+    <string name="dates_sort_year">Sort %1$s</string>
+    <string name="dates_empty_title">No photos yet</string>
+    <string name="dates_empty_body">Photos will be grouped by year and month here.</string>
+
+    <!-- Phase 4: albums -->
+    <string name="albums_title">Albums</string>
+    <string name="albums_sort">Sort albums</string>
+    <string name="albums_sort_most">Most items</string>
+    <string name="albums_sort_largest">Largest</string>
+    <string name="albums_sort_name">Name</string>
+    <string name="albums_sort_recent">Recent</string>
+    <string name="albums_merge">Merge</string>
+    <string name="albums_select_hint">Choose two or more albums to merge.</string>
+    <string name="albums_empty_title">No albums yet</string>
+    <string name="albums_empty_body">Folders with photos or videos show up here.</string>
+    <string name="merge_title">Merge into</string>
+    <string name="merge_body">Everything moves into the album you choose. The photos themselves don\'t change.</string>
+    <string name="merge_new_album">New album…</string>
+    <string name="album_cant_receive">Android doesn\'t allow moving items here</string>
+    <string name="album_new_title">New album</string>
+    <string name="album_name_label">Album name</string>
+    <string name="album_sort_this">Sort this album</string>
+    <string name="album_rename_title">Rename album</string>
+    <string name="album_rename_body">Everything in it moves into a folder with the new name.</string>
+    <string name="album_move_to">Move to…</string>
+    <string name="album_move_title">Move to album</string>
+    <string name="album_empty_title">This album is empty</string>
+    <string name="album_empty_body">Items you sort away or move elsewhere leave this album.</string>
+    <string name="album_photo_description">Item from %1$s</string>
+    <plurals name="moved_result">
+        <item quantity="one">Moved %1$s item to %2$s</item>
+        <item quantity="other">Moved %1$s items to %2$s</item>
+    </plurals>
+    <plurals name="move_failed">
+        <item quantity="one">%1$s item couldn\'t be moved</item>
+        <item quantity="other">%1$s items couldn\'t be moved</item>
+    </plurals>
+    <string name="move_cancelled">Nothing was moved</string>
+    <string name="move_in_progress">Moving…</string>
+
+    <!-- Phase 4: similar photos -->
+    <string name="dup_title">Similar photos</string>
+    <plurals name="dup_summary">
+        <item quantity="one">%1$s group · %2$s can be freed</item>
+        <item quantity="other">%1$s groups · %2$s can be freed</item>
+    </plurals>
+    <string name="dup_hint">The best copy is marked. Tap another photo to keep that one instead.</string>
+    <string name="dup_best">Best</string>
+    <plurals name="dup_keep_best">
+        <item quantity="one">Keep best, trash %1$s</item>
+        <item quantity="other">Keep best, trash %1$s</item>
+    </plurals>
+    <string name="dup_not_duplicates">Keep all</string>
+    <string name="dup_clean_all">Clean up all groups</string>
+    <string name="dup_review_one_by_one">Review one by one</string>
+    <string name="dup_clean_all_confirm_title">Clean up all groups?</string>
+    <plurals name="dup_clean_all_confirm_body">
+        <item quantity="one">The best copy in each group stays. %1$s other photo moves to the Trash, where you can still restore it.</item>
+        <item quantity="other">The best copy in each group stays. %1$s other photos move to the Trash, where you can still restore them.</item>
+    </plurals>
+    <plurals name="dup_trashed">
+        <item quantity="one">Moved %1$s photo to the Trash</item>
+        <item quantity="other">Moved %1$s photos to the Trash</item>
+    </plurals>
+    <string name="dup_empty_title">No similar photos</string>
+    <string name="dup_empty_body">Nothing in your library looks duplicated.</string>
+    <string name="dup_still_checking">Still checking photos (%1$s of %2$s), so more may appear.</string>
+    <string name="dup_photo_description">Photo from %1$s, %2$s</string>
+    <string name="dup_photo_best_description">Best copy. Photo from %1$s, %2$s</string>
+
+    <!-- Phase 4: stats -->
+    <string name="stats_title">Stats</string>
+    <string name="stats_sorted_percent">%1$s%% sorted</string>
+    <string name="stats_reviewed">Sorted</string>
+    <string name="stats_freed">Space freed</string>
+    <string name="stats_section_decisions">Your decisions</string>
+    <string name="stats_kept">Kept</string>
+    <string name="stats_trashed">Moved to Trash</string>
+    <string name="stats_deleted">Deleted from phone</string>
+    <string name="stats_vaulted">Moved to vault</string>
+    <string name="stats_skipped">Skipped</string>
+    <string name="stats_section_library">Your library</string>
+    <string name="stats_photos">Photos</string>
+    <string name="stats_videos">Videos</string>
+    <string name="stats_albums">Albums</string>
+    <string name="stats_left">Left to sort</string>
+    <string name="stats_in_trash">In the Trash</string>
+    <string name="stats_in_vault">In the vault</string>
+    <string name="stats_section_years">By year</string>
+
+    <!-- Phase 4: custom session -->
+    <string name="custom_title">Custom session</string>
+    <string name="custom_type">Type</string>
+    <string name="custom_type_all">All</string>
+    <string name="custom_type_photos">Photos</string>
+    <string name="custom_type_videos">Videos</string>
+    <string name="custom_date">Date</string>
+    <string name="custom_any_year">Any year</string>
+    <string name="custom_any_month">Any month</string>
+    <string name="custom_albums">Albums</string>
+    <string name="custom_any_album">Any album</string>
+    <string name="custom_show_all_albums">Show all albums</string>
+    <string name="custom_size">Size</string>
+    <string name="custom_size_any">Any size</string>
+    <string name="custom_size_over">Over %1$s</string>
+    <plurals name="custom_start">
+        <item quantity="one">Start · %1$s item</item>
+        <item quantity="other">Start · %1$s items</item>
+    </plurals>
+    <string name="custom_nothing">Nothing matches</string>
 </resources>

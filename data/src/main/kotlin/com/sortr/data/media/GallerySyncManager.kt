@@ -4,7 +4,6 @@ import android.content.Context
 import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
-import android.provider.MediaStore
 import android.util.Log
 import androidx.room.withTransaction
 import com.sortr.data.db.PhotoEntity
@@ -12,6 +11,7 @@ import com.sortr.data.db.PhotoMetadataUpdate
 import com.sortr.data.db.SQL_CHUNK
 import com.sortr.data.db.SortrDatabase
 import com.sortr.data.di.ApplicationScope
+import com.sortr.domain.model.MediaType
 import com.sortr.domain.model.PhotoStatus
 import com.sortr.domain.repository.GallerySync
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -33,9 +33,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Mirrors MediaStore into the photos table. Each run reads the whole image list (cheap, even
- * for tens of thousands of rows) and writes only what changed: new photos, edited photos, and
- * rows whose photo no longer exists. Review status is never touched for photos that still exist.
+ * Mirrors MediaStore into the photos table (videos included). Each run reads the whole list
+ * (cheap, even for tens of thousands of rows) and writes only what changed: new items, edited
+ * items, moved items, and rows whose file no longer exists. Review status is never touched for photos that still exist.
  */
 @Singleton
 class GallerySyncManager @Inject constructor(
@@ -79,11 +79,9 @@ class GallerySyncManager @Inject constructor(
                 trySend(Unit)
             }
         }
-        context.contentResolver.registerContentObserver(
-            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL),
-            true,
-            observer,
-        )
+        for (type in MediaType.entries) {
+            context.contentResolver.registerContentObserver(media.collection(type), true, observer)
+        }
         awaitClose { context.contentResolver.unregisterContentObserver(observer) }
     }.debounce(CHANGE_DEBOUNCE_MS)
 
@@ -92,26 +90,31 @@ class GallerySyncManager @Inject constructor(
 
     private suspend fun syncNow() {
         // Without read access MediaStore returns an empty list, which would look like every
-        // photo had been deleted and wipe all review progress.
-        if (!media.hasReadAccess()) return
-        val images = media.queryAllImages() ?: return
+        // photo had been deleted and wipe all review progress. The same goes for each media
+        // type on its own: rows of a type we can't read right now are left alone.
+        val readable = MediaType.entries.filter(media::hasAccess)
+        if (readable.isEmpty()) return
+        val items = readable.flatMap { type -> media.queryAll(type) ?: return }
 
         val known = photoDao.syncKeys().associateBy { it.mediaStoreId }
         val now = System.currentTimeMillis()
         val inserts = ArrayList<PhotoEntity>()
         val updates = ArrayList<PhotoMetadataUpdate>()
-        val seen = HashSet<Long>(images.size)
+        val moves = ArrayList<MediaItem>()
+        val seen = HashSet<Long>(items.size)
 
-        for (image in images) {
-            seen += image.id
-            val existing = known[image.id]
+        for (item in items) {
+            seen += item.id
+            val existing = known[item.id]
             when {
-                existing == null -> inserts += image.toNewEntity(now)
-                existing.dateModified != image.dateModified || existing.size != image.size ->
-                    updates += image.toMetadataUpdate()
+                existing == null -> inserts += item.toNewEntity(now)
+                existing.dateModified != item.dateModified || existing.size != item.size ->
+                    updates += item.toMetadataUpdate()
+                existing.relativePath != item.relativePath -> moves += item
             }
         }
-        val removed = known.keys.filterNot(seen::contains)
+        val readableIds = photoDao.idsOfTypes(readable)
+        val removed = readableIds.filterNot(seen::contains)
 
         inserts.chunked(SQL_CHUNK).forEach { db.withTransaction { photoDao.insertAll(it) } }
         updates.chunked(SQL_CHUNK).forEach { chunk ->
@@ -121,14 +124,19 @@ class GallerySyncManager @Inject constructor(
                 db.faceDao().deleteForPhotos(chunk.map { it.mediaStoreId })
             }
         }
+        // Moved to another album outside the app: same file, new folder.
+        moves.groupBy { it.relativePath to it.bucketName }.forEach { (location, group) ->
+            val (path, bucket) = location
+            group.map { it.id }.chunked(SQL_CHUNK).forEach { photoDao.setLocation(it, path, bucket) }
+        }
         removed.chunked(SQL_CHUNK).forEach { photoDao.deleteByIds(it) }
 
-        Log.i(TAG, "Sync: ${images.size} images, +${inserts.size} ~${updates.size} -${removed.size}")
+        Log.i(TAG, "Sync: ${items.size} items, +${inserts.size} ~${updates.size} >${moves.size} -${removed.size}")
     }
 
-    private fun MediaImage.toNewEntity(now: Long) = PhotoEntity(
+    private fun MediaItem.toNewEntity(now: Long) = PhotoEntity(
         mediaStoreId = id,
-        uri = media.uriFor(id).toString(),
+        uri = media.uriFor(id, mediaType).toString(),
         displayName = displayName,
         mimeType = mimeType,
         dateTaken = dateTaken,
@@ -140,11 +148,13 @@ class GallerySyncManager @Inject constructor(
         dateModified = dateModified,
         status = PhotoStatus.UNREVIEWED,
         statusChangedAt = now,
+        mediaType = mediaType,
+        durationMs = durationMs,
     )
 
-    private fun MediaImage.toMetadataUpdate() = PhotoMetadataUpdate(
+    private fun MediaItem.toMetadataUpdate() = PhotoMetadataUpdate(
         mediaStoreId = id,
-        uri = media.uriFor(id).toString(),
+        uri = media.uriFor(id, mediaType).toString(),
         displayName = displayName,
         mimeType = mimeType,
         dateTaken = dateTaken,
@@ -154,6 +164,8 @@ class GallerySyncManager @Inject constructor(
         bucketName = bucketName,
         relativePath = relativePath,
         dateModified = dateModified,
+        mediaType = mediaType,
+        durationMs = durationMs,
     )
 
     private companion object {

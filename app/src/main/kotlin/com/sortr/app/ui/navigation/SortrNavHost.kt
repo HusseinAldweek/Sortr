@@ -8,7 +8,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.sortr.app.ui.albums.AlbumScreen
+import com.sortr.app.ui.albums.AlbumsScreen
+import com.sortr.app.ui.home.HomeActions
 import com.sortr.app.ui.home.HomeScreen
+import com.sortr.app.ui.library.CustomSessionScreen
+import com.sortr.app.ui.library.DatesScreen
+import com.sortr.app.ui.library.DuplicatesScreen
+import com.sortr.app.ui.library.StatsScreen
 import com.sortr.app.ui.people.PeopleScreen
 import com.sortr.app.ui.people.PersonScreen
 import com.sortr.app.ui.people.UnsortedFacesScreen
@@ -40,6 +47,24 @@ data class PersonRoute(val personId: Long)
 @Serializable
 data object UnsortedFacesRoute
 
+@Serializable
+data object DatesRoute
+
+@Serializable
+data object AlbumsRoute
+
+@Serializable
+data class AlbumRoute(val relativePath: String)
+
+@Serializable
+data object DuplicatesRoute
+
+@Serializable
+data object StatsRoute
+
+@Serializable
+data object CustomSessionRoute
+
 /** [startBackup] opens Settings straight into exporting a vault backup. */
 @Serializable
 data class SettingsRoute(val startBackup: Boolean = false)
@@ -47,6 +72,7 @@ data class SettingsRoute(val startBackup: Boolean = false)
 @Composable
 fun SortrNavHost(
     access: MediaAccess,
+    videoAccess: Boolean,
     onRequestAccess: () -> Unit,
     onOpenAppSettings: () -> Unit,
 ) {
@@ -61,15 +87,56 @@ fun SortrNavHost(
         composable<HomeRoute> { entry ->
             HomeScreen(
                 access = access,
+                videoAccess = videoAccess,
                 onRequestAccess = onRequestAccess,
                 onOpenAppSettings = onOpenAppSettings,
+                actions = HomeActions(
+                    startSession = { filterKey -> entry.go(SwipeRoute(filterKey)) },
+                    openPeople = { entry.go(PeopleRoute) },
+                    openPerson = { personId -> entry.go(PersonRoute(personId)) },
+                    openUnsorted = { entry.go(UnsortedFacesRoute) },
+                    openTrash = { entry.go(TrashRoute) },
+                    openVault = { entry.go(VaultRoute) },
+                    openSettings = { entry.go(SettingsRoute()) },
+                    openDates = { entry.go(DatesRoute) },
+                    openAlbums = { entry.go(AlbumsRoute) },
+                    openDuplicates = { entry.go(DuplicatesRoute) },
+                    openStats = { entry.go(StatsRoute) },
+                    openCustom = { entry.go(CustomSessionRoute) },
+                ),
+            )
+        }
+        composable<DatesRoute> { entry ->
+            DatesScreen(
+                onBack = dropUnlessResumed { navController.popBackStack() },
                 onStartSession = { filterKey -> entry.go(SwipeRoute(filterKey)) },
-                onOpenPeople = { entry.go(PeopleRoute) },
-                onOpenPerson = { personId -> entry.go(PersonRoute(personId)) },
-                onOpenUnsorted = { entry.go(UnsortedFacesRoute) },
-                onOpenTrash = { entry.go(TrashRoute) },
-                onOpenVault = { entry.go(VaultRoute) },
-                onOpenSettings = { entry.go(SettingsRoute()) },
+            )
+        }
+        composable<AlbumsRoute> { entry ->
+            AlbumsScreen(
+                onBack = dropUnlessResumed { navController.popBackStack() },
+                onOpenAlbum = { path -> entry.go(AlbumRoute(path)) },
+            )
+        }
+        composable<AlbumRoute> { entry ->
+            AlbumScreen(
+                onBack = dropUnlessResumed { navController.popBackStack() },
+                onStartSession = { filterKey -> entry.go(SwipeRoute(filterKey)) },
+            )
+        }
+        composable<DuplicatesRoute> { entry ->
+            DuplicatesScreen(
+                onBack = dropUnlessResumed { navController.popBackStack() },
+                onStartSession = { filterKey -> entry.go(SwipeRoute(filterKey)) },
+            )
+        }
+        composable<StatsRoute> {
+            StatsScreen(onBack = dropUnlessResumed { navController.popBackStack() })
+        }
+        composable<CustomSessionRoute> { entry ->
+            CustomSessionScreen(
+                onBack = dropUnlessResumed { navController.popBackStack() },
+                onStartSession = { filterKey -> entry.go(SwipeRoute(filterKey)) },
             )
         }
         composable<SwipeRoute> {

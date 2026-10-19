@@ -112,15 +112,17 @@ class SwipeViewModel @Inject constructor(
         }
     }
 
-    fun canCommit(action: SwipeAction): Boolean = action != SwipeAction.PRIVATE || vaultReady.value
+    /** Swiping up needs a vault, and only photos can go in it. */
+    fun canCommit(photo: Photo, action: SwipeAction): Boolean =
+        action != SwipeAction.PRIVATE || (vaultReady.value && !photo.isVideo)
 
-    fun onSwipe(photoId: Long, action: SwipeAction) {
-        if (action !in enabledActions || !canCommit(action)) return
+    fun onSwipe(swiped: Photo, action: SwipeAction) {
+        if (action !in enabledActions || !canCommit(swiped, action)) return
         viewModelScope.launch {
             mutex.withLock {
                 val deck = deck ?: return@withLock
                 // Ignore stale commits, e.g. a card that finished flying out after an undo.
-                val photo = deck.current?.takeIf { it.id == photoId } ?: return@withLock
+                val photo = deck.current?.takeIf { it.id == swiped.id } ?: return@withLock
                 runSaving {
                     deck.commit(photos.applyDecision(photo, action))
                     counts = counts.adjust(action, +1)

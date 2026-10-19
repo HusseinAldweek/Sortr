@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import com.sortr.domain.model.MediaType
 import com.sortr.domain.model.PhotoStatus
 import kotlinx.coroutines.flow.Flow
 
@@ -12,11 +13,19 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface PhotoDao {
 
-    @Query("SELECT mediaStoreId, dateModified, size FROM photos")
+    @Query("SELECT mediaStoreId, dateModified, size, relativePath FROM photos")
     suspend fun syncKeys(): List<PhotoSyncKey>
+
+    @Query("SELECT mediaStoreId FROM photos WHERE mediaType IN (:typeNames)")
+    suspend fun idsOfTypeNames(typeNames: List<String>): List<Long>
+
+    suspend fun idsOfTypes(types: Collection<MediaType>): List<Long> = idsOfTypeNames(types.map { it.name })
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(photos: List<PhotoEntity>)
+
+    @Query("UPDATE photos SET relativePath = :relativePath, bucketName = :bucketName WHERE mediaStoreId IN (:ids)")
+    suspend fun setLocation(ids: List<Long>, relativePath: String?, bucketName: String?)
 
     @Update(entity = PhotoEntity::class)
     suspend fun updateMetadata(updates: List<PhotoMetadataUpdate>)
@@ -24,23 +33,11 @@ interface PhotoDao {
     @Query("DELETE FROM photos WHERE mediaStoreId IN (:ids)")
     suspend fun deleteByIds(ids: List<Long>)
 
-    @Query("SELECT * FROM photos WHERE status = :status ORDER BY dateTaken DESC, mediaStoreId DESC")
-    suspend fun byStatusNewestFirst(status: PhotoStatus): List<PhotoEntity>
-
     @Query("SELECT * FROM photos WHERE mediaStoreId = :id")
     suspend fun byId(id: Long): PhotoEntity?
 
-    @Query(
-        "SELECT * FROM photos WHERE status = :status AND mediaStoreId IN " +
-            "(SELECT photoId FROM faces WHERE personId = :personId) ORDER BY dateTaken DESC, mediaStoreId DESC",
-    )
-    suspend fun byStatusWithPerson(status: PhotoStatus, personId: Long): List<PhotoEntity>
-
-    @Query(
-        "SELECT * FROM photos WHERE status = :status AND mediaStoreId IN " +
-            "(SELECT f.photoId FROM faces f WHERE $IS_UNSORTED_FACE) ORDER BY dateTaken DESC, mediaStoreId DESC",
-    )
-    suspend fun byStatusWithUnsortedFaces(status: PhotoStatus): List<PhotoEntity>
+    @Query("UPDATE photos SET relativePath = :relativePath, bucketName = :bucketName, dateModified = :dateModified WHERE mediaStoreId = :id")
+    suspend fun setMoved(id: Long, relativePath: String, bucketName: String, dateModified: Long)
 
     /** Photos still to be scanned for faces, newest first. Trashed and vaulted ones are skipped. */
     // "indexed" is an SQLite keyword, so the column is always quoted.
@@ -89,6 +86,7 @@ interface PhotoDao {
         """
         SELECT
             COUNT(*) AS total,
+            COALESCE(SUM(CASE WHEN mediaType = 'VIDEO' THEN 1 ELSE 0 END), 0) AS videos,
             COALESCE(SUM(CASE WHEN status = 'UNREVIEWED' THEN 1 ELSE 0 END), 0) AS unreviewed,
             COALESCE(SUM(CASE WHEN status = 'SKIPPED' THEN 1 ELSE 0 END), 0) AS skipped,
             COALESCE(SUM(CASE WHEN status = 'KEPT' THEN 1 ELSE 0 END), 0) AS kept,
@@ -102,8 +100,8 @@ interface PhotoDao {
 
 const val SQL_CHUNK = 500
 
-/** Photos that get scanned for faces. */
-private const val SCANNABLE = "status IN ('UNREVIEWED', 'KEPT', 'SKIPPED')"
+/** Photos that get scanned for faces: not videos, not trashed or vaulted. */
+private const val SCANNABLE = "status IN ('UNREVIEWED', 'KEPT', 'SKIPPED') AND mediaType = 'IMAGE'"
 
 data class IndexProgressRow(val total: Int, val scanned: Int)
 
@@ -111,9 +109,13 @@ data class PhotoSyncKey(
     val mediaStoreId: Long,
     val dateModified: Long,
     val size: Long,
+    val relativePath: String?,
 )
 
-/** Partial update for an edited photo: keeps its review status but marks it for a new face scan. */
+/**
+ * Partial update for an edited or moved photo: keeps its review status but marks it to be
+ * scanned and analysed again.
+ */
 data class PhotoMetadataUpdate(
     val mediaStoreId: Long,
     val uri: String,
@@ -126,11 +128,16 @@ data class PhotoMetadataUpdate(
     val bucketName: String?,
     val relativePath: String?,
     val dateModified: Long,
+    val mediaType: MediaType,
+    val durationMs: Long?,
     val indexed: Boolean = false,
+    val dHash: Long? = null,
+    val blurScore: Double? = null,
 )
 
 data class SummaryRow(
     val total: Int,
+    val videos: Int,
     val unreviewed: Int,
     val skipped: Int,
     val kept: Int,

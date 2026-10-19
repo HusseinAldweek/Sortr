@@ -21,6 +21,8 @@ data class AppUiState(
     val loading: Boolean = true,
     val onboardingDone: Boolean = false,
     val access: MediaAccess = MediaAccess.DENIED,
+    /** False when photos are allowed but videos aren't. */
+    val videoAccess: Boolean = true,
 )
 
 @HiltViewModel
@@ -32,19 +34,22 @@ class AppViewModel @Inject constructor(
 
     /** Null until the first permission check, so the UI doesn't flash the permission screen. */
     private val access = MutableStateFlow<MediaAccess?>(null)
+    private val videoAccess = MutableStateFlow(true)
     private var watching = false
 
-    val state: StateFlow<AppUiState> = combine(settings.onboardingDone, access) { done, access ->
+    val state: StateFlow<AppUiState> = combine(settings.onboardingDone, access, videoAccess) { done, access, videos ->
         AppUiState(
             loading = access == null,
             onboardingDone = done,
             access = access ?: MediaAccess.DENIED,
+            videoAccess = videos,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AppUiState())
 
     /** Called on every resume and after a permission prompt, since access can change in Settings. */
-    fun onAccessChecked(newAccess: MediaAccess) {
+    fun onAccessChecked(newAccess: MediaAccess, hasVideoAccess: Boolean) {
         access.value = newAccess
+        videoAccess.value = hasVideoAccess
         if (newAccess == MediaAccess.DENIED) return
         gallerySync.requestSync()
         viewModelScope.launch { faceScan.schedule() }

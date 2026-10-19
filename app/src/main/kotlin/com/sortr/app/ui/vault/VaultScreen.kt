@@ -27,7 +27,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
@@ -77,6 +76,7 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import com.sortr.app.R
+import com.sortr.app.ui.design.BackButton
 import com.sortr.app.ui.common.formatBytes
 import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.common.formatDate
@@ -125,9 +125,7 @@ private fun VaultSetup(
             TopAppBar(
                 title = { Text(stringResource(R.string.vault_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
+                    BackButton(onBack)
                 },
             )
         },
@@ -246,9 +244,7 @@ private fun VaultContent(
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                        }
+                        BackButton(onBack)
                     },
                     actions = {
                         IconButton(onClick = viewModel::lock) {

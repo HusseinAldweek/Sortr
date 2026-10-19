@@ -12,7 +12,8 @@ import com.sortr.domain.model.Photo
  */
 fun cardImageRequest(context: PlatformContext, photo: Photo, size: IntSize): ImageRequest =
     ImageRequest.Builder(context)
-        .data(photo.uri.toUri())
+        // Videos show a still frame from the system's thumbnailer.
+        .data(if (photo.isVideo) MediaThumbnail(photo.uri.toUri()) else photo.uri.toUri())
         .size(size.width, size.height)
         .memoryCacheKey("card:${photo.id}:${photo.sizeBytes}:${size.width}x${size.height}")
         .build()

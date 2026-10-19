@@ -1,0 +1,115 @@
+package com.sortr.data.db
+
+import androidx.room.Dao
+import androidx.room.Query
+import androidx.room.RawQuery
+import androidx.sqlite.db.SupportSQLiteQuery
+import kotlinx.coroutines.flow.Flow
+
+/** Everything that isn't in the vault or the Trash. */
+private const val IN_LIBRARY = "status NOT IN ('VAULTED', 'TRASHED')"
+private const val TO_REVIEW = "status IN ('UNREVIEWED', 'SKIPPED')"
+
+@Dao
+interface LibraryDao {
+
+    @Query(
+        "SELECT p.relativePath AS relativePath, MAX(p.bucketName) AS bucketName, COUNT(*) AS count, " +
+            "COALESCE(SUM(p.size), 0) AS sizeBytes, SUM(CASE WHEN p.$TO_REVIEW THEN 1 ELSE 0 END) AS toReview, " +
+            "MAX(p.dateTaken) AS newest, " +
+            "(SELECT c.uri FROM photos c WHERE c.relativePath = p.relativePath AND c.$IN_LIBRARY " +
+            "ORDER BY c.dateTaken DESC LIMIT 1) AS coverUri " +
+            "FROM photos p WHERE p.$IN_LIBRARY AND p.relativePath IS NOT NULL GROUP BY p.relativePath",
+    )
+    fun observeAlbums(): Flow<List<AlbumRow>>
+
+    @Query("SELECT * FROM photos WHERE relativePath = :relativePath AND $IN_LIBRARY ORDER BY dateTaken DESC, mediaStoreId DESC")
+    fun observeAlbumPhotos(relativePath: String): Flow<List<PhotoEntity>>
+
+    @Query(
+        "SELECT CAST(strftime('%Y', dateTaken / 1000, 'unixepoch', 'localtime') AS INTEGER) AS year, " +
+            "CAST(strftime('%m', dateTaken / 1000, 'unixepoch', 'localtime') AS INTEGER) AS month, " +
+            "COUNT(*) AS count, COALESCE(SUM(size), 0) AS sizeBytes, " +
+            "SUM(CASE WHEN $TO_REVIEW THEN 1 ELSE 0 END) AS toReview " +
+            "FROM photos WHERE $IN_LIBRARY GROUP BY year, month ORDER BY year DESC, month DESC",
+    )
+    fun observeDateBuckets(): Flow<List<DateBucketRow>>
+
+    @Query(
+        "SELECT COALESCE(SUM(CASE WHEN mediaType = 'VIDEO' AND $TO_REVIEW THEN 1 ELSE 0 END), 0) AS videosToReview, " +
+            "COALESCE(SUM(CASE WHEN mediaType = 'VIDEO' THEN 1 ELSE 0 END), 0) AS videos, " +
+            "COALESCE(SUM(CASE WHEN mediaType = 'IMAGE' AND blurScore >= 0 AND blurScore < :blurThreshold AND $TO_REVIEW " +
+            "THEN 1 ELSE 0 END), 0) AS blurryToReview, " +
+            "COALESCE(SUM(CASE WHEN size >= :largeBytes AND $TO_REVIEW THEN 1 ELSE 0 END), 0) AS largeToReview " +
+            "FROM photos WHERE $IN_LIBRARY",
+    )
+    fun observeQuickCounts(blurThreshold: Double, largeBytes: Long): Flow<QuickCountsRow>
+
+    @Query(
+        "SELECT (SELECT COUNT(*) FROM actions WHERE action = 'KEEP') AS kept, " +
+            "(SELECT COUNT(*) FROM actions WHERE action = 'DELETE') AS movedToTrash, " +
+            "(SELECT COUNT(*) FROM actions WHERE action = 'PURGE') AS deletedFromPhone, " +
+            "(SELECT COALESCE(SUM(sizeBytes), 0) FROM actions WHERE action = 'PURGE') AS freedBytes, " +
+            "(SELECT COUNT(*) FROM actions WHERE action = 'PRIVATE') AS movedToVault, " +
+            "(SELECT COUNT(*) FROM actions WHERE action = 'SKIP') AS skipped, " +
+            "(SELECT COUNT(*) FROM vault_items) AS inVault",
+    )
+    fun observeStats(): Flow<StatsRow>
+
+    @Query(
+        "SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN blurScore IS NOT NULL THEN 1 ELSE 0 END), 0) AS analysed " +
+            "FROM photos WHERE mediaType = 'IMAGE' AND $IN_LIBRARY",
+    )
+    fun observeAnalysisProgress(): Flow<AnalysisRow>
+
+    @Query(
+        "SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN blurScore IS NOT NULL THEN 1 ELSE 0 END), 0) AS analysed " +
+            "FROM photos WHERE mediaType = 'IMAGE' AND $IN_LIBRARY",
+    )
+    suspend fun analysisProgress(): AnalysisRow
+
+    /** Photos still to be checked for duplicates and blur, newest first. */
+    @Query("SELECT * FROM photos WHERE blurScore IS NULL AND mediaType = 'IMAGE' AND $IN_LIBRARY ORDER BY dateTaken DESC LIMIT :limit")
+    suspend fun unanalysed(limit: Int): List<PhotoEntity>
+
+    @Query("UPDATE photos SET dHash = :hash, blurScore = :blurScore WHERE mediaStoreId = :id")
+    suspend fun setAnalysis(id: Long, hash: Long?, blurScore: Double)
+
+    @Query("UPDATE photos SET dateTaken = :dateTaken WHERE mediaStoreId = :id")
+    suspend fun setDateTaken(id: Long, dateTaken: Long)
+
+    @Query("SELECT * FROM photos WHERE dHash IS NOT NULL AND mediaType = 'IMAGE' AND $IN_LIBRARY")
+    suspend fun hashedPhotos(): List<PhotoEntity>
+
+    @RawQuery
+    suspend fun photos(query: SupportSQLiteQuery): List<PhotoEntity>
+
+    @RawQuery
+    suspend fun count(query: SupportSQLiteQuery): Int
+}
+
+data class AlbumRow(
+    val relativePath: String,
+    val bucketName: String?,
+    val count: Int,
+    val sizeBytes: Long,
+    val toReview: Int,
+    val newest: Long,
+    val coverUri: String?,
+)
+
+data class DateBucketRow(val year: Int, val month: Int, val count: Int, val sizeBytes: Long, val toReview: Int)
+
+data class QuickCountsRow(val videosToReview: Int, val videos: Int, val blurryToReview: Int, val largeToReview: Int)
+
+data class StatsRow(
+    val kept: Int,
+    val movedToTrash: Int,
+    val deletedFromPhone: Int,
+    val freedBytes: Long,
+    val movedToVault: Int,
+    val skipped: Int,
+    val inVault: Int,
+)
+
+data class AnalysisRow(val total: Int, val analysed: Int)

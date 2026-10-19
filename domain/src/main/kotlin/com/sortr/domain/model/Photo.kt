@@ -14,7 +14,14 @@ data class Photo(
     val bucketName: String?,
     val relativePath: String?,
     val status: PhotoStatus,
-)
+    val mediaType: MediaType = MediaType.IMAGE,
+    /** Length of a video; null for photos. */
+    val durationMs: Long? = null,
+    /** Sharpness score (see BlurMeter); null until analysed. */
+    val blurScore: Double? = null,
+) {
+    val isVideo: Boolean get() = mediaType == MediaType.VIDEO
+}
 
 enum class PhotoStatus {
     UNREVIEWED,

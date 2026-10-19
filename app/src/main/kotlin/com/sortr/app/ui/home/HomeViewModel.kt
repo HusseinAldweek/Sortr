@@ -2,22 +2,33 @@ package com.sortr.app.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sortr.app.faces.ScanStatus
 import com.sortr.app.faces.FaceScanScheduler
+import com.sortr.app.faces.ScanStatus
+import com.sortr.domain.model.AnalysisProgress
 import com.sortr.domain.model.FaceIndexProgress
 import com.sortr.domain.model.FaceModelState
 import com.sortr.domain.model.LibrarySummary
 import com.sortr.domain.model.Person
+import com.sortr.domain.model.QuickCounts
+import com.sortr.domain.model.SessionFilter
+import com.sortr.domain.model.SourceCount
 import com.sortr.domain.repository.AppSettings
 import com.sortr.domain.repository.GallerySync
+import com.sortr.domain.repository.LibraryRepository
 import com.sortr.domain.repository.PeopleRepository
 import com.sortr.domain.repository.PhotoRepository
 import com.sortr.domain.repository.VaultAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -29,6 +40,14 @@ data class FaceScanUiState(
     val onlyWhileCharging: Boolean = false,
 )
 
+data class BrowseUiState(
+    val counts: QuickCounts = QuickCounts(),
+    /** Extra copies in groups of similar photos that are still to be sorted. */
+    val similarToReview: Int = 0,
+    val sources: List<SourceCount> = emptyList(),
+    val analysis: AnalysisProgress = AnalysisProgress(0, 0),
+)
+
 data class HomeUiState(
     val summary: LibrarySummary = LibrarySummary(),
     val isSyncing: Boolean = false,
@@ -36,16 +55,19 @@ data class HomeUiState(
     val people: List<Person> = emptyList(),
     val unsortedFaces: Int = 0,
     val faceScan: FaceScanUiState = FaceScanUiState(),
+    val browse: BrowseUiState = BrowseUiState(),
     val notificationAsked: Boolean = true,
     val loaded: Boolean = false,
 )
 
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     photos: PhotoRepository,
     gallerySync: GallerySync,
     vaultAuth: VaultAuth,
     people: PeopleRepository,
+    library: LibraryRepository,
     scanScheduler: FaceScanScheduler,
     private val settings: AppSettings,
 ) : ViewModel() {
@@ -63,12 +85,28 @@ class HomeViewModel @Inject constructor(
         ::Pair,
     )
 
+    // Grouping duplicates reads every hash, so it's redone only once things settle down.
+    private val similarToReview = combine(photos.observeSummary(), library.observeAnalysisProgress(), ::Pair)
+        .debounce(SIMILAR_DEBOUNCE_MS)
+        .mapLatest { library.countToReview(SessionFilter.Duplicates) }
+        .onStart { emit(0) }
+        .distinctUntilChanged()
+
+    private val browse = combine(
+        library.observeQuickCounts(),
+        similarToReview,
+        library.observeSources(),
+        library.observeAnalysisProgress(),
+        ::BrowseUiState,
+    )
+
     val state: StateFlow<HomeUiState> = combine(
         combine(photos.observeSummary(), gallerySync.isSyncing, vaultAuth.isSetUp, ::Triple),
         peopleInfo,
         faceScan,
+        browse,
         settings.notificationPermissionAsked,
-    ) { (summary, syncing, vaultSetUp), (people, unsorted), scan, asked ->
+    ) { (summary, syncing, vaultSetUp), (people, unsorted), scan, browse, asked ->
         HomeUiState(
             summary = summary,
             isSyncing = syncing,
@@ -76,6 +114,7 @@ class HomeViewModel @Inject constructor(
             people = people,
             unsortedFaces = unsorted,
             faceScan = scan,
+            browse = browse,
             notificationAsked = asked,
             loaded = true,
         )
@@ -87,5 +126,6 @@ class HomeViewModel @Inject constructor(
 
     private companion object {
         const val HOME_PEOPLE_LIMIT = 15
+        const val SIMILAR_DEBOUNCE_MS = 1_500L
     }
 }

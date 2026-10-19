@@ -5,7 +5,6 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,35 +16,39 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.BlurOn
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Collections
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Face
 import androidx.compose.material.icons.rounded.FaceRetouchingNatural
+import androidx.compose.material.icons.rounded.FilterNone
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.PhotoLibrary
+import androidx.compose.material.icons.rounded.PlayCircle
+import androidx.compose.material.icons.rounded.SdStorage
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Style
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,12 +58,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -68,37 +69,65 @@ import com.sortr.app.R
 import com.sortr.app.faces.ScanStatus
 import com.sortr.app.ui.common.formatBytes
 import com.sortr.app.ui.common.formatCount
+import com.sortr.app.ui.design.GroupedCard
+import com.sortr.app.ui.design.GroupedSection
+import com.sortr.app.ui.design.IconBadge
+import com.sortr.app.ui.design.LargeTitleScaffold
+import com.sortr.app.ui.design.ListRow
+import com.sortr.app.ui.design.PillButton
+import com.sortr.app.ui.design.ProgressCard
+import com.sortr.app.ui.design.ScreenPadding
+import com.sortr.app.ui.design.SectionTitle
+import com.sortr.app.ui.design.SmartTile
+import com.sortr.app.ui.design.TileGrid
+import com.sortr.app.ui.design.TintedButton
+import com.sortr.app.ui.library.color
+import com.sortr.app.ui.library.icon
+import com.sortr.app.ui.library.labelRes
 import com.sortr.app.ui.people.PersonCell
 import com.sortr.app.ui.permission.MediaAccess
-import com.sortr.app.ui.theme.SwipeColors
+import com.sortr.app.ui.theme.palette
 import com.sortr.app.ui.vault.RemoveOriginalsCard
 import com.sortr.domain.model.FaceModelState
+import com.sortr.domain.model.LibrarySummary
 import com.sortr.domain.model.Person
 import com.sortr.domain.model.SessionFilter
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Where Home can take the user. */
+class HomeActions(
+    val startSession: (filterKey: String) -> Unit,
+    val openPeople: () -> Unit,
+    val openPerson: (Long) -> Unit,
+    val openUnsorted: () -> Unit,
+    val openTrash: () -> Unit,
+    val openVault: () -> Unit,
+    val openSettings: () -> Unit,
+    val openDates: () -> Unit,
+    val openAlbums: () -> Unit,
+    val openDuplicates: () -> Unit,
+    val openStats: () -> Unit,
+    val openCustom: () -> Unit,
+)
+
 @Composable
 fun HomeScreen(
     access: MediaAccess,
+    videoAccess: Boolean,
     onRequestAccess: () -> Unit,
     onOpenAppSettings: () -> Unit,
-    onStartSession: (filterKey: String) -> Unit,
-    onOpenPeople: () -> Unit,
-    onOpenPerson: (Long) -> Unit,
-    onOpenUnsorted: () -> Unit,
-    onOpenTrash: () -> Unit,
-    onOpenVault: () -> Unit,
-    onOpenSettings: () -> Unit,
+    actions: HomeActions,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val summary = state.summary
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val missingVideos = access == MediaAccess.FULL && !videoAccess
 
     // Ask once to show the scanning notification, when there's a scan to show.
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
-    val scanPending = state.faceScan.modelState == FaceModelState.READY && !state.faceScan.progress.isComplete
+    val scanPending = !state.browse.analysis.isComplete ||
+        (state.faceScan.modelState == FaceModelState.READY && !state.faceScan.progress.isComplete)
     LaunchedEffect(state.loaded, scanPending, state.notificationAsked) {
         if (state.loaded && scanPending && !state.notificationAsked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             viewModel.onNotificationPermissionAsked()
@@ -106,120 +135,263 @@ fun HomeScreen(
         }
     }
 
-    Scaffold(
+    LargeTitleScaffold(
+        title = stringResource(R.string.app_name),
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
-                actions = {
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Rounded.Settings, contentDescription = stringResource(R.string.action_settings))
-                    }
-                },
-            )
+        actions = {
+            IconButton(onClick = actions.openSettings) {
+                Icon(
+                    Icons.Rounded.Settings,
+                    contentDescription = stringResource(R.string.action_settings),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
         },
     ) { padding ->
         Column(Modifier.padding(padding)) {
             if (state.isSyncing && summary.total > 0) {
-                LinearProgressIndicator(Modifier.fillMaxWidth())
+                LinearProgressIndicator(Modifier.fillMaxWidth().height(2.dp))
             }
             LazyColumn(
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, top = 4.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
                 if (access == MediaAccess.PARTIAL) {
-                    item {
-                        PartialAccessBanner(onSelectMore = onRequestAccess, onAllowAll = onOpenAppSettings)
-                    }
+                    item { PartialAccessBanner(onSelectMore = onRequestAccess, onAllowAll = onOpenAppSettings) }
+                }
+                if (missingVideos) {
+                    item { VideoAccessBanner(onAllow = onRequestAccess) }
                 }
                 item { RemoveOriginalsCard(snackbarHostState = snackbarHostState) }
-                if (summary.total > 0) {
-                    item { FaceScanCard(state.faceScan) }
-                }
 
                 when {
                     summary.total == 0 && (state.isSyncing || !state.loaded) -> item { LoadingGalleryCard() }
                     summary.total == 0 -> item { NoPhotosCard() }
                     else -> {
-                        item {
-                            Text(
-                                text = stringResource(
-                                    R.string.home_summary,
-                                    pluralStringResource(R.plurals.home_photo_count, summary.total, formatCount(summary.total)),
-                                    pluralStringResource(R.plurals.home_left_to_review, summary.toReview, formatCount(summary.toReview)),
-                                ),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        if (state.people.isNotEmpty()) {
-                            item {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    SectionHeader(stringResource(R.string.people_title), Modifier.weight(1f))
-                                    TextButton(onClick = onOpenPeople, modifier = Modifier.padding(top = 8.dp)) {
-                                        Text(stringResource(R.string.home_people_see_all))
-                                    }
-                                }
-                            }
-                            item { PeopleRow(state.people, onOpenPerson) }
-                        }
-                        item { SectionHeader(stringResource(R.string.home_sessions_header)) }
-                        item {
-                            NavigationCard(
-                                icon = Icons.Rounded.PhotoLibrary,
-                                iconTint = MaterialTheme.colorScheme.primary,
-                                title = stringResource(R.string.session_all_photos),
-                                subtitle = if (summary.toReview > 0) {
-                                    pluralStringResource(R.plurals.session_to_review, summary.toReview, formatCount(summary.toReview))
-                                } else {
-                                    stringResource(R.string.session_all_caught_up)
-                                },
-                                onClick = { onStartSession(SessionFilter.AllPhotos.key) },
-                            )
-                        }
-                        if (state.unsortedFaces > 0) {
-                            item {
-                                NavigationCard(
-                                    icon = Icons.Rounded.FaceRetouchingNatural,
-                                    iconTint = MaterialTheme.colorScheme.tertiary,
-                                    title = stringResource(R.string.unsorted_faces_title),
-                                    subtitle = pluralStringResource(R.plurals.face_count, state.unsortedFaces, formatCount(state.unsortedFaces)),
-                                    onClick = onOpenUnsorted,
-                                )
-                            }
-                        }
+                        item { HeroCard(summary, onStart = { actions.startSession(SessionFilter.AllPhotos.key) }) }
+                        item { ScanStatusCard(state) }
+                        peopleSection(state, actions)
+                        browseSection(state, actions)
+                        sourcesSection(state, actions)
                     }
                 }
+                item { LibrarySection(state, actions) }
+                item { FaceModelNote(state.faceScan.modelState) }
+            }
+        }
+    }
+}
 
-                item { SectionHeader(stringResource(R.string.home_shortcuts_header)) }
-                item {
-                    NavigationCard(
-                        icon = Icons.Rounded.Delete,
-                        iconTint = MaterialTheme.colorScheme.error,
-                        title = stringResource(R.string.home_trash),
-                        subtitle = if (summary.trashedCount > 0) {
-                            pluralStringResource(
-                                R.plurals.home_trash_summary,
-                                summary.trashedCount,
-                                formatCount(summary.trashedCount),
-                                formatBytes(context, summary.trashedBytes),
-                            )
-                        } else {
-                            stringResource(R.string.home_trash_empty)
-                        },
-                        onClick = onOpenTrash,
+/** The one big thing to do: how much is left, and a button to start. */
+@Composable
+private fun HeroCard(summary: LibrarySummary, onStart: () -> Unit) {
+    GroupedCard {
+        Column(Modifier.padding(20.dp)) {
+            if (summary.toReview == 0) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconBadge(Icons.Rounded.Check, MaterialTheme.palette.green, size = 44.dp, shape = CircleShape)
+                    Spacer(Modifier.width(14.dp))
+                    Column {
+                        Text(stringResource(R.string.home_hero_done_title), style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            stringResource(R.string.home_hero_done_body),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                return@Column
+            }
+            Text(formatCount(summary.toReview), style = MaterialTheme.typography.displaySmall)
+            Text(
+                text = pluralStringResource(R.plurals.home_hero_caption, summary.toReview),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(14.dp))
+            LinearProgressIndicator(
+                progress = { if (summary.total == 0) 0f else 1f - summary.toReview.toFloat() / summary.total },
+                drawStopIndicator = {},
+                gapSize = 0.dp,
+                trackColor = MaterialTheme.palette.fill,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(CircleShape),
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = stringResource(R.string.home_hero_of_total, formatCount(summary.total)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(18.dp))
+            PillButton(text = stringResource(R.string.home_hero_start), onClick = onStart, icon = Icons.Rounded.Style)
+        }
+    }
+}
+
+/** Background checking (duplicates and blur, then faces). Shows nothing once everything is done. */
+@Composable
+private fun ScanStatusCard(state: HomeUiState) {
+    val analysis = state.browse.analysis
+    val scan = state.faceScan
+    when {
+        !analysis.isComplete -> ProgressCard(
+            text = stringResource(R.string.home_analysis_progress, formatCount(analysis.analysed), formatCount(analysis.total)),
+            progress = if (analysis.total == 0) 0f else analysis.analysed.toFloat() / analysis.total,
+            icon = Icons.Rounded.FilterNone,
+            iconColor = MaterialTheme.palette.indigo,
+        )
+        scan.modelState != FaceModelState.READY || scan.progress.isComplete -> Unit
+        scan.status == ScanStatus.WAITING && scan.onlyWhileCharging -> ProgressCard(
+            text = stringResource(R.string.face_scan_waiting_charger),
+            progress = null,
+            icon = Icons.Rounded.Face,
+        )
+        else -> ProgressCard(
+            text = stringResource(R.string.face_scan_progress, formatCount(scan.progress.indexed), formatCount(scan.progress.total)),
+            progress = if (scan.progress.total == 0) 0f else scan.progress.indexed.toFloat() / scan.progress.total,
+            icon = Icons.Rounded.Face,
+        )
+    }
+}
+
+private fun LazyListScope.peopleSection(state: HomeUiState, actions: HomeActions) {
+    if (state.people.isEmpty() && state.unsortedFaces == 0) return
+    item {
+        SectionTitle(
+            text = stringResource(R.string.people_title),
+            actionLabel = stringResource(R.string.home_people_see_all),
+            onAction = actions.openPeople,
+        )
+    }
+    if (state.people.isNotEmpty()) {
+        item { PeopleRow(state.people, actions.openPerson) }
+    }
+    if (state.unsortedFaces > 0) {
+        item {
+            GroupedSection {
+                row {
+                    ListRow(
+                        title = stringResource(R.string.unsorted_faces_title),
+                        icon = Icons.Rounded.FaceRetouchingNatural,
+                        iconColor = MaterialTheme.palette.purple,
+                        value = formatCount(state.unsortedFaces),
+                        onClick = actions.openUnsorted,
                     )
                 }
-                item {
-                    NavigationCard(
-                        icon = Icons.Rounded.Lock,
-                        iconTint = SwipeColors.Private,
-                        title = stringResource(R.string.vault_title),
-                        subtitle = stringResource(
-                            if (state.vaultSetUp) R.string.home_vault_locked else R.string.home_vault_not_set_up,
-                        ),
-                        onClick = onOpenVault,
+            }
+        }
+    }
+}
+
+private fun LazyListScope.browseSection(state: HomeUiState, actions: HomeActions) {
+    item { SectionTitle(stringResource(R.string.home_section_browse)) }
+    item {
+        val counts = state.browse.counts
+        val palette = MaterialTheme.palette
+        TileGrid(
+            listOf<@Composable (Modifier) -> Unit>(
+                { m ->
+                    SmartTile(
+                        title = stringResource(R.string.tile_by_date),
+                        icon = Icons.Rounded.CalendarMonth,
+                        color = palette.red,
+                        count = formatCount(counts.years),
+                        onClick = actions.openDates,
+                        modifier = m,
+                    )
+                },
+                { m ->
+                    SmartTile(
+                        title = stringResource(R.string.tile_albums),
+                        icon = Icons.Rounded.Collections,
+                        color = palette.blue,
+                        count = formatCount(counts.albums),
+                        onClick = actions.openAlbums,
+                        modifier = m,
+                    )
+                },
+                { m ->
+                    SmartTile(
+                        title = stringResource(R.string.tile_similar),
+                        icon = Icons.Rounded.FilterNone,
+                        color = palette.indigo,
+                        count = formatCount(state.browse.similarToReview),
+                        onClick = actions.openDuplicates,
+                        modifier = m,
+                    )
+                },
+                { m ->
+                    SmartTile(
+                        title = stringResource(R.string.tile_blurry),
+                        icon = Icons.Rounded.BlurOn,
+                        color = palette.teal,
+                        count = formatCount(counts.blurryToReview),
+                        onClick = { actions.startSession(SessionFilter.Blurry.key) },
+                        modifier = m,
+                    )
+                },
+                { m ->
+                    SmartTile(
+                        title = stringResource(R.string.tile_videos),
+                        icon = Icons.Rounded.PlayCircle,
+                        color = palette.pink,
+                        count = formatCount(counts.videosToReview),
+                        onClick = { actions.startSession(SessionFilter.Videos.key) },
+                        modifier = m,
+                    )
+                },
+                { m ->
+                    SmartTile(
+                        title = stringResource(R.string.tile_large),
+                        icon = Icons.Rounded.SdStorage,
+                        color = palette.orange,
+                        count = formatCount(counts.largeToReview),
+                        onClick = { actions.startSession(SessionFilter.Largest.key) },
+                        modifier = m,
+                    )
+                },
+            ),
+        )
+    }
+    item {
+        GroupedSection {
+            row {
+                ListRow(
+                    title = stringResource(R.string.home_custom_session),
+                    subtitle = stringResource(R.string.home_custom_session_body),
+                    icon = Icons.Rounded.Tune,
+                    iconColor = MaterialTheme.palette.gray,
+                    onClick = actions.openCustom,
+                )
+            }
+        }
+    }
+}
+
+private fun LazyListScope.sourcesSection(state: HomeUiState, actions: HomeActions) {
+    val sources = state.browse.sources
+    if (sources.isEmpty()) return
+    item { SectionTitle(stringResource(R.string.home_section_sources)) }
+    item {
+        GroupedSection {
+            sources.forEach { source ->
+                row {
+                    ListRow(
+                        title = stringResource(source.source.labelRes),
+                        subtitle = pluralStringResource(R.plurals.count_items, source.count, formatCount(source.count)),
+                        icon = source.source.icon,
+                        iconColor = source.source.color,
+                        value = if (source.toReview > 0) formatCount(source.toReview) else null,
+                        trailing = if (source.toReview == 0) {
+                            { Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.palette.green) }
+                        } else {
+                            null
+                        },
+                        onClick = { actions.startSession(SessionFilter.Source(source.source).key) },
                     )
                 }
             }
@@ -228,12 +400,45 @@ fun HomeScreen(
 }
 
 @Composable
-private fun SectionHeader(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        modifier = modifier.padding(top = 8.dp),
-    )
+private fun LibrarySection(state: HomeUiState, actions: HomeActions) {
+    val context = LocalContext.current
+    val summary = state.summary
+    Column {
+        SectionTitle(stringResource(R.string.home_section_library))
+        GroupedSection {
+            row {
+                ListRow(
+                    title = stringResource(R.string.home_trash),
+                    icon = Icons.Rounded.Delete,
+                    iconColor = MaterialTheme.palette.red,
+                    value = if (summary.trashedCount > 0) {
+                        stringResource(R.string.count_with_review, formatCount(summary.trashedCount), formatBytes(context, summary.trashedBytes))
+                    } else {
+                        null
+                    },
+                    subtitle = if (summary.trashedCount == 0) stringResource(R.string.home_trash_empty) else null,
+                    onClick = actions.openTrash,
+                )
+            }
+            row {
+                ListRow(
+                    title = stringResource(R.string.vault_title),
+                    icon = Icons.Rounded.Lock,
+                    iconColor = MaterialTheme.palette.indigo,
+                    subtitle = stringResource(if (state.vaultSetUp) R.string.home_vault_locked else R.string.home_vault_not_set_up),
+                    onClick = actions.openVault,
+                )
+            }
+            row {
+                ListRow(
+                    title = stringResource(R.string.home_stats),
+                    icon = Icons.Rounded.BarChart,
+                    iconColor = MaterialTheme.palette.green,
+                    onClick = actions.openStats,
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -250,84 +455,26 @@ private fun PeopleRow(people: List<Person>, onOpenPerson: (Long) -> Unit) {
     }
 }
 
-/** Face scanning status. Shows nothing once every photo has been scanned. */
+/** Why face grouping is off, as a quiet note at the bottom. */
 @Composable
-private fun FaceScanCard(scan: FaceScanUiState) {
-    val message = when {
-        scan.modelState == FaceModelState.MISSING -> stringResource(R.string.face_model_missing)
-        scan.modelState == FaceModelState.UNSUPPORTED -> stringResource(R.string.face_model_unsupported)
-        scan.progress.isComplete -> return
-        scan.status == ScanStatus.WAITING && scan.onlyWhileCharging -> stringResource(R.string.face_scan_waiting_charger)
-        else -> null
+private fun FaceModelNote(modelState: FaceModelState) {
+    val text = when (modelState) {
+        FaceModelState.MISSING -> stringResource(R.string.face_model_missing)
+        FaceModelState.UNSUPPORTED -> stringResource(R.string.face_model_unsupported)
+        else -> return
     }
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.Face, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    text = message ?: stringResource(R.string.face_scan_progress, formatCount(scan.progress.indexed), formatCount(scan.progress.total)),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
-            if (scan.modelState == FaceModelState.READY) {
-                Spacer(Modifier.height(10.dp))
-                LinearProgressIndicator(
-                    progress = { if (scan.progress.total == 0) 0f else scan.progress.indexed.toFloat() / scan.progress.total },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun NavigationCard(
-    icon: ImageVector,
-    iconTint: Color,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-) {
-    ElevatedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = iconTint.copy(alpha = 0.12f),
-                modifier = Modifier.size(48.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, tint = iconTint)
-                }
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
 }
 
 @Composable
 private fun LoadingGalleryCard() {
-    Card(Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    GroupedCard {
+        Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
             CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 3.dp)
             Spacer(Modifier.width(16.dp))
             Text(stringResource(R.string.home_loading_gallery), style = MaterialTheme.typography.bodyLarge)
@@ -337,15 +484,39 @@ private fun LoadingGalleryCard() {
 
 @Composable
 private fun NoPhotosCard() {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(20.dp)) {
-            Text(stringResource(R.string.home_no_photos_title), style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(4.dp))
+    GroupedCard {
+        Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(Icons.Rounded.PhotoLibrary, MaterialTheme.palette.blue, size = 44.dp, shape = CircleShape)
+            Spacer(Modifier.width(14.dp))
+            Column {
+                Text(stringResource(R.string.home_no_photos_title), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = stringResource(R.string.home_no_photos_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoAccessBanner(onAllow: () -> Unit) {
+    GroupedCard {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconBadge(Icons.Rounded.Videocam, MaterialTheme.palette.pink)
+                Spacer(Modifier.width(12.dp))
+                Text(stringResource(R.string.video_access_title), style = MaterialTheme.typography.titleMedium)
+            }
+            Spacer(Modifier.height(6.dp))
             Text(
-                text = stringResource(R.string.home_no_photos_body),
+                stringResource(R.string.video_access_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Spacer(Modifier.height(12.dp))
+            TintedButton(text = stringResource(R.string.video_access_allow), onClick = onAllow, compact = true)
         }
     }
 }
@@ -354,31 +525,19 @@ private fun NoPhotosCard() {
 private fun PartialAccessBanner(onSelectMore: () -> Unit, onAllowAll: () -> Unit) {
     var showAllowAllHelp by rememberSaveable { mutableStateOf(false) }
 
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        ),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(start = 16.dp, top = 16.dp, end = 8.dp, bottom = 4.dp)) {
-            Text(stringResource(R.string.partial_access_title), style = MaterialTheme.typography.titleSmall)
+    GroupedCard {
+        Column(Modifier.padding(16.dp)) {
+            Text(stringResource(R.string.partial_access_title), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(4.dp))
-            Text(stringResource(R.string.partial_access_body), style = MaterialTheme.typography.bodyMedium)
-            // Buttons take the banner's text colour; the default primary can clash with the container.
-            val buttonColors = ButtonDefaults.textButtonColors(
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            Text(
+                stringResource(R.string.partial_access_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                TextButton(onClick = onSelectMore, colors = buttonColors) {
-                    Text(stringResource(R.string.partial_access_select_more), fontWeight = FontWeight.Bold)
-                }
-                TextButton(onClick = { showAllowAllHelp = true }, colors = buttonColors) {
-                    Text(stringResource(R.string.partial_access_allow_all), fontWeight = FontWeight.Bold)
-                }
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TintedButton(text = stringResource(R.string.partial_access_select_more), onClick = onSelectMore, compact = true)
+                TintedButton(text = stringResource(R.string.partial_access_allow_all), onClick = { showAllowAllHelp = true }, compact = true)
             }
         }
     }

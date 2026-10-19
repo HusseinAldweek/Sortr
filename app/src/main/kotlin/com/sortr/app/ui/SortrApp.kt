@@ -25,15 +25,18 @@ fun SortrApp(viewModel: AppViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    val checkAccess = {
+        viewModel.onAccessChecked(MediaPermissions.currentAccess(context), MediaPermissions.hasVideoAccess(context))
+    }
     LifecycleResumeEffect(Unit) {
-        viewModel.onAccessChecked(MediaPermissions.currentAccess(context))
+        checkAccess()
         onPauseOrDispose { }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) {
-        viewModel.onAccessChecked(MediaPermissions.currentAccess(context))
+        checkAccess()
     }
     val requestAccess = { permissionLauncher.launch(MediaPermissions.requested) }
     val openAppSettings = { context.startActivity(MediaPermissions.appSettingsIntent(context)) }
@@ -56,6 +59,7 @@ fun SortrApp(viewModel: AppViewModel = hiltViewModel()) {
         )
         else -> SortrNavHost(
             access = state.access,
+            videoAccess = state.videoAccess,
             onRequestAccess = requestAccess,
             onOpenAppSettings = openAppSettings,
         )

@@ -16,6 +16,9 @@ fun PhotoEntity.toDomain() = Photo(
     bucketName = bucketName,
     relativePath = relativePath,
     status = status,
+    mediaType = mediaType,
+    durationMs = durationMs,
+    blurScore = blurScore,
 )
 
 fun VaultItemEntity.toDomain() = VaultItem(
@@ -32,6 +35,7 @@ fun VaultItemEntity.toDomain() = VaultItem(
 
 fun SummaryRow.toDomain() = LibrarySummary(
     total = total,
+    videos = videos,
     unreviewed = unreviewed,
     skipped = skipped,
     kept = kept,

@@ -2,8 +2,8 @@ package com.sortr.data.repository
 
 import androidx.room.withTransaction
 import com.sortr.data.db.ActionEntity
-import com.sortr.data.db.PhotoEntity
 import com.sortr.data.db.SQL_CHUNK
+import com.sortr.data.db.SessionQueries
 import com.sortr.data.db.SortrDatabase
 import com.sortr.data.db.toDomain
 import com.sortr.domain.model.ActionType
@@ -22,9 +22,11 @@ import javax.inject.Singleton
 @Singleton
 class PhotoRepositoryImpl @Inject constructor(
     private val db: SortrDatabase,
+    private val duplicates: DuplicateIndex,
 ) : PhotoRepository {
 
     private val photoDao = db.photoDao()
+    private val libraryDao = db.libraryDao()
     private val actionDao = db.actionDao()
 
     override fun observeSummary(): Flow<LibrarySummary> =
@@ -34,13 +36,14 @@ class PhotoRepositoryImpl @Inject constructor(
         photoDao.observeByStatusRecentlyChanged(PhotoStatus.TRASHED).map { rows -> rows.map { it.toDomain() } }
 
     override suspend fun loadSession(filter: SessionFilter): List<Photo> {
-        val query: suspend (PhotoStatus) -> List<PhotoEntity> = when (filter) {
-            SessionFilter.AllPhotos -> { status -> photoDao.byStatusNewestFirst(status) }
-            is SessionFilter.Person -> { status -> photoDao.byStatusWithPerson(status, filter.personId) }
-            SessionFilter.UnsortedFaces -> { status -> photoDao.byStatusWithUnsortedFaces(status) }
+        if (filter == SessionFilter.Duplicates) {
+            // Every copy except the best one, group by group.
+            val extras = duplicates.groups().flatMap { group -> group.photos.filter { it.id != group.bestId } }
+            return extras.filter { it.status == PhotoStatus.UNREVIEWED } + extras.filter { it.status == PhotoStatus.SKIPPED }
         }
         return db.withTransaction {
-            query(PhotoStatus.UNREVIEWED) + query(PhotoStatus.SKIPPED)
+            libraryDao.photos(SessionQueries.select(filter, PhotoStatus.UNREVIEWED)) +
+                libraryDao.photos(SessionQueries.select(filter, PhotoStatus.SKIPPED))
         }.map { it.toDomain() }
     }
 
@@ -57,6 +60,31 @@ class PhotoRepositoryImpl @Inject constructor(
             ),
         )
         Decision(actionId, photo, action, photo.status)
+    }
+
+    override suspend fun applyDecisions(photos: Collection<Photo>, action: SwipeAction): List<Decision> = db.withTransaction {
+        val now = System.currentTimeMillis()
+        photos.map { it.id }.chunked(SQL_CHUNK).forEach { photoDao.updateStatuses(it, action.resultStatus, now) }
+        photos.map { photo ->
+            val actionId = actionDao.insert(
+                ActionEntity(
+                    photoId = photo.id,
+                    action = action.actionType,
+                    previousStatus = photo.status,
+                    sizeBytes = photo.sizeBytes,
+                    timestamp = now,
+                ),
+            )
+            Decision(actionId, photo, action, photo.status)
+        }
+    }
+
+    override suspend fun undoDecisions(decisions: Collection<Decision>) = db.withTransaction {
+        val now = System.currentTimeMillis()
+        decisions.forEach {
+            photoDao.updateStatus(it.photo.id, it.previousStatus, now)
+            actionDao.delete(it.actionId)
+        }
     }
 
     override suspend fun undoDecision(decision: Decision) = db.withTransaction {

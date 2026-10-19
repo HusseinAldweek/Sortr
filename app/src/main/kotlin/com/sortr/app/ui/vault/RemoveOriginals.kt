@@ -41,6 +41,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.sortr.app.R
+import com.sortr.app.ui.design.GroupedCard
+import com.sortr.app.ui.design.IconBadge
+import com.sortr.app.ui.design.TintedButton
+import com.sortr.app.ui.theme.palette
 import com.sortr.app.media.DeleteRequestFactory
 import com.sortr.app.ui.common.formatCount
 import com.sortr.domain.model.VaultItem
@@ -191,21 +195,11 @@ fun RemoveOriginalsCard(
 
     if (state.pending == 0 && state.encrypting == 0) return
 
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        ),
-        modifier = modifier.fillMaxWidth(),
-    ) {
+    GroupedCard(modifier) {
         Column(Modifier.padding(16.dp)) {
             if (state.encrypting > 0) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(20.dp),
-                    )
+                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(12.dp))
                     Text(
                         text = pluralStringResource(R.plurals.vault_encrypting, state.encrypting, formatCount(state.encrypting)),
@@ -216,22 +210,27 @@ fun RemoveOriginalsCard(
             if (state.pending > 0) {
                 if (state.encrypting > 0) Spacer(Modifier.height(12.dp))
                 Row {
-                    Icon(Icons.Rounded.Lock, contentDescription = null)
+                    IconBadge(Icons.Rounded.Lock, MaterialTheme.palette.indigo)
                     Spacer(Modifier.width(12.dp))
                     Column {
                         Text(
                             text = pluralStringResource(R.plurals.vault_pending_title, state.pending, formatCount(state.pending)),
-                            style = MaterialTheme.typography.titleSmall,
+                            style = MaterialTheme.typography.titleMedium,
                         )
                         Spacer(Modifier.height(4.dp))
-                        Text(stringResource(R.string.vault_pending_body), style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    // Wait for encryption to finish so every original goes in one confirmation.
-                    Button(onClick = viewModel::start, enabled = !state.busy && state.encrypting == 0) {
-                        Text(stringResource(R.string.vault_pending_action))
+                        Text(
+                            stringResource(R.string.vault_pending_body),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        // Wait for encryption to finish so every original goes in one confirmation.
+                        TintedButton(
+                            text = stringResource(R.string.vault_pending_action),
+                            onClick = viewModel::start,
+                            enabled = !state.busy && state.encrypting == 0,
+                            compact = true,
+                        )
                     }
                 }
             }

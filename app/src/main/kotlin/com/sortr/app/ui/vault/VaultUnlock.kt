@@ -13,7 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.AlertDialog
@@ -48,6 +47,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.sortr.app.R
+import com.sortr.app.ui.design.BackButton
 import com.sortr.app.ui.common.formatCount
 import com.sortr.app.vault.Biometrics
 import com.sortr.app.vault.VaultLock
@@ -142,9 +142,7 @@ fun VaultLockScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.vault_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
+                    BackButton(onBack)
                 },
             )
         },

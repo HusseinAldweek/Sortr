@@ -13,8 +13,9 @@ import coil3.request.Options
 import coil3.size.pxOrElse
 
 /**
- * Coil model for a grid thumbnail. Loaded through [ContentResolver.loadThumbnail], which
- * reuses the system's thumbnail cache and is much faster than decoding the full photo.
+ * Coil model for a thumbnail of a photo or video. Loaded through [ContentResolver.loadThumbnail],
+ * which reuses the system's thumbnail cache, is much faster than decoding the full photo and
+ * also gives a still frame for videos.
  */
 data class MediaThumbnail(val uri: Uri)
 
@@ -46,5 +47,7 @@ class MediaThumbnailFetcher(
 }
 
 class MediaThumbnailKeyer : Keyer<MediaThumbnail> {
-    override fun key(data: MediaThumbnail, options: Options): String = "thumb:${data.uri}"
+    // Includes the size: the same item is shown as a small grid tile and as a large video card.
+    override fun key(data: MediaThumbnail, options: Options): String =
+        "thumb:${data.uri}:${options.size.width}x${options.size.height}"
 }
