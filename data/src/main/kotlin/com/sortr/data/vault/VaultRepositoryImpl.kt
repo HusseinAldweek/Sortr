@@ -178,18 +178,12 @@ class VaultRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun cancel(photoId: Long): Boolean = itemMutex.withLock {
+    override suspend fun cancel(photoId: Long) = itemMutex.withLock {
         withContext(Dispatchers.IO) {
-            val item = vaultDao.bySource(photoId)
-            if (item != null) {
-                deleteItemFiles(item)
-                vaultDao.delete(item.id)
-                true
-            } else {
-                // No copy linked to the photo: either it was never encrypted, which is fine to
-                // undo, or its original has already left the gallery.
-                media.existingIds(listOf(photoId)).isNotEmpty()
-            }
+            // A queued job that hasn't run yet will see the restored status and skip the photo.
+            val item = vaultDao.bySource(photoId) ?: return@withContext
+            vaultDao.delete(item.id)
+            deleteItemFiles(item)
         }
     }
 

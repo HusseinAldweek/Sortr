@@ -68,16 +68,26 @@ import kotlinx.coroutines.launch
 fun SwipeScreen(
     onBack: () -> Unit,
     onOpenTrash: () -> Unit,
+    onOpenVault: () -> Unit,
     viewModel: SwipeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val ready = state as? SwipeUiState.Ready
     val snackbarHostState = remember { SnackbarHostState() }
-    val saveError = stringResource(R.string.swipe_error_save)
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var viewerPhoto by remember { mutableStateOf<Photo?>(null) }
+    var askVaultSetup by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
-        viewModel.saveErrors.collect { snackbarHostState.showSnackbar(saveError) }
+        viewModel.messages.collect { message ->
+            val text = when (message) {
+                SwipeMessage.SAVE_FAILED -> R.string.swipe_error_save
+                SwipeMessage.VAULT_FAILED -> R.string.swipe_vault_error
+                SwipeMessage.UNDO_BLOCKED -> R.string.swipe_undo_vault_blocked
+            }
+            scope.launch { snackbarHostState.showSnackbar(context.getString(text)) }
+        }
     }
 
     Scaffold(
@@ -102,6 +112,8 @@ fun SwipeScreen(
                 ready.total == 0 -> EmptySession(onBack = onBack)
                 current == null -> SessionDone(
                     counts = ready.counts,
+                    snackbarHostState = snackbarHostState,
+                    onOriginalsRemoved = viewModel::onOriginalsRemoved,
                     onOpenTrash = onOpenTrash,
                     onBack = onBack,
                 )
@@ -109,6 +121,8 @@ fun SwipeScreen(
                     current = current,
                     state = ready,
                     enabledActions = viewModel.enabledActions,
+                    canCommit = viewModel::canCommit,
+                    onBlocked = { askVaultSetup = true },
                     onCommit = { photo, action -> viewModel.onSwipe(photo.id, action) },
                     onOpen = { viewerPhoto = it },
                 )
@@ -118,6 +132,26 @@ fun SwipeScreen(
 
     viewerPhoto?.let { photo ->
         FullScreenViewer(photo = photo, onDismiss = { viewerPhoto = null })
+    }
+
+    if (askVaultSetup) {
+        AlertDialog(
+            onDismissRequest = { askVaultSetup = false },
+            icon = { Icon(Icons.Rounded.Lock, contentDescription = null) },
+            title = { Text(stringResource(R.string.swipe_vault_setup_title)) },
+            text = { Text(stringResource(R.string.swipe_vault_setup_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        askVaultSetup = false
+                        onOpenVault()
+                    },
+                ) { Text(stringResource(R.string.swipe_vault_setup_action)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { askVaultSetup = false }) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
     }
 }
 

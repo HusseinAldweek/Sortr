@@ -27,11 +27,11 @@ interface VaultRepository {
     fun enqueue(photo: Photo)
 
     /**
-     * Undoes moving a photo into the vault while its original is still in the gallery: waits for
-     * any encryption in progress, then deletes the vault copy. Returns false if the original has
-     * already been removed, in which case the vault copy is kept.
+     * Undoes moving a photo into the vault. Call after the photo's status has been put back, and
+     * only while its original is still in the gallery: waits for any encryption in progress,
+     * then deletes the vault copy.
      */
-    suspend fun cancel(photoId: Long): Boolean
+    suspend fun cancel(photoId: Long)
 
     /** Records that these items' gallery originals were deleted. */
     suspend fun markOriginalsRemoved(itemIds: Collection<Long>)

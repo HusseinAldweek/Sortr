@@ -9,16 +9,21 @@ import com.sortr.app.ui.navigation.SwipeRoute
 import com.sortr.domain.model.Photo
 import com.sortr.domain.model.SessionFilter
 import com.sortr.domain.model.SwipeAction
+import com.sortr.domain.repository.GallerySync
 import com.sortr.domain.repository.PhotoRepository
+import com.sortr.domain.repository.VaultAuth
+import com.sortr.domain.repository.VaultRepository
 import com.sortr.domain.session.SwipeDeck
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -54,16 +59,24 @@ sealed interface SwipeUiState {
     ) : SwipeUiState
 }
 
+enum class SwipeMessage { SAVE_FAILED, VAULT_FAILED, UNDO_BLOCKED }
+
 @HiltViewModel
 class SwipeViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val photos: PhotoRepository,
+    private val vault: VaultRepository,
+    private val gallerySync: GallerySync,
+    vaultAuth: VaultAuth,
 ) : ViewModel() {
 
     val filter: SessionFilter = SessionFilter.fromKey(savedStateHandle.toRoute<SwipeRoute>().filterKey)
 
-    /** Private (swipe up) arrives with the vault in Phase 2. */
-    val enabledActions: Set<SwipeAction> = setOf(SwipeAction.KEEP, SwipeAction.DELETE, SwipeAction.SKIP)
+    val enabledActions: Set<SwipeAction> = SwipeAction.entries.toSet()
+
+    /** Swiping up needs a vault PIN first. */
+    val vaultReady: StateFlow<Boolean> =
+        vaultAuth.isSetUp.stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     // Decisions and undos are applied one at a time, in the order the user made them.
     private val mutex = Mutex()
@@ -74,8 +87,8 @@ class SwipeViewModel @Inject constructor(
     private val _state = MutableStateFlow<SwipeUiState>(SwipeUiState.Loading)
     val state: StateFlow<SwipeUiState> = _state.asStateFlow()
 
-    private val _saveErrors = Channel<Unit>(Channel.CONFLATED)
-    val saveErrors: Flow<Unit> = _saveErrors.receiveAsFlow()
+    private val _messages = Channel<SwipeMessage>(Channel.BUFFERED)
+    val messages: Flow<SwipeMessage> = _messages.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -84,10 +97,15 @@ class SwipeViewModel @Inject constructor(
                 publish()
             }
         }
+        viewModelScope.launch {
+            vault.encryptionFailures.collect { _messages.send(SwipeMessage.VAULT_FAILED) }
+        }
     }
 
+    fun canCommit(action: SwipeAction): Boolean = action != SwipeAction.PRIVATE || vaultReady.value
+
     fun onSwipe(photoId: Long, action: SwipeAction) {
-        if (action !in enabledActions) return
+        if (action !in enabledActions || !canCommit(action)) return
         viewModelScope.launch {
             mutex.withLock {
                 val deck = deck ?: return@withLock
@@ -96,6 +114,7 @@ class SwipeViewModel @Inject constructor(
                 runSaving {
                     deck.commit(photos.applyDecision(photo, action))
                     counts = counts.adjust(action, +1)
+                    if (action == SwipeAction.PRIVATE) vault.enqueue(photo)
                 }
                 publish()
             }
@@ -107,11 +126,31 @@ class SwipeViewModel @Inject constructor(
             mutex.withLock {
                 val deck = deck ?: return@withLock
                 val decision = deck.lastDecision ?: return@withLock
+                val photoId = decision.photo.id
+                if (decision.action == SwipeAction.PRIVATE && gallerySync.existingIds(listOf(photoId)).isEmpty()) {
+                    // The original already left the gallery; the photo now lives only in the vault.
+                    deck.clearHistory()
+                    _messages.send(SwipeMessage.UNDO_BLOCKED)
+                    publish()
+                    return@withLock
+                }
                 runSaving {
                     photos.undoDecision(decision)
                     deck.undoLast()
                     counts = counts.adjust(decision.action, -1)
+                    // After the status is restored, so a queued encryption skips the photo.
+                    if (decision.action == SwipeAction.PRIVATE) vault.cancel(photoId)
                 }
+                publish()
+            }
+        }
+    }
+
+    /** Vaulted originals were deleted, so those decisions can no longer be undone. */
+    fun onOriginalsRemoved() {
+        viewModelScope.launch {
+            mutex.withLock {
+                deck?.clearHistory()
                 publish()
             }
         }
@@ -124,7 +163,7 @@ class SwipeViewModel @Inject constructor(
             throw e
         } catch (e: Exception) {
             Log.w(TAG, "Saving a decision failed", e)
-            _saveErrors.trySend(Unit)
+            _messages.send(SwipeMessage.SAVE_FAILED)
         }
     }
 

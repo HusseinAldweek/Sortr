@@ -133,6 +133,8 @@ internal fun SwipeStack(
     cardState: SwipeCardState,
     cardSize: IntSize,
     enabledActions: Set<SwipeAction>,
+    canCommit: (SwipeAction) -> Boolean,
+    onBlocked: (SwipeAction) -> Unit,
     onCommit: (Photo, SwipeAction) -> Unit,
     onOpen: (Photo) -> Unit,
     modifier: Modifier = Modifier,
@@ -171,6 +173,8 @@ internal fun SwipeStack(
                 state = cardState,
                 cardSize = cardSize,
                 enabledActions = enabledActions,
+                canCommit = canCommit,
+                onBlocked = onBlocked,
                 onCommit = onCommit,
                 onOpen = { onOpen(current) },
                 modifier = Modifier.fillMaxSize(),
@@ -185,6 +189,8 @@ private fun SwipeCard(
     state: SwipeCardState,
     cardSize: IntSize,
     enabledActions: Set<SwipeAction>,
+    canCommit: (SwipeAction) -> Boolean,
+    onBlocked: (SwipeAction) -> Unit,
     onCommit: (Photo, SwipeAction) -> Unit,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
@@ -192,6 +198,8 @@ private fun SwipeCard(
     val scope = rememberCoroutineScope()
     val flingVelocity = with(LocalDensity.current) { FlingVelocity.toPx() }
     val currentOnCommit by rememberUpdatedState(onCommit)
+    val currentCanCommit by rememberUpdatedState(canCommit)
+    val currentOnBlocked by rememberUpdatedState(onBlocked)
     val width = cardSize.width.toFloat()
     val height = cardSize.height.toFloat()
 
@@ -200,8 +208,13 @@ private fun SwipeCard(
     val progress = if (direction != null) dragProgress(offset.x, offset.y, width, height) else 0f
 
     val commit: (SwipeAction) -> Unit = { action ->
-        scope.launch {
-            if (state.flyOut(action, cardSize)) currentOnCommit(photo, action)
+        if (currentCanCommit(action)) {
+            scope.launch {
+                if (state.flyOut(action, cardSize)) currentOnCommit(photo, action)
+            }
+        } else {
+            scope.launch { state.settle() }
+            currentOnBlocked(action)
         }
     }
     val accessibilityActions = enabledActions.map { action ->
