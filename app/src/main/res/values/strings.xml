@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Sortr</string>
+
+    <!-- Common -->
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_done">Done</string>
+    <string name="action_settings">Settings</string>
+
+    <!-- Swipe actions. Also shown in capitals as the drag label. -->
+    <string name="action_keep">Keep</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_private">Private</string>
+    <string name="action_skip">Skip</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Clean up your gallery, one swipe at a time</string>
+    <string name="onboarding_swipe_title">Swipe to sort</string>
+    <string name="onboarding_swipe_body">Right to keep, left to delete, up to hide in your private vault, down to skip.</string>
+    <string name="onboarding_safe_title">Nothing is lost by accident</string>
+    <string name="onboarding_safe_body">Deleted photos wait in Sortr\'s Trash. They only leave your phone after you empty the Trash and confirm.</string>
+    <string name="onboarding_private_title">Nothing leaves your phone</string>
+    <string name="onboarding_private_body">Sortr has no internet access. Your photos are never uploaded, and there are no ads or tracking.</string>
+    <string name="onboarding_permission_note">Next, Android will ask you to let Sortr see your photos.</string>
+    <string name="onboarding_get_started">Get started</string>
+
+    <!-- Permission -->
+    <string name="permission_title">Sortr needs access to your photos</string>
+    <string name="permission_body">Sortr can only sort photos it can see. Your photos stay on this phone. Sortr can\'t upload them, because it has no internet access.</string>
+    <string name="permission_allow">Allow access</string>
+    <string name="permission_open_settings">Open settings</string>
+    <string name="permission_settings_hint">If no prompt appears, tap Open settings, then Permissions, then Photos and videos, and choose Allow all.</string>
+
+    <!-- Partial access (Android 14+) -->
+    <string name="partial_access_title">Sortr can only see some of your photos</string>
+    <string name="partial_access_body">You chose specific photos. To sort your whole gallery, allow access to all photos.</string>
+    <string name="partial_access_select_more">Select more</string>
+    <string name="partial_access_allow_all">Allow all</string>
+    <string name="partial_access_dialog_title">Allow access to all photos</string>
+    <string name="partial_access_dialog_body">On the next screen, tap Permissions, then Photos and videos, and choose Allow all.</string>
+
+    <!-- Home -->
+    <string name="home_loading_gallery">Reading your gallery…</string>
+    <string name="home_no_photos_title">No photos found</string>
+    <string name="home_no_photos_body">Photos you take or save will show up here.</string>
+    <plurals name="home_photo_count">
+        <item quantity="one">%1$s photo</item>
+        <item quantity="other">%1$s photos</item>
+    </plurals>
+    <string name="home_summary">%1$s · %2$s</string>
+    <plurals name="home_left_to_review">
+        <item quantity="one">%1$s left to review</item>
+        <item quantity="other">%1$s left to review</item>
+    </plurals>
+    <string name="home_sessions_header">Start sorting</string>
+    <string name="home_shortcuts_header">Your photos</string>
+    <string name="session_all_photos">All photos</string>
+    <plurals name="session_to_review">
+        <item quantity="one">%1$s to review</item>
+        <item quantity="other">%1$s to review</item>
+    </plurals>
+    <string name="session_all_caught_up">All caught up</string>
+    <string name="home_trash">Trash</string>
+    <string name="home_trash_empty">Empty</string>
+    <plurals name="home_trash_summary">
+        <item quantity="one">%1$s photo · %2$s</item>
+        <item quantity="other">%1$s photos · %2$s</item>
+    </plurals>
+
+    <!-- Swipe session -->
+    <string name="swipe_progress">%1$s / %2$s</string>
+    <string name="swipe_undo">Undo</string>
+    <string name="swipe_card_description">Photo from %1$s</string>
+    <string name="swipe_card_details">%1$s · %2$s</string>
+    <string name="swipe_open_full_screen">View full screen</string>
+    <string name="swipe_image_error">Couldn\'t load this photo</string>
+    <string name="swipe_error_save">Couldn\'t save that. Please try again.</string>
+    <string name="swipe_done_title">All done!</string>
+    <string name="swipe_done_body">You\'ve gone through every photo in this session.</string>
+    <plurals name="swipe_done_kept">
+        <item quantity="one">%1$s kept</item>
+        <item quantity="other">%1$s kept</item>
+    </plurals>
+    <plurals name="swipe_done_trashed">
+        <item quantity="one">%1$s moved to Trash</item>
+        <item quantity="other">%1$s moved to Trash</item>
+    </plurals>
+    <plurals name="swipe_done_skipped">
+        <item quantity="one">%1$s skipped</item>
+        <item quantity="other">%1$s skipped</item>
+    </plurals>
+    <string name="swipe_go_to_trash">Go to Trash</string>
+    <string name="swipe_back_home">Back to home</string>
+    <string name="swipe_empty_title">Nothing to sort</string>
+    <string name="swipe_empty_body">You\'ve reviewed every photo. To go through them again, use Reset reviewed photos in Settings.</string>
+
+    <!-- Full screen viewer -->
+    <string name="viewer_close">Close</string>
+
+    <!-- Trash -->
+    <string name="trash_title">Trash</string>
+    <plurals name="trash_summary">
+        <item quantity="one">%1$s photo · %2$s to free</item>
+        <item quantity="other">%1$s photos · %2$s to free</item>
+    </plurals>
+    <string name="trash_select_hint">Tap photos to select them.</string>
+    <plurals name="trash_selected">
+        <item quantity="one">%1$s selected</item>
+        <item quantity="other">%1$s selected</item>
+    </plurals>
+    <string name="trash_clear_selection">Clear selection</string>
+    <string name="trash_empty_title">Trash is empty</string>
+    <string name="trash_empty_body">Photos you swipe left wait here until you empty the Trash.</string>
+    <plurals name="trash_restore_selected">
+        <item quantity="one">Restore %1$s</item>
+        <item quantity="other">Restore %1$s</item>
+    </plurals>
+    <string name="trash_restore_all">Restore all</string>
+    <string name="trash_empty_action">Empty Trash</string>
+    <string name="trash_freed_title">Trash emptied</string>
+    <string name="trash_freed">You freed %1$s</string>
+    <string name="trash_delete_cancelled">Nothing was deleted. Your photos are still in the Trash.</string>
+    <string name="trash_delete_failed">Couldn\'t delete the photos. Please try again.</string>
+    <plurals name="trash_restored">
+        <item quantity="one">%1$s photo restored</item>
+        <item quantity="other">%1$s photos restored</item>
+    </plurals>
+    <string name="trash_photo_description">Photo from %1$s</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_sorting">Sorting</string>
+    <string name="settings_reset_reviewed">Reset reviewed photos</string>
+    <string name="settings_reset_reviewed_body">Kept and skipped photos show up in sessions again. The Trash is not affected.</string>
+    <string name="settings_reset_confirm_title">Reset reviewed photos?</string>
+    <string name="settings_reset_confirm">Reset</string>
+    <string name="settings_reset_done">Reviewed photos reset</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_privacy_title">Privacy</string>
+    <string name="settings_privacy_body">Sortr has no internet permission. Everything happens on this phone.</string>
+    <string name="settings_version">Version %1$s</string>
+
+    <string name="action_ok">OK</string>
+    <string name="action_continue">Continue</string>
+
+    <!-- Vault: home and general -->
+    <string name="vault_title">Private vault</string>
+    <string name="home_vault_locked">Locked with your PIN</string>
+    <string name="home_vault_not_set_up">Hide photos behind a PIN</string>
+    <string name="vault_lock_now">Lock</string>
+
+    <!-- Vault: first-time setup -->
+    <string name="vault_setup_title">Your private vault</string>
+    <string name="vault_setup_body">Photos you swipe up are encrypted and kept inside Sortr, hidden from your gallery and other apps. Only your PIN or fingerprint opens them.</string>
+    <string name="vault_setup_warning_title">Uninstalling Sortr deletes the vault</string>
+    <string name="vault_setup_warning_body">Vault photos live only inside Sortr on this phone. If you uninstall Sortr or clear its data, they are gone for good. To keep a copy, export an encrypted backup from Settings.</string>
+    <string name="vault_setup_continue">Choose a PIN</string>
+    <string name="vault_pin_create_title">Choose a PIN</string>
+    <string name="vault_pin_create_body">Use 4 to 12 digits. You\'ll need it when your fingerprint isn\'t available.</string>
+    <string name="vault_pin_confirm_title">Enter the PIN again</string>
+    <string name="vault_pin_mismatch">The PINs didn\'t match. Choose a PIN again.</string>
+    <string name="vault_pin_invalid">Use 4 to 12 digits.</string>
+
+    <!-- Vault: unlocking -->
+    <string name="vault_unlock_title">Enter your PIN</string>
+    <plurals name="vault_pin_wrong">
+        <item quantity="one">Wrong PIN. %1$s more try before a short wait.</item>
+        <item quantity="other">Wrong PIN. %1$s more tries before a short wait.</item>
+    </plurals>
+    <string name="vault_pin_wrong_plain">Wrong PIN.</string>
+    <string name="vault_locked_out">Too many wrong PINs. Try again in %1$s.</string>
+    <plurals name="duration_seconds">
+        <item quantity="one">%1$s second</item>
+        <item quantity="other">%1$s seconds</item>
+    </plurals>
+    <plurals name="duration_minutes">
+        <item quantity="one">%1$s minute</item>
+        <item quantity="other">%1$s minutes</item>
+    </plurals>
+    <string name="vault_use_biometric">Use fingerprint</string>
+    <string name="biometric_title">Unlock your vault</string>
+    <string name="biometric_use_pin">Use PIN</string>
+    <string name="pin_delete_digit">Delete digit</string>
+    <plurals name="pin_digits_entered">
+        <item quantity="one">%1$s digit entered</item>
+        <item quantity="other">%1$s digits entered</item>
+    </plurals>
+
+    <!-- Vault: contents -->
+    <string name="vault_empty_title">Your vault is empty</string>
+    <string name="vault_empty_body">Swipe a photo up during a session to move it here.</string>
+    <plurals name="vault_item_count">
+        <item quantity="one">%1$s photo</item>
+        <item quantity="other">%1$s photos</item>
+    </plurals>
+    <plurals name="vault_encrypting">
+        <item quantity="one">Encrypting %1$s photo…</item>
+        <item quantity="other">Encrypting %1$s photos…</item>
+    </plurals>
+    <plurals name="vault_pending_title">
+        <item quantity="one">%1$s photo is in your vault but still in your gallery</item>
+        <item quantity="other">%1$s photos are in your vault but still in your gallery</item>
+    </plurals>
+    <string name="vault_pending_body">Remove the originals so they only exist in the vault. Android will ask you to confirm.</string>
+    <string name="vault_pending_action">Remove from gallery</string>
+    <plurals name="vault_originals_removed">
+        <item quantity="one">Removed %1$s photo from your gallery. It\'s safe in your vault.</item>
+        <item quantity="other">Removed %1$s photos from your gallery. They\'re safe in your vault.</item>
+    </plurals>
+    <string name="vault_originals_kept">The originals are still in your gallery.</string>
+    <string name="vault_originals_failed">Couldn\'t remove the originals. Please try again.</string>
+    <string name="vault_backup_reminder_title">Back up your vault</string>
+    <string name="vault_backup_reminder_body">Uninstalling Sortr deletes vault photos. An encrypted backup lets you get them back.</string>
+    <string name="vault_backup_now">Back up now</string>
+    <string name="vault_backup_later">Not now</string>
+    <string name="vault_photo_description">Private photo from %1$s</string>
+
+    <!-- Vault: viewer -->
+    <string name="vault_restore">Restore to gallery</string>
+    <string name="vault_restore_confirm_title">Restore to gallery?</string>
+    <string name="vault_restore_confirm_body">The photo will be saved to Pictures/Sortr, where your gallery and other apps can see it, and removed from the vault.</string>
+    <string name="vault_restore_action">Restore</string>
+    <string name="vault_restored">Photo restored to your gallery</string>
+    <string name="vault_restore_failed">Couldn\'t restore the photo.</string>
+    <string name="vault_delete">Delete</string>
+    <string name="vault_delete_confirm_title">Delete forever?</string>
+    <string name="vault_delete_confirm_body">This photo exists only in your vault. Deleting it can\'t be undone.</string>
+    <string name="vault_delete_action">Delete forever</string>
+    <string name="vault_deleted">Photo deleted</string>
+    <string name="vault_action_failed">Something went wrong. Please try again.</string>
+
+    <!-- Vault: in a swipe session -->
+    <string name="swipe_vault_setup_title">Set up your private vault</string>
+    <string name="swipe_vault_setup_body">Swiping up hides a photo in an encrypted vault. Choose a PIN first, then come back to keep sorting.</string>
+    <string name="swipe_vault_setup_action">Set up vault</string>
+    <plurals name="swipe_done_vaulted">
+        <item quantity="one">%1$s moved to the vault</item>
+        <item quantity="other">%1$s moved to the vault</item>
+    </plurals>
+    <string name="swipe_vault_error">Couldn\'t move a photo to the vault. It\'s back with your unsorted photos.</string>
+    <string name="swipe_undo_vault_blocked">That photo has already left your gallery. You can restore it from the vault.</string>
+
+    <!-- Settings: vault -->
+    <string name="settings_section_vault">Private vault</string>
+    <string name="settings_vault_set_up">Set up the vault</string>
+    <string name="settings_vault_set_up_body">Hide photos behind a PIN or fingerprint.</string>
+    <string name="settings_change_pin">Change vault PIN</string>
+    <string name="settings_export_backup">Export vault backup</string>
+    <string name="settings_last_backup">Last backup: %1$s</string>
+    <string name="settings_never_backed_up">Not backed up yet</string>
+    <string name="settings_import_backup">Import vault backup</string>
+    <string name="settings_import_backup_body">Add photos from a Sortr backup file to the vault.</string>
+
+    <!-- Backup -->
+    <string name="backup_password_title">Choose a backup password</string>
+    <string name="backup_password_body">You\'ll need this password to open the backup. If you forget it, nobody can recover the photos, including you.</string>
+    <string name="backup_password_label">Backup password</string>
+    <string name="backup_password_confirm_label">Repeat the password</string>
+    <string name="backup_password_too_short">Use at least %1$d characters.</string>
+    <string name="backup_password_mismatch">The passwords don\'t match.</string>
+    <string name="backup_password_enter_title">Enter the backup password</string>
+    <string name="backup_show_password">Show password</string>
+    <string name="backup_hide_password">Hide password</string>
+    <string name="backup_preparing">Preparing…</string>
+    <string name="backup_exporting">Exporting %1$s of %2$s…</string>
+    <string name="backup_importing">Importing %1$s of %2$s…</string>
+    <string name="backup_export_title">Exporting backup</string>
+    <string name="backup_import_title">Importing backup</string>
+    <plurals name="backup_export_done">
+        <item quantity="one">Backup saved with %1$s photo</item>
+        <item quantity="other">Backup saved with %1$s photos</item>
+    </plurals>
+    <string name="backup_export_failed">Couldn\'t save the backup.</string>
+    <string name="backup_vault_empty">The vault is empty, so there\'s nothing to back up yet.</string>
+    <plurals name="backup_import_done">
+        <item quantity="one">Imported %1$s photo</item>
+        <item quantity="other">Imported %1$s photos</item>
+    </plurals>
+    <plurals name="backup_import_skipped">
+        <item quantity="one">%1$s was already in the vault</item>
+        <item quantity="other">%1$s were already in the vault</item>
+    </plurals>
+    <string name="backup_import_summary">%1$s. %2$s.</string>
+    <string name="backup_wrong_password">Wrong password, or the file is damaged.</string>
+    <string name="backup_not_a_backup">That file isn\'t a Sortr vault backup.</string>
+    <string name="backup_damaged">The backup file is damaged. Photos read before the damage were imported.</string>
+    <string name="backup_unsupported">This backup was made by a newer version of Sortr.</string>
+    <string name="backup_import_failed">Couldn\'t import the backup.</string>
+    <string name="backup_needs_vault">Set up the vault before importing a backup.</string>
+
+    <!-- Change PIN and PIN prompt -->
+    <string name="change_pin_title">Change vault PIN</string>
+    <string name="change_pin_current">Current PIN</string>
+    <string name="change_pin_new">New PIN</string>
+    <string name="change_pin_confirm">Repeat the new PIN</string>
+    <string name="change_pin_done">Vault PIN changed</string>
+    <string name="auth_pin_title">Enter your vault PIN</string>
+</resources>
