@@ -44,29 +44,13 @@
     <string name="home_loading_gallery">Reading your gallery…</string>
     <string name="home_no_photos_title">No photos found</string>
     <string name="home_no_photos_body">Photos you take or save will show up here.</string>
-    <plurals name="home_photo_count">
-        <item quantity="one">%1$s photo</item>
-        <item quantity="other">%1$s photos</item>
-    </plurals>
-    <string name="home_summary">%1$s · %2$s</string>
-    <plurals name="home_left_to_review">
-        <item quantity="one">%1$s left to review</item>
-        <item quantity="other">%1$s left to review</item>
-    </plurals>
-    <string name="home_sessions_header">Start sorting</string>
-    <string name="home_shortcuts_header">Your photos</string>
     <string name="session_all_photos">All photos</string>
     <plurals name="session_to_review">
         <item quantity="one">%1$s to review</item>
         <item quantity="other">%1$s to review</item>
     </plurals>
-    <string name="session_all_caught_up">All caught up</string>
     <string name="home_trash">Trash</string>
     <string name="home_trash_empty">Empty</string>
-    <plurals name="home_trash_summary">
-        <item quantity="one">%1$s photo · %2$s</item>
-        <item quantity="other">%1$s photos · %2$s</item>
-    </plurals>
 
     <!-- Swipe session -->
     <string name="swipe_progress">%1$s / %2$s</string>
@@ -109,7 +93,6 @@
         <item quantity="one">%1$s selected</item>
         <item quantity="other">%1$s selected</item>
     </plurals>
-    <string name="trash_clear_selection">Clear selection</string>
     <string name="trash_empty_title">Trash is empty</string>
     <string name="trash_empty_body">Photos you swipe left wait here until you empty the Trash.</string>
     <plurals name="trash_restore_selected">
@@ -219,7 +202,7 @@
     <!-- Vault: viewer -->
     <string name="vault_restore">Restore to gallery</string>
     <string name="vault_restore_confirm_title">Restore to gallery?</string>
-    <string name="vault_restore_confirm_body">The photo will be saved to Pictures/Sortr, where your gallery and other apps can see it, and removed from the vault.</string>
+    <string name="vault_restore_confirm_body">The photo goes back to the album it came from (or Pictures/Sortr), where your gallery and other apps can see it, and is removed from the vault.</string>
     <string name="vault_restore_action">Restore</string>
     <string name="vault_restored">Photo restored to your gallery</string>
     <string name="vault_restore_failed">Couldn\'t restore the photo.</string>
@@ -257,7 +240,10 @@
     <string name="backup_password_body">You\'ll need this password to open the backup. If you forget it, nobody can recover the photos, including you.</string>
     <string name="backup_password_label">Backup password</string>
     <string name="backup_password_confirm_label">Repeat the password</string>
-    <string name="backup_password_too_short">Use at least %1$d characters.</string>
+    <plurals name="backup_password_too_short">
+        <item quantity="one">Use at least %1$s character.</item>
+        <item quantity="other">Use at least %1$s characters.</item>
+    </plurals>
     <string name="backup_password_mismatch">The passwords don\'t match.</string>
     <string name="backup_password_enter_title">Enter the backup password</string>
     <string name="backup_show_password">Show password</string>
@@ -287,7 +273,6 @@
     <string name="backup_damaged">The backup file is damaged. Photos read before the damage were imported.</string>
     <string name="backup_unsupported">This backup was made by a newer version of Sortr.</string>
     <string name="backup_import_failed">Couldn\'t import the backup.</string>
-    <string name="backup_needs_vault">Set up the vault before importing a backup.</string>
 
     <!-- Change PIN and PIN prompt -->
     <string name="change_pin_title">Change vault PIN</string>
@@ -399,7 +384,6 @@
         <item quantity="other">%1$s selected</item>
     </plurals>
     <string name="count_with_review">%1$s · %2$s</string>
-    <string name="video_badge_description">Video, %1$s</string>
 
     <!-- Phase 4: home -->
     <plurals name="home_hero_caption">
@@ -445,14 +429,12 @@
     <string name="session_duplicates">Similar photos</string>
     <string name="session_largest">Large files</string>
     <string name="session_custom">Custom session</string>
-    <string name="session_album">Album</string>
     <string name="swipe_video_private_blocked">Videos can\'t go in the vault yet.</string>
     <string name="swipe_video_description">Video from %1$s, %2$s long</string>
     <string name="viewer_video_error">This video can\'t be played.</string>
 
     <!-- Phase 4: by date -->
     <string name="dates_title">By date</string>
-    <string name="dates_sort_year">Sort %1$s</string>
     <string name="dates_empty_title">No photos yet</string>
     <string name="dates_empty_body">Photos will be grouped by year and month here.</string>
 
@@ -490,7 +472,6 @@
         <item quantity="other">%1$s items couldn\'t be moved</item>
     </plurals>
     <string name="move_cancelled">Nothing was moved</string>
-    <string name="move_in_progress">Moving…</string>
 
     <!-- Phase 4: similar photos -->
     <string name="dup_title">Similar photos</string>

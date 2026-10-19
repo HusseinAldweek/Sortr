@@ -41,4 +41,5 @@ fun SummaryRow.toDomain() = LibrarySummary(
     kept = kept,
     trashedCount = trashedCount,
     trashedBytes = trashedBytes,
+    vaultedCount = vaultedCount,
 )

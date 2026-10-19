@@ -19,17 +19,16 @@ import com.sortr.domain.repository.PeopleRepository
 import com.sortr.domain.repository.PhotoRepository
 import com.sortr.domain.repository.VaultAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -60,7 +59,6 @@ data class HomeUiState(
     val loaded: Boolean = false,
 )
 
-@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     photos: PhotoRepository,
@@ -85,10 +83,14 @@ class HomeViewModel @Inject constructor(
         ::Pair,
     )
 
-    // Grouping duplicates reads every hash, so it's redone only once things settle down.
+    // Grouping duplicates reads every hash, so while photos are being checked it's redone at
+    // most every few seconds, always ending with the latest state.
     private val similarToReview = combine(photos.observeSummary(), library.observeAnalysisProgress(), ::Pair)
-        .debounce(SIMILAR_DEBOUNCE_MS)
-        .mapLatest { library.countToReview(SessionFilter.Duplicates) }
+        .conflate()
+        .transform {
+            emit(library.countToReview(SessionFilter.Duplicates))
+            delay(SIMILAR_THROTTLE_MS)
+        }
         .onStart { emit(0) }
         .distinctUntilChanged()
 
@@ -126,6 +128,6 @@ class HomeViewModel @Inject constructor(
 
     private companion object {
         const val HOME_PEOPLE_LIMIT = 15
-        const val SIMILAR_DEBOUNCE_MS = 1_500L
+        const val SIMILAR_THROTTLE_MS = 3_000L
     }
 }

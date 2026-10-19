@@ -43,7 +43,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -68,7 +67,6 @@ fun FaceImage(
     shape: Shape = CircleShape,
 ) {
     val context = LocalPlatformContext.current
-    val sizePx = with(LocalDensity.current) { size.roundToPx() }
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
@@ -78,7 +76,7 @@ fun FaceImage(
     ) {
         if (face != null) {
             AsyncImage(
-                model = remember(face.faceId, sizePx) { faceImageRequest(context, face, sizePx) },
+                model = remember(face.faceId) { faceImageRequest(context, face) },
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),

@@ -85,13 +85,14 @@ interface PhotoDao {
     @Query(
         """
         SELECT
-            COUNT(*) AS total,
-            COALESCE(SUM(CASE WHEN mediaType = 'VIDEO' THEN 1 ELSE 0 END), 0) AS videos,
+            COALESCE(SUM(CASE WHEN status NOT IN ('VAULTED', 'TRASHED') THEN 1 ELSE 0 END), 0) AS total,
+            COALESCE(SUM(CASE WHEN mediaType = 'VIDEO' AND status NOT IN ('VAULTED', 'TRASHED') THEN 1 ELSE 0 END), 0) AS videos,
             COALESCE(SUM(CASE WHEN status = 'UNREVIEWED' THEN 1 ELSE 0 END), 0) AS unreviewed,
             COALESCE(SUM(CASE WHEN status = 'SKIPPED' THEN 1 ELSE 0 END), 0) AS skipped,
             COALESCE(SUM(CASE WHEN status = 'KEPT' THEN 1 ELSE 0 END), 0) AS kept,
             COALESCE(SUM(CASE WHEN status = 'TRASHED' THEN 1 ELSE 0 END), 0) AS trashedCount,
-            COALESCE(SUM(CASE WHEN status = 'TRASHED' THEN size ELSE 0 END), 0) AS trashedBytes
+            COALESCE(SUM(CASE WHEN status = 'TRASHED' THEN size ELSE 0 END), 0) AS trashedBytes,
+            COALESCE(SUM(CASE WHEN status = 'VAULTED' THEN 1 ELSE 0 END), 0) AS vaultedCount
         FROM photos
         """,
     )
@@ -143,4 +144,5 @@ data class SummaryRow(
     val kept: Int,
     val trashedCount: Int,
     val trashedBytes: Long,
+    val vaultedCount: Int,
 )

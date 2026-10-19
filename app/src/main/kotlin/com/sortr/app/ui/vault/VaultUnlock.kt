@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,13 +19,13 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,8 +48,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.sortr.app.R
-import com.sortr.app.ui.design.BackButton
 import com.sortr.app.ui.common.formatCount
+import com.sortr.app.ui.design.BackButton
+import com.sortr.app.ui.design.IconBadge
+import com.sortr.app.ui.theme.palette
 import com.sortr.app.vault.Biometrics
 import com.sortr.app.vault.VaultLock
 import com.sortr.app.vault.findFragmentActivity
@@ -139,11 +142,11 @@ fun VaultLockScreen(
 
     Scaffold(
         topBar = {
+            // A passcode screen: just a way back, no title.
             TopAppBar(
-                title = { Text(stringResource(R.string.vault_title)) },
-                navigationIcon = {
-                    BackButton(onBack)
-                },
+                title = {},
+                navigationIcon = { BackButton(onBack) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
     ) { padding ->
@@ -156,9 +159,9 @@ fun VaultLockScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
         ) {
-            Icon(Icons.Rounded.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
+            IconBadge(Icons.Rounded.Lock, MaterialTheme.palette.indigo, size = 56.dp, shape = CircleShape)
             Spacer(Modifier.height(16.dp))
-            Text(stringResource(R.string.vault_unlock_title), style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.vault_unlock_title), style = MaterialTheme.typography.titleLarge)
             val feedback = pinFeedbackText(state.feedback)
             Text(
                 text = feedback.orEmpty(),

@@ -19,9 +19,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.FaceRetouchingNatural
-import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -30,15 +29,12 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,11 +49,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sortr.app.R
-import com.sortr.app.ui.design.BackButton
 import com.sortr.app.ui.common.formatCount
+import com.sortr.app.ui.design.BarTextButton
+import com.sortr.app.ui.design.LargeTitleScaffold
+import com.sortr.app.ui.design.SelectionBar
+import com.sortr.app.ui.design.TintedButton
 import com.sortr.domain.model.FaceModelState
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeopleScreen(
     onBack: () -> Unit,
@@ -72,58 +70,48 @@ fun PeopleScreen(
 
     BackHandler(enabled = selecting) { viewModel.clearSelection() }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        if (selecting) {
-                            pluralStringResource(R.plurals.trash_selected, state.selected.size, formatCount(state.selected.size))
-                        } else {
-                            stringResource(R.string.people_title)
-                        },
+    LargeTitleScaffold(
+        title = stringResource(R.string.people_title),
+        onBack = if (selecting) null else onBack,
+        actions = {
+            if (selecting) {
+                BarTextButton(text = stringResource(R.string.action_cancel), onClick = viewModel::clearSelection)
+            } else {
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Rounded.MoreHoriz, contentDescription = stringResource(R.string.action_more), tint = MaterialTheme.colorScheme.primary)
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.people_show_hidden)) },
+                            leadingIcon = { Checkbox(checked = state.showHidden, onCheckedChange = null) },
+                            onClick = {
+                                menuOpen = false
+                                viewModel.toggleShowHidden()
+                            },
+                        )
+                    }
+                }
+            }
+        },
+        bottomBar = {
+            if (selecting) {
+                SelectionBar(count = state.selected.size) {
+                    val allHidden = state.selectedPeople.all { it.hidden }
+                    TintedButton(
+                        text = stringResource(if (allHidden) R.string.people_unhide else R.string.people_hide),
+                        onClick = viewModel::toggleHiddenForSelected,
+                        icon = if (allHidden) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
+                        compact = true,
                     )
-                },
-                navigationIcon = {
-                    if (selecting) {
-                        IconButton(onClick = viewModel::clearSelection) {
-                            Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.trash_clear_selection))
-                        }
-                    } else {
-                        BackButton(onBack)
-                    }
-                },
-                actions = {
-                    if (selecting) {
-                        TextButton(onClick = { confirmMerge = true }, enabled = state.selected.size >= 2) {
-                            Text(stringResource(R.string.people_merge))
-                        }
-                        val allHidden = state.selectedPeople.all { it.hidden }
-                        IconButton(onClick = viewModel::toggleHiddenForSelected) {
-                            Icon(
-                                imageVector = if (allHidden) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
-                                contentDescription = stringResource(if (allHidden) R.string.people_unhide else R.string.people_hide),
-                            )
-                        }
-                    } else {
-                        Box {
-                            IconButton(onClick = { menuOpen = true }) {
-                                Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.action_more))
-                            }
-                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.people_show_hidden)) },
-                                    leadingIcon = { Checkbox(checked = state.showHidden, onCheckedChange = null) },
-                                    onClick = {
-                                        menuOpen = false
-                                        viewModel.toggleShowHidden()
-                                    },
-                                )
-                            }
-                        }
-                    }
-                },
-            )
+                    TintedButton(
+                        text = stringResource(R.string.people_merge),
+                        onClick = { confirmMerge = true },
+                        enabled = state.selected.size >= 2,
+                        compact = true,
+                    )
+                }
+            }
         },
     ) { padding ->
         LazyVerticalGrid(

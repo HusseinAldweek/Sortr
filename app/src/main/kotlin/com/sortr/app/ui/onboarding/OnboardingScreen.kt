@@ -15,22 +15,28 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.RestoreFromTrash
+import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material.icons.rounded.Swipe
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sortr.app.R
+import com.sortr.app.ui.design.IconBadge
+import com.sortr.app.ui.design.PillButton
+import com.sortr.app.ui.theme.palette
 
 @Composable
 fun OnboardingScreen(onGetStarted: () -> Unit) {
-    Surface(Modifier.fillMaxSize()) {
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
                 .safeDrawingPadding()
@@ -41,30 +47,36 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
                     .weight(1f)
                     .verticalScroll(rememberScrollState()),
             ) {
-                Spacer(Modifier.height(32.dp))
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                Spacer(Modifier.height(40.dp))
+                IconBadge(
+                    icon = Icons.Rounded.Style,
+                    color = MaterialTheme.palette.blue,
+                    size = 80.dp,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(20.dp))
                 Text(
                     text = stringResource(R.string.onboarding_title),
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineLarge,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(32.dp))
                 OnboardingPoint(
                     icon = Icons.Rounded.Swipe,
+                    color = MaterialTheme.palette.blue,
                     title = stringResource(R.string.onboarding_swipe_title),
                     body = stringResource(R.string.onboarding_swipe_body),
                 )
                 OnboardingPoint(
                     icon = Icons.Rounded.RestoreFromTrash,
+                    color = MaterialTheme.palette.green,
                     title = stringResource(R.string.onboarding_safe_title),
                     body = stringResource(R.string.onboarding_safe_body),
                 )
                 OnboardingPoint(
                     icon = Icons.Rounded.CloudOff,
+                    color = MaterialTheme.palette.indigo,
                     title = stringResource(R.string.onboarding_private_title),
                     body = stringResource(R.string.onboarding_private_body),
                 )
@@ -73,23 +85,23 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
                 text = stringResource(R.string.onboarding_permission_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(Modifier.height(12.dp))
-            Button(onClick = onGetStarted, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.onboarding_get_started))
-            }
+            Spacer(Modifier.height(16.dp))
+            PillButton(text = stringResource(R.string.onboarding_get_started), onClick = onGetStarted)
         }
     }
 }
 
 @Composable
-private fun OnboardingPoint(icon: ImageVector, title: String, body: String) {
-    Row(Modifier.padding(vertical = 12.dp)) {
+private fun OnboardingPoint(icon: ImageVector, color: Color, title: String, body: String) {
+    Row(Modifier.padding(vertical = 14.dp)) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(28.dp),
+            tint = color,
+            modifier = Modifier.size(34.dp),
         )
         Spacer(Modifier.width(16.dp))
         Column {

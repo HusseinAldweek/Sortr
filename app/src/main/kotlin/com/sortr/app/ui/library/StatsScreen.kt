@@ -155,7 +155,7 @@ fun StatsScreen(onBack: () -> Unit, viewModel: StatsViewModel = hiltViewModel())
 private fun OverviewCard(state: StatsUiState) {
     val context = LocalContext.current
     val summary = state.summary
-    val sortedFraction = if (summary.total == 0) 0f else 1f - summary.toReview.toFloat() / summary.total
+    val sortedFraction = summary.sortedFraction
     GroupedCard {
         Column(Modifier.padding(20.dp)) {
             Row {
@@ -187,7 +187,7 @@ private fun OverviewCard(state: StatsUiState) {
 @Composable
 private fun BigNumber(value: String, label: String, modifier: Modifier = Modifier) {
     Column(modifier) {
-        Text(value, style = MaterialTheme.typography.headlineMedium, maxLines = 1)
+        Text(value, style = MaterialTheme.typography.headlineMedium, maxLines = 1, softWrap = false)
         Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

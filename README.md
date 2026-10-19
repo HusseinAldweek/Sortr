@@ -20,7 +20,7 @@ cloud services.
 | 2 | Private vault: encryption, fingerprint, PIN, restore, backup | Done |
 | 3 | Offline face grouping, People grid, person sessions | Done |
 | 4 | Videos, similar and blurry photos, sessions by year/month/album/app/size, albums (merge, rename, move), custom sessions, stats, new look | Done |
-| 5 | Polish, performance on large galleries | Not started |
+| 5 | Apple-style look everywhere, faster face pictures, big-gallery tuning, swipe-down viewer, restore to original album, Arabic-ready layout | Done |
 
 ## Building
 
@@ -104,8 +104,10 @@ Swiping up moves a photo into an encrypted vault inside the app.
 - **Memory only.** Photos are decrypted into memory for viewing, through a separate image
   loader with no disk cache, which is cleared when the vault locks. Nothing decrypted is
   written to disk.
-- **Restore** saves the photo to `Pictures/Sortr` and removes it from the vault. **Delete**
-  removes it permanently, after a confirmation.
+- **Restore** puts the photo back in the album it came from (or `Pictures/Sortr` when Android
+  doesn't allow that folder, or for photos imported from a backup) and removes it from the
+  vault. If the original never left the gallery, it simply stops being private; no second copy
+  is made. **Delete** removes it permanently, after a confirmation.
 - **Undo** works on a swipe up until the original has been removed from the gallery.
 
 ### Backups
@@ -148,6 +150,11 @@ grouping turned off. Home and Settings explain why.
   saved after every batch, so the job carries on where it stopped after being interrupted, and
   later runs only scan new or edited photos. There's an optional "Scan only while charging"
   setting, and the job always waits if the battery is low.
+- **Face pictures** on the People screens are cut straight from the photo file: only the square
+  around the face is decoded, then kept as a small JPEG (320 px) in the app's private cache, so
+  later visits are instant. The cache is capped at 100 MB. Pictures of a photo are deleted as
+  soon as it goes into the vault, and the background job removes pictures of faces that can no
+  longer be shown (Trash, vault, deleted or edited photos).
 - **Per photo:** decode a copy at most 1280 px on its longest side (EXIF rotation applied),
   detect faces with ML Kit's bundled model (landmarks on), drop duplicate detections of the
   same face, and skip faces under 80 px or with the head turned too far (yaw over 40°, pitch
@@ -227,6 +234,40 @@ Videos appear in sessions, albums and the date and app groupings, with a play sy
 length. Tapping a video card plays it full screen (tap to pause). You can keep, skip or trash
 them; the vault is photos only for now. Videos aren't checked for similarity or faces.
 
+## Look and feel
+
+The design follows iOS: a light grey page with white rounded cards (black and dark grey in dark
+mode), large titles that shrink into the bar as you scroll, one blue accent, grouped lists with
+coloured icon badges, and round buttons on the swipe screen. Screens slide in from the side, and
+Android's back swipe previews the screen underneath. In the full-screen viewer, drag a photo
+down to close it. The building blocks live in `app/src/main/kotlin/com/sortr/app/ui/design`.
+
+## Arabic and right-to-left
+
+All text is in `app/src/main/res/values/strings.xml`. To add Arabic, copy it to
+`app/src/main/res/values-ar/strings.xml` and translate the text between the tags (keep the
+`%1$s`-style placeholders, and give each `<plurals>` the Arabic quantities `zero`, `one`, `two`,
+`few`, `many` and `other`). Layouts mirror automatically. This was checked with the app set to
+Arabic: lists, arrows, tiles and the vault screens flip, numbers and dates use Arabic-Indic
+digits, and the swipe buttons stay in their physical left/right positions on purpose. (Large
+text uses no custom letter spacing, because Android doesn't apply it to Arabic script.)
+
+## Performance
+
+Measured on the x86_64 emulator with 2,810 generated photos, plus a copy of the database inflated
+to 51,000 photos and 60,000 faces:
+
+| What | Result |
+|---|---|
+| Gallery sync, 2,810 new photos | 0.7 s |
+| Similar/blurry check | about 100 photos per second (small images; 12 MP photos are slower) |
+| Home, album, date and session queries at 51,000 photos | 1–55 ms each |
+| People list at 60,000 faces / 400 people | 0.12 s |
+| Similar groups at 2,800 photos | 287 groups, screen opens at once |
+
+While photos are being checked, Home recounts similar photos at most every 3 seconds, and the
+grouping reads only ids and hashes, loading full details just for photos that are in a group.
+
 ## Project layout
 
 ```
@@ -267,8 +308,6 @@ losing data.
 - Similar photos are found by overall structure, so the same drawing in different colours, or
   photos of the same scene taken seconds apart, also count as similar. That's usually what you
   want for bursts, but check the group before cleaning up.
-- Merging or renaming leaves the old, now empty folder on the phone's storage. Gallery apps
-  don't show empty folders.
 - Undo history covers the current session only. Your decisions are kept when you leave a
   session, but they can no longer be undone from the swipe screen. Kept and skipped photos can
   be reset in Settings, and deleted ones restored from the Trash.
@@ -278,23 +317,25 @@ losing data.
   attacker who can run their own code on a rooted phone.
 - Vault photo names and dates are stored unencrypted in the app's private database. The photos
   and thumbnails themselves are encrypted.
-- Restored vault photos go to `Pictures/Sortr`, not the album they came from.
+- Vault photos imported from a backup are restored to `Pictures/Sortr`, since the backup doesn't
+  record their album.
 - Opening the file picker for a backup sends Sortr to the background, so the vault locks.
   That's expected: you'll be asked for the PIN again next time.
 - Photos restored from the Trash come back as unreviewed.
 - With "Select photos" access (Android 14+), Sortr only knows about the photos you selected.
   If you later deselect a photo, Sortr forgets whether you had reviewed it.
-- In the full-screen view, a zoomed photo can be panned into the black border around it.
 - Uninstalling Sortr deletes its review history and the vault. Export a vault backup first.
 - Face grouping is only as good as the model. Very similar-looking people, babies, and photos
   years apart can be grouped wrongly or split. Use merge and "Not this person" to correct it.
 - Grouping is incremental, so the order photos are scanned in has a small effect on the result.
   Changing the strictness regroups everyone except people you've edited.
-- Face pictures are cut from the full photo each time they're shown, so person and Unsorted
-  pages with many faces load slowly on big galleries. Phase 5 will look at caching them.
+- The first visit to a page with many faces still decodes each face once; after that they come
+  from the cache.
 - Faces smaller than 80 px in the 1280 px scan copy (about 6% of the photo's width) are ignored,
   so people in the far background of group photos aren't grouped.
 - ML Kit's native code makes the app larger: release builds are about 52 MB, debug builds
   bigger still.
-- Counts like "in your library" include photos in the Trash and the vault until they're
-  deleted or their originals removed.
+- The progress bar counts photos in the Trash and the vault as sorted, until they're deleted or
+  their originals removed; after that they're no longer part of the count.
+- Android doesn't delete folders, so merging or renaming albums leaves empty folders behind
+  (gallery apps don't show them).

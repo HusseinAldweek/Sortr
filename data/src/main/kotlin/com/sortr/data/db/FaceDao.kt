@@ -98,6 +98,10 @@ interface FaceDao {
     @Query("UPDATE faces SET personId = NULL, rejectedPersonId = :personId WHERE id IN (:faceIds)")
     suspend fun reject(personId: Long, faceIds: List<Long>)
 
+    /** Faces that can appear on screen: their photo is neither in the vault nor the Trash. */
+    @Query("SELECT f.id FROM faces f JOIN photos ph ON ph.mediaStoreId = f.photoId WHERE ph.$SHOWN_PHOTO")
+    suspend fun shownFaceIds(): List<Long>
+
     @Query("DELETE FROM faces WHERE photoId IN (:photoIds)")
     suspend fun deleteForPhotos(photoIds: List<Long>)
 

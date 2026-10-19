@@ -10,9 +10,12 @@ import coil3.SingletonImageLoader
 import coil3.memory.MemoryCache
 import coil3.request.crossfade
 import com.sortr.app.faces.ScanNotifications
+import com.sortr.app.image.FaceCropFetcher
+import com.sortr.app.image.FaceCropKeyer
 import com.sortr.app.image.MediaThumbnailFetcher
 import com.sortr.app.image.MediaThumbnailKeyer
 import com.sortr.app.vault.VaultLock
+import com.sortr.data.faces.FaceCropLoader
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -24,6 +27,9 @@ class SortrApplication : Application(), SingletonImageLoader.Factory, Configurat
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
+
+    @Inject
+    lateinit var faceCropLoader: FaceCropLoader
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -40,6 +46,8 @@ class SortrApplication : Application(), SingletonImageLoader.Factory, Configurat
             .components {
                 add(MediaThumbnailKeyer())
                 add(MediaThumbnailFetcher.Factory(contentResolver))
+                add(FaceCropKeyer())
+                add(FaceCropFetcher.Factory(faceCropLoader))
             }
             .memoryCache {
                 MemoryCache.Builder()
@@ -47,6 +55,7 @@ class SortrApplication : Application(), SingletonImageLoader.Factory, Configurat
                     .build()
             }
             // Every image is already a local file, so a disk cache would only duplicate them.
+            // Face pictures have their own small cache (FaceCropLoader).
             .diskCache(null)
             .crossfade(true)
             .build()

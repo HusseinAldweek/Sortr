@@ -1,6 +1,7 @@
 package com.sortr.app.ui.albums
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,7 +44,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.clickable
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -59,13 +59,14 @@ import com.sortr.app.ui.design.SelectionMark
 import com.sortr.app.ui.theme.palette
 import com.sortr.domain.model.Album
 import com.sortr.domain.model.AlbumPaths
+import com.sortr.domain.repository.AppSettings
 import com.sortr.domain.repository.LibraryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.Collator
@@ -76,10 +77,18 @@ enum class AlbumSort { MOST, LARGEST, NAME, RECENT }
 @HiltViewModel
 class AlbumsViewModel @Inject constructor(
     private val library: LibraryRepository,
+    private val settings: AppSettings,
     writeRequests: WriteRequestFactory,
 ) : MovingViewModel(library, writeRequests) {
 
-    val sort = MutableStateFlow(AlbumSort.MOST)
+    /** Remembered between visits, like the Photos app. */
+    val sort: StateFlow<AlbumSort> = settings.albumSort
+        .map { saved -> AlbumSort.entries.firstOrNull { it.name == saved } ?: AlbumSort.MOST }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AlbumSort.MOST)
+
+    fun setSort(value: AlbumSort) {
+        viewModelScope.launch { settings.setAlbumSort(value.name) }
+    }
 
     /** Null while loading. */
     val albums: StateFlow<List<Album>?> = combine(library.observeAlbums(), sort) { albums, sort ->
@@ -139,7 +148,7 @@ fun AlbumsScreen(
                                 text = { Text(stringResource(option.labelRes)) },
                                 trailingIcon = { if (option == sort) Icon(Icons.Rounded.Check, null) },
                                 onClick = {
-                                    viewModel.sort.value = option
+                                    viewModel.setSort(option)
                                     sortMenu = false
                                 },
                             )

@@ -203,7 +203,8 @@ private fun HeroCard(summary: LibrarySummary, onStart: () -> Unit) {
                 }
                 return@Column
             }
-            Text(formatCount(summary.toReview), style = MaterialTheme.typography.displaySmall)
+            // Never wrapped: some digit fonts (e.g. Arabic-Indic) would otherwise break the number.
+            Text(formatCount(summary.toReview), style = MaterialTheme.typography.displaySmall, maxLines = 1, softWrap = false)
             Text(
                 text = pluralStringResource(R.plurals.home_hero_caption, summary.toReview),
                 style = MaterialTheme.typography.bodyLarge,
@@ -211,7 +212,7 @@ private fun HeroCard(summary: LibrarySummary, onStart: () -> Unit) {
             )
             Spacer(Modifier.height(14.dp))
             LinearProgressIndicator(
-                progress = { if (summary.total == 0) 0f else 1f - summary.toReview.toFloat() / summary.total },
+                progress = { summary.sortedFraction },
                 drawStopIndicator = {},
                 gapSize = 0.dp,
                 trackColor = MaterialTheme.palette.fill,

@@ -16,20 +16,14 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.FaceRetouchingNatural
 import androidx.compose.material.icons.rounded.Swipe
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -50,8 +43,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.sortr.app.R
-import com.sortr.app.ui.design.BackButton
 import com.sortr.app.ui.common.formatCount
+import com.sortr.app.ui.design.BarTextButton
+import com.sortr.app.ui.design.LargeTitleScaffold
+import com.sortr.app.ui.design.SelectionBar
+import com.sortr.app.ui.design.TintedButton
 import com.sortr.domain.model.FaceRef
 import com.sortr.domain.model.Person
 import com.sortr.domain.model.SessionFilter
@@ -116,7 +112,6 @@ class UnsortedFacesViewModel @Inject constructor(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UnsortedFacesScreen(
     onBack: () -> Unit,
@@ -138,34 +133,21 @@ fun UnsortedFacesScreen(
     }
     BackHandler(enabled = selecting) { viewModel.clearSelection() }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        if (selecting) {
-                            pluralStringResource(R.plurals.trash_selected, state.selected.size, formatCount(state.selected.size))
-                        } else {
-                            stringResource(R.string.unsorted_faces_title)
-                        },
-                    )
-                },
-                navigationIcon = {
-                    if (selecting) {
-                        IconButton(onClick = viewModel::clearSelection) {
-                            Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.trash_clear_selection))
-                        }
-                    } else {
-                        BackButton(onBack)
-                    }
-                },
-                actions = {
-                    if (selecting) {
-                        TextButton(onClick = { picking = true }) { Text(stringResource(R.string.unsorted_add_to_person)) }
-                        TextButton(onClick = { viewModel.groupSelected(null) }) { Text(stringResource(R.string.unsorted_new_person)) }
-                    }
-                },
-            )
+    LargeTitleScaffold(
+        title = stringResource(R.string.unsorted_faces_title),
+        onBack = if (selecting) null else onBack,
+        actions = {
+            if (selecting) {
+                BarTextButton(text = stringResource(R.string.action_cancel), onClick = viewModel::clearSelection)
+            }
+        },
+        bottomBar = {
+            if (selecting) {
+                SelectionBar(count = state.selected.size) {
+                    TintedButton(text = stringResource(R.string.unsorted_add_to_person), onClick = { picking = true }, compact = true)
+                    TintedButton(text = stringResource(R.string.unsorted_new_person), onClick = { viewModel.groupSelected(null) }, compact = true)
+                }
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->

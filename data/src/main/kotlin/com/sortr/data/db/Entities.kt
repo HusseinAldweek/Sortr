@@ -125,6 +125,9 @@ class VaultItemEntity(
     val width: Int = 0,
     @ColumnInfo(defaultValue = "0")
     val height: Int = 0,
+    /** Album the photo came from, so restoring can put it back there. Null for backup imports. */
+    @ColumnInfo(defaultValue = "NULL")
+    val originalRelativePath: String? = null,
 )
 
 /** Action log, used for undo and stats. No foreign key: rows outlive deleted photos. */

@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.sortr.app.R
@@ -126,7 +127,7 @@ private fun DigitKey(label: String, enabled: Boolean, onClick: () -> Unit) {
         contentPadding = PaddingValues(0.dp),
         modifier = Modifier.size(KEY_SIZE),
     ) {
-        Text(label, style = MaterialTheme.typography.headlineSmall)
+        Text(label, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Normal)
     }
 }
 

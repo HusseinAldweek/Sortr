@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -50,6 +51,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -59,6 +61,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sortr.app.R
+import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.theme.palette
 
 /** Side margin used by every screen. */
@@ -415,7 +418,7 @@ fun SmartTile(
                 IconBadge(icon, color, size = 34.dp, shape = CircleShape)
                 Spacer(Modifier.weight(1f))
                 if (count != null) {
-                    Text(count, style = MaterialTheme.typography.headlineSmall, maxLines = 1)
+                    Text(count, style = MaterialTheme.typography.headlineSmall, maxLines = 1, softWrap = false)
                 }
             }
             Spacer(Modifier.height(10.dp))
@@ -597,5 +600,27 @@ fun EmptyState(
         )
         Spacer(Modifier.height(24.dp))
         content()
+    }
+}
+
+/** Bottom bar while items are selected: how many, then the actions for them. */
+@Composable
+fun SelectionBar(count: Int, actions: @Composable RowScope.() -> Unit) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Text(
+                text = pluralStringResource(R.plurals.count_selected, count, formatCount(count)),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+            actions()
+        }
     }
 }

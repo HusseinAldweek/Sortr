@@ -22,7 +22,9 @@ import com.sortr.data.db.SortrDatabase
 import com.sortr.data.db.VaultItemEntity
 import com.sortr.data.db.toDomain
 import com.sortr.data.di.ApplicationScope
+import com.sortr.data.faces.FaceCropLoader
 import com.sortr.data.media.MediaStoreSource
+import com.sortr.domain.model.AlbumPaths
 import com.sortr.domain.model.BackupImportResult
 import com.sortr.domain.model.Photo
 import com.sortr.domain.model.PhotoStatus
@@ -71,6 +73,7 @@ class VaultRepositoryImpl @Inject constructor(
     private val storage: VaultStorage,
     private val keyWrapper: KeyWrapper,
     private val media: MediaStoreSource,
+    private val faceCrops: FaceCropLoader,
     @ApplicationScope scope: CoroutineScope,
 ) : VaultRepository {
 
@@ -128,6 +131,8 @@ class VaultRepositoryImpl @Inject constructor(
         val photo = photoDao.byId(photoId) ?: return@withLock
         // Undone before its turn came, or already done.
         if (photo.status != PhotoStatus.VAULTED || vaultDao.bySource(photoId) != null) return@withLock
+        // Face pictures cut from this photo must not outlive it outside the vault.
+        faceCrops.evict(photoId)
 
         val base = storage.newBaseName()
         val photoFile = "$base.svf"
@@ -167,6 +172,7 @@ class VaultRepositoryImpl @Inject constructor(
                     contentSha256 = plainHash.toHex(),
                     width = photo.width,
                     height = photo.height,
+                    originalRelativePath = photo.relativePath,
                 ),
             )
         } catch (e: Exception) {
@@ -200,10 +206,24 @@ class VaultRepositoryImpl @Inject constructor(
     override suspend fun restoreToGallery(itemId: Long): Long = itemMutex.withLock {
         withContext(Dispatchers.IO) {
             val item = vaultDao.byId(itemId) ?: throw FileNotFoundException("No vault item $itemId")
+
+            // The original never left the gallery (its removal was declined or is still pending):
+            // un-vault it instead of writing a second copy. Left as VAULTED, it would also be
+            // encrypted again on the next start.
+            val sourceId = item.sourceMediaStoreId.takeUnless { item.originalRemoved }
+            if (sourceId != null && media.existingIds(listOf(sourceId)).isNotEmpty()) {
+                photoDao.updateStatus(sourceId, PhotoStatus.KEPT, System.currentTimeMillis())
+                deleteItemFiles(item)
+                vaultDao.delete(item.id)
+                return@withContext sourceId
+            }
+
             val bytes = withDataKey(item) { key -> decryptFile(item.encryptedFilePath, key) }
 
             val resolver = context.contentResolver
-            val relativePath = "${Environment.DIRECTORY_PICTURES}/Sortr"
+            // Back to the album it came from when Android allows it, otherwise Pictures/Sortr.
+            val relativePath = item.originalRelativePath?.takeIf(AlbumPaths::isPhotoFolder)
+                ?: "${Environment.DIRECTORY_PICTURES}/Sortr/"
             val values = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, item.originalName)
                 put(MediaStore.MediaColumns.MIME_TYPE, item.mimeType)
@@ -236,8 +256,8 @@ class VaultRepositoryImpl @Inject constructor(
                         size = bytes.size.toLong(),
                         width = item.width,
                         height = item.height,
-                        bucketName = "Sortr",
-                        relativePath = "$relativePath/",
+                        bucketName = AlbumPaths.displayName(relativePath),
+                        relativePath = relativePath,
                         dateModified = 0,
                         status = PhotoStatus.KEPT,
                         statusChangedAt = now,

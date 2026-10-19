@@ -13,7 +13,7 @@ import androidx.room.TypeConverters
         VaultItemEntity::class,
         ActionEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
     autoMigrations = [
         // v2: vault content hash and dimensions.
@@ -22,6 +22,8 @@ import androidx.room.TypeConverters
         AutoMigration(from = 2, to = 3),
         // v4: videos (media type, duration) and an index for grouping by album.
         AutoMigration(from = 3, to = 4),
+        // v5: the album a vault photo came from.
+        AutoMigration(from = 4, to = 5),
     ],
 )
 @TypeConverters(Converters::class)

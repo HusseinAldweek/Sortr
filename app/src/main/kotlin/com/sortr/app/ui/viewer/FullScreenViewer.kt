@@ -2,6 +2,9 @@ package com.sortr.app.ui.viewer
 
 import android.net.Uri
 import android.widget.VideoView
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
@@ -9,10 +12,10 @@ import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
@@ -28,11 +31,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -46,20 +52,24 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
-import kotlinx.coroutines.delay
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
 import coil3.compose.LocalPlatformContext
 import com.sortr.app.R
 import com.sortr.app.image.viewerImageRequest
 import com.sortr.app.ui.common.formatBytes
 import com.sortr.app.ui.common.formatDate
 import com.sortr.domain.model.Photo
+import kotlinx.coroutines.delay
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 private const val MAX_ZOOM = 5f
 private const val DOUBLE_TAP_ZOOM = 2.5f
@@ -81,11 +91,13 @@ fun FullScreenViewer(photo: Photo, onDismiss: () -> Unit) {
             IntSize(configuration.screenWidthDp.dp.roundToPx(), configuration.screenHeightDp.dp.roundToPx())
         }
         val request = remember(photo.id, screen) { viewerImageRequest(platformContext, photo, screen) }
+        // Fades out while the photo is dragged down to close.
+        var dismissProgress by remember { mutableFloatStateOf(0f) }
 
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black),
+                .background(Color.Black.copy(alpha = 1f - dismissProgress)),
         ) {
             if (photo.isVideo) {
                 VideoPlayer(uri = photo.uri.toUri(), modifier = Modifier.fillMaxSize())
@@ -94,6 +106,8 @@ fun FullScreenViewer(photo: Photo, onDismiss: () -> Unit) {
                     model = request,
                     contentDescription = stringResource(R.string.swipe_card_description, formatDate(photo.dateTaken)),
                     modifier = Modifier.fillMaxSize(),
+                    onDismiss = onDismiss,
+                    onDismissProgress = { dismissProgress = it },
                 )
             }
             IconButton(
@@ -126,29 +140,64 @@ fun FullScreenViewer(photo: Photo, onDismiss: () -> Unit) {
     }
 }
 
-/** Pinch to zoom, drag to pan, double tap to zoom in or out. */
+/**
+ * Pinch to zoom, drag to pan, double tap to zoom in or out. With [onDismiss], dragging the
+ * unzoomed photo down closes it, reporting how far along the drag is through [onDismissProgress].
+ */
 @Composable
 fun ZoomableImage(
     model: Any,
     contentDescription: String?,
     modifier: Modifier = Modifier,
     imageLoader: ImageLoader = SingletonImageLoader.get(LocalPlatformContext.current),
+    onDismiss: (() -> Unit)? = null,
+    onDismissProgress: (Float) -> Unit = {},
 ) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     var size by remember { mutableStateOf(IntSize.Zero) }
+    var imageSize by remember { mutableStateOf(Size.Unspecified) }
+    var dismissDrag by remember { mutableFloatStateOf(0f) }
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    val currentOnProgress by rememberUpdatedState(onDismissProgress)
 
-    // Keeps the zoomed image covering the screen instead of sliding off one edge.
+    fun dragProgress() = if (size.height == 0) 0f else (dismissDrag / (size.height * DISMISS_FRACTION)).coerceIn(0f, 1f)
+
+    // Keeps the zoomed photo covering the screen: it can only move as far as it's larger than the
+    // view, so the black border around a photo with another shape never slides into view.
     fun clamp(value: Offset, atScale: Float): Offset {
-        val maxX = size.width * (atScale - 1f) / 2f
-        val maxY = size.height * (atScale - 1f) / 2f
+        val shown = fittedSize(imageSize, size)
+        val maxX = max(0f, (shown.width * atScale - size.width) / 2f)
+        val maxY = max(0f, (shown.height * atScale - size.height) / 2f)
         return Offset(value.x.coerceIn(-maxX, maxX), value.y.coerceIn(-maxY, maxY))
     }
 
     val transformState = rememberTransformableState { zoomChange, panChange, _ ->
-        val newScale = (scale * zoomChange).coerceIn(1f, MAX_ZOOM)
-        offset = clamp(offset + panChange, newScale)
-        scale = newScale
+        val dismissing = onDismiss != null && scale == 1f && zoomChange == 1f &&
+            (dismissDrag > 0f || (panChange.y > 0f && abs(panChange.y) > abs(panChange.x)))
+        if (dismissing) {
+            dismissDrag = (dismissDrag + panChange.y).coerceAtLeast(0f)
+            currentOnProgress(dragProgress())
+        } else {
+            val newScale = (scale * zoomChange).coerceIn(1f, MAX_ZOOM)
+            offset = clamp(offset + panChange, newScale)
+            scale = newScale
+        }
+    }
+
+    // When the finger lifts: close if dragged far enough, otherwise spring back.
+    LaunchedEffect(transformState) {
+        snapshotFlow { transformState.isTransformInProgress }.collect { inProgress ->
+            if (inProgress || dismissDrag == 0f) return@collect
+            if (dragProgress() >= 1f) {
+                currentOnDismiss?.invoke()
+            } else {
+                animate(dismissDrag, 0f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) { value, _ ->
+                    dismissDrag = value
+                    currentOnProgress(dragProgress())
+                }
+            }
+        }
     }
 
     AsyncImage(
@@ -156,6 +205,9 @@ fun ZoomableImage(
         contentDescription = contentDescription,
         imageLoader = imageLoader,
         contentScale = ContentScale.Fit,
+        onState = { state ->
+            if (state is AsyncImagePainter.State.Success) imageSize = state.painter.intrinsicSize
+        },
         modifier = modifier
             .clipToBounds()
             .onSizeChanged { size = it }
@@ -176,13 +228,28 @@ fun ZoomableImage(
             }
             .transformable(transformState)
             .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+                // Shrinks a little while being dragged away, like the Photos app.
+                val shrink = 1f - DISMISS_SHRINK * dragProgress()
+                scaleX = scale * shrink
+                scaleY = scale * shrink
                 translationX = offset.x
-                translationY = offset.y
+                translationY = offset.y + dismissDrag
             },
     )
 }
+
+/** Size of an image of [image] size drawn with ContentScale.Fit inside [view]. */
+private fun fittedSize(image: Size, view: IntSize): Size {
+    if (image == Size.Unspecified || image.width <= 0f || image.height <= 0f || view == IntSize.Zero) {
+        return Size(view.width.toFloat(), view.height.toFloat())
+    }
+    val fit = min(view.width / image.width, view.height / image.height)
+    return Size(image.width * fit, image.height * fit)
+}
+
+/** Dragging down this share of the screen height closes the viewer. */
+private const val DISMISS_FRACTION = 0.25f
+private const val DISMISS_SHRINK = 0.2f
 
 /** Plays a video from MediaStore. Tap to pause or resume; a thin bar shows how far along it is. */
 @Composable

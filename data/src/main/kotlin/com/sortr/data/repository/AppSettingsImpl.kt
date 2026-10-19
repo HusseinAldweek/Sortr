@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.sortr.domain.faces.FaceClusterer
 import com.sortr.domain.repository.AppSettings
@@ -58,10 +59,17 @@ class AppSettingsImpl @Inject constructor(
         store.edit { it[NOTIFICATION_PERMISSION_ASKED] = true }
     }
 
+    override val albumSort: Flow<String?> = preferences.map { it[ALBUM_SORT] }
+
+    override suspend fun setAlbumSort(value: String) {
+        store.edit { it[ALBUM_SORT] = value }
+    }
+
     private companion object {
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val FACE_THRESHOLD = floatPreferencesKey("face_similarity_threshold")
         val SCAN_ONLY_WHILE_CHARGING = booleanPreferencesKey("scan_only_while_charging")
         val NOTIFICATION_PERMISSION_ASKED = booleanPreferencesKey("notification_permission_asked")
+        val ALBUM_SORT = stringPreferencesKey("album_sort")
     }
 }

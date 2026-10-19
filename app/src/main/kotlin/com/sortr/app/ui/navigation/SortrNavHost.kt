@@ -1,6 +1,10 @@
 package com.sortr.app.ui.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavBackStackEntry
@@ -69,6 +73,11 @@ data object CustomSessionRoute
 @Serializable
 data class SettingsRoute(val startBackup: Boolean = false)
 
+private val PushSpec = tween<IntOffset>(durationMillis = 350, easing = FastOutSlowInEasing)
+
+/** How far the screen underneath moves: a quarter of the width. */
+private const val PARALLAX = 4
+
 @Composable
 fun SortrNavHost(
     access: MediaAccess,
@@ -83,7 +92,16 @@ fun SortrNavHost(
         if (lifecycle.currentState == Lifecycle.State.RESUMED) navController.navigate(route)
     }
 
-    NavHost(navController = navController, startDestination = HomeRoute) {
+    NavHost(
+        navController = navController,
+        startDestination = HomeRoute,
+        // iOS-style push: the new screen slides in from the side while the old one drifts a
+        // little the same way. Start/End follow the layout direction, so this mirrors in RTL.
+        enterTransition = { slideIntoContainer(SlideDirection.Start, PushSpec) },
+        exitTransition = { slideOutOfContainer(SlideDirection.Start, PushSpec) { it / PARALLAX } },
+        popEnterTransition = { slideIntoContainer(SlideDirection.End, PushSpec) { it / PARALLAX } },
+        popExitTransition = { slideOutOfContainer(SlideDirection.End, PushSpec) },
+    ) {
         composable<HomeRoute> { entry ->
             HomeScreen(
                 access = access,

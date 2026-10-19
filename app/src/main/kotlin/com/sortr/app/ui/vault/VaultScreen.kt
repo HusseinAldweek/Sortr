@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Backup
@@ -35,23 +34,18 @@ import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.RestorePage
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -59,7 +53,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -76,10 +69,16 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import com.sortr.app.R
-import com.sortr.app.ui.design.BackButton
 import com.sortr.app.ui.common.formatBytes
 import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.common.formatDate
+import com.sortr.app.ui.design.GroupedCard
+import com.sortr.app.ui.design.IconBadge
+import com.sortr.app.ui.design.LargeTitleScaffold
+import com.sortr.app.ui.design.PillButton
+import com.sortr.app.ui.design.ScreenPadding
+import com.sortr.app.ui.design.TintedButton
+import com.sortr.app.ui.theme.palette
 import com.sortr.app.ui.viewer.ZoomableImage
 import com.sortr.app.vault.VaultImage
 import com.sortr.domain.model.VaultItem
@@ -112,7 +111,6 @@ fun VaultScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VaultSetup(
     setup: SetupState,
@@ -120,16 +118,7 @@ private fun VaultSetup(
     onStart: () -> Unit,
     onPin: (String) -> Unit,
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.vault_title)) },
-                navigationIcon = {
-                    BackButton(onBack)
-                },
-            )
-        },
-    ) { padding ->
+    LargeTitleScaffold(title = stringResource(R.string.vault_title), onBack = onBack) { padding ->
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -140,9 +129,9 @@ private fun VaultSetup(
         ) {
             when (setup.step) {
                 SetupStep.INTRO -> {
-                    Icon(Icons.Rounded.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(56.dp))
-                    Spacer(Modifier.height(16.dp))
-                    Text(stringResource(R.string.vault_setup_title), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+                    IconBadge(Icons.Rounded.Lock, MaterialTheme.palette.indigo, size = 72.dp, shape = CircleShape)
+                    Spacer(Modifier.height(20.dp))
+                    Text(stringResource(R.string.vault_setup_title), style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(12.dp))
                     Text(
                         text = stringResource(R.string.vault_setup_body),
@@ -151,33 +140,30 @@ private fun VaultSetup(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(24.dp))
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        ),
-                    ) {
+                    GroupedCard {
                         Row(Modifier.padding(16.dp)) {
-                            Icon(Icons.Rounded.Warning, contentDescription = null)
+                            IconBadge(Icons.Rounded.Warning, MaterialTheme.palette.orange)
                             Spacer(Modifier.width(12.dp))
                             Column {
-                                Text(stringResource(R.string.vault_setup_warning_title), style = MaterialTheme.typography.titleSmall)
+                                Text(stringResource(R.string.vault_setup_warning_title), style = MaterialTheme.typography.titleMedium)
                                 Spacer(Modifier.height(4.dp))
-                                Text(stringResource(R.string.vault_setup_warning_body), style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    stringResource(R.string.vault_setup_warning_body),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                         }
                     }
                     Spacer(Modifier.height(32.dp))
-                    Button(onClick = onStart, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.vault_setup_continue))
-                    }
+                    PillButton(text = stringResource(R.string.vault_setup_continue), onClick = onStart)
                 }
                 SetupStep.CREATE, SetupStep.CONFIRM -> {
                     val creating = setup.step == SetupStep.CREATE
                     Spacer(Modifier.height(16.dp))
                     Text(
                         text = stringResource(if (creating) R.string.vault_pin_create_title else R.string.vault_pin_confirm_title),
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleLarge,
                     )
                     Spacer(Modifier.height(8.dp))
                     val message = when (setup.error) {
@@ -200,7 +186,6 @@ private fun VaultSetup(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VaultContent(
     state: VaultUiState,
@@ -230,46 +215,40 @@ private fun VaultContent(
     BackHandler(enabled = openItem != null) { openItemId = null }
 
     Box(Modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text(stringResource(R.string.vault_title))
-                            Text(
-                                text = pluralStringResource(R.plurals.vault_item_count, state.items.size, formatCount(state.items.size)),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        BackButton(onBack)
-                    },
-                    actions = {
-                        IconButton(onClick = viewModel::lock) {
-                            Icon(Icons.Rounded.LockOpen, contentDescription = stringResource(R.string.vault_lock_now))
-                        }
-                    },
-                )
+        LargeTitleScaffold(
+            title = stringResource(R.string.vault_title),
+            onBack = onBack,
+            actions = {
+                IconButton(onClick = viewModel::lock) {
+                    Icon(Icons.Rounded.LockOpen, contentDescription = stringResource(R.string.vault_lock_now), tint = MaterialTheme.colorScheme.primary)
+                }
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
         ) { padding ->
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 110.dp),
-                contentPadding = PaddingValues(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                columns = GridCells.Adaptive(minSize = 108.dp),
+                contentPadding = PaddingValues(bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize(),
             ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    RemoveOriginalsCard(snackbarHostState = snackbarHostState, modifier = Modifier.padding(bottom = 6.dp))
-                }
-                if (state.showBackupReminder) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        BackupReminderCard(onBackUp = onBackUp, onDismiss = viewModel::dismissBackupReminder)
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(start = ScreenPadding, end = ScreenPadding, bottom = 12.dp),
+                    ) {
+                        Text(
+                            text = pluralStringResource(R.plurals.vault_item_count, state.items.size, formatCount(state.items.size)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp),
+                        )
+                        RemoveOriginalsCard(snackbarHostState = snackbarHostState)
+                        if (state.showBackupReminder) {
+                            BackupReminderCard(onBackUp = onBackUp, onDismiss = viewModel::dismissBackupReminder)
+                        }
                     }
                 }
                 if (state.items.isEmpty()) {
@@ -302,7 +281,6 @@ private fun VaultTile(item: VaultItem, imageLoader: ImageLoader, onClick: () -> 
         contentScale = ContentScale.Crop,
         modifier = Modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick),
     )
@@ -310,28 +288,23 @@ private fun VaultTile(item: VaultItem, imageLoader: ImageLoader, onClick: () -> 
 
 @Composable
 private fun BackupReminderCard(onBackUp: () -> Unit, onDismiss: () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 6.dp),
-    ) {
-        Column(Modifier.padding(start = 16.dp, top = 16.dp, end = 8.dp, bottom = 4.dp)) {
-            Row {
-                Icon(Icons.Rounded.Backup, contentDescription = null)
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text(stringResource(R.string.vault_backup_reminder_title), style = MaterialTheme.typography.titleSmall)
-                    Text(stringResource(R.string.vault_backup_reminder_body), style = MaterialTheme.typography.bodyMedium)
+    GroupedCard {
+        Row(Modifier.padding(16.dp)) {
+            IconBadge(Icons.Rounded.Backup, MaterialTheme.palette.blue)
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(stringResource(R.string.vault_backup_reminder_title), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(R.string.vault_backup_reminder_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    TintedButton(text = stringResource(R.string.vault_backup_now), onClick = onBackUp, compact = true)
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.vault_backup_later)) }
                 }
-            }
-            val buttonColors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onTertiaryContainer)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismiss, colors = buttonColors) { Text(stringResource(R.string.vault_backup_later)) }
-                TextButton(onClick = onBackUp, colors = buttonColors) { Text(stringResource(R.string.vault_backup_now)) }
             }
         }
     }
@@ -343,11 +316,11 @@ private fun EmptyVault() {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 64.dp, start = 24.dp, end = 24.dp),
+            .padding(top = 48.dp, start = 32.dp, end = 32.dp),
     ) {
-        Icon(Icons.Rounded.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(64.dp))
-        Spacer(Modifier.height(16.dp))
-        Text(stringResource(R.string.vault_empty_title), style = MaterialTheme.typography.headlineSmall)
+        IconBadge(Icons.Rounded.Lock, MaterialTheme.palette.indigo, size = 72.dp, shape = CircleShape)
+        Spacer(Modifier.height(20.dp))
+        Text(stringResource(R.string.vault_empty_title), style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.vault_empty_body),
@@ -384,16 +357,19 @@ private fun VaultViewer(
             .build()
     }
 
+    var dismissProgress by remember { mutableFloatStateOf(0f) }
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(Color.Black.copy(alpha = 1f - dismissProgress)),
     ) {
         ZoomableImage(
             model = request,
             contentDescription = stringResource(R.string.vault_photo_description, formatDate(item.dateTaken)),
             imageLoader = imageLoader,
             modifier = Modifier.fillMaxSize(),
+            onDismiss = onClose,
+            onDismissProgress = { dismissProgress = it },
         )
         IconButton(
             onClick = onClose,

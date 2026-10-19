@@ -78,8 +78,12 @@ interface LibraryDao {
     @Query("UPDATE photos SET dateTaken = :dateTaken WHERE mediaStoreId = :id")
     suspend fun setDateTaken(id: Long, dateTaken: Long)
 
-    @Query("SELECT * FROM photos WHERE dHash IS NOT NULL AND mediaType = 'IMAGE' AND $IN_LIBRARY")
-    suspend fun hashedPhotos(): List<PhotoEntity>
+    /** Just ids and hashes, so grouping a big library stays light. */
+    @Query("SELECT mediaStoreId, dHash FROM photos WHERE dHash IS NOT NULL AND mediaType = 'IMAGE' AND $IN_LIBRARY")
+    suspend fun hashes(): List<HashRow>
+
+    @Query("SELECT * FROM photos WHERE mediaStoreId IN (:ids)")
+    suspend fun byIds(ids: List<Long>): List<PhotoEntity>
 
     @RawQuery
     suspend fun photos(query: SupportSQLiteQuery): List<PhotoEntity>
@@ -113,3 +117,5 @@ data class StatsRow(
 )
 
 data class AnalysisRow(val total: Int, val analysed: Int)
+
+data class HashRow(val mediaStoreId: Long, val dHash: Long)

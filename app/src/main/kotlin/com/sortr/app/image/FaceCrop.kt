@@ -1,52 +1,40 @@
 package com.sortr.app.image
 
-import android.graphics.Bitmap
-import androidx.core.net.toUri
+import coil3.ImageLoader
 import coil3.PlatformContext
+import coil3.asImage
+import coil3.decode.DataSource
+import coil3.fetch.FetchResult
+import coil3.fetch.Fetcher
+import coil3.fetch.ImageFetchResult
+import coil3.key.Keyer
 import coil3.request.ImageRequest
-import coil3.request.transformations
-import coil3.size.Size
-import coil3.transform.Transformation
-import com.sortr.domain.model.FaceBox
+import coil3.request.Options
+import com.sortr.data.faces.FaceCropLoader
 import com.sortr.domain.model.FaceRef
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.roundToInt
+import java.io.IOException
 
-/** Crops a decoded photo to a square around one face, with some room around it. */
-class FaceCropTransformation(
-    private val box: FaceBox,
-    private val margin: Float = 0.3f,
-) : Transformation() {
+/** Request for a square face thumbnail, loaded by [FaceCropFetcher]. */
+fun faceImageRequest(context: PlatformContext, face: FaceRef): ImageRequest =
+    ImageRequest.Builder(context)
+        .data(face)
+        .memoryCacheKey("face:${face.faceId}")
+        .build()
 
-    override val cacheKey: String = "faceCrop(${box.left},${box.top},${box.right},${box.bottom},$margin)"
+/** Loads a face thumbnail through [FaceCropLoader], which decodes only the area around the face. */
+class FaceCropFetcher(private val face: FaceRef, private val loader: FaceCropLoader) : Fetcher {
 
-    override suspend fun transform(input: Bitmap, size: Size): Bitmap {
-        val w = input.width
-        val h = input.height
-        val faceSide = max(box.width * w, box.height * h)
-        val side = (faceSide * (1 + 2 * margin)).roundToInt().coerceIn(1, min(w, h))
-        val cx = (box.left + box.right) / 2 * w
-        val cy = (box.top + box.bottom) / 2 * h
-        val left = (cx - side / 2f).roundToInt().coerceIn(0, w - side)
-        val top = (cy - side / 2f).roundToInt().coerceIn(0, h - side)
-        return Bitmap.createBitmap(input, left, top, side, side)
+    override suspend fun fetch(): FetchResult {
+        val bitmap = loader.load(face) ?: throw IOException("Couldn't load face ${face.faceId}")
+        return ImageFetchResult(image = bitmap.asImage(), isSampled = true, dataSource = DataSource.DISK)
+    }
+
+    class Factory(private val loader: FaceCropLoader) : Fetcher.Factory<FaceRef> {
+        override fun create(data: FaceRef, options: Options, imageLoader: ImageLoader): Fetcher =
+            FaceCropFetcher(data, loader)
     }
 }
 
-/**
- * Request for a face thumbnail of about [sizePx] pixels. The photo is decoded only as large as
- * needed for the face itself to reach that size.
- */
-fun faceImageRequest(context: PlatformContext, face: FaceRef, sizePx: Int): ImageRequest {
-    val faceFraction = (max(face.box.width, face.box.height) * 1.6f).coerceIn(0.05f, 1f)
-    val decodePx = (sizePx / faceFraction).roundToInt().coerceIn(sizePx, MAX_DECODE_PX)
-    return ImageRequest.Builder(context)
-        .data(face.photoUri.toUri())
-        .size(decodePx)
-        .transformations(FaceCropTransformation(face.box))
-        .memoryCacheKey("face:${face.faceId}:$sizePx")
-        .build()
+class FaceCropKeyer : Keyer<FaceRef> {
+    override fun key(data: FaceRef, options: Options): String = "face:${data.faceId}"
 }
-
-private const val MAX_DECODE_PX = 2048

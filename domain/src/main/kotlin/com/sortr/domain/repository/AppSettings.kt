@@ -21,4 +21,9 @@ interface AppSettings {
     val notificationPermissionAsked: Flow<Boolean>
 
     suspend fun setNotificationPermissionAsked()
+
+    /** How the album list is ordered; null until the user picks one. */
+    val albumSort: Flow<String?>
+
+    suspend fun setAlbumSort(value: String)
 }

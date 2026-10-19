@@ -40,6 +40,7 @@ class FaceIndexer @Inject constructor(
     private val analyzer: FaceAnalyzer,
     private val lock: FaceLock,
     private val settings: AppSettings,
+    private val crops: FaceCropLoader,
 ) {
     private val photoDao = db.photoDao()
     private val faceDao = db.faceDao()
@@ -47,8 +48,17 @@ class FaceIndexer @Inject constructor(
     suspend fun progress(): FaceIndexProgress =
         photoDao.indexProgress().let { FaceIndexProgress(indexed = it.scanned, total = it.total) }
 
-    /** Drops people whose faces have all gone, e.g. because the photos were deleted. */
-    suspend fun cleanUp() = lock.mutex.withLock { faceDao.deleteEmptyPeople() }
+    /**
+     * Drops people whose faces have all gone, e.g. because the photos were deleted, and cached
+     * face pictures that can no longer be shown.
+     */
+    suspend fun cleanUp() {
+        val shown = lock.mutex.withLock {
+            faceDao.deleteEmptyPeople()
+            faceDao.shownFaceIds().toSet()
+        }
+        crops.prune(shown)
+    }
 
     /** Scans the next batch. Returns how many photos it handled; 0 means everything is done. */
     suspend fun indexNextBatch(batchSize: Int = BATCH_SIZE): Int {

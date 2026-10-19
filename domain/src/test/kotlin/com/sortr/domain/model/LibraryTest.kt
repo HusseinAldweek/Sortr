@@ -72,4 +72,13 @@ class LibraryTest {
         // 2024 is a leap year: February has 29 days.
         assertEquals(Instant.parse("2024-02-29T21:00:00Z").toEpochMilli() - 1, feb.last)
     }
+
+    @Test
+    fun `trashed and vaulted photos count as sorted`() {
+        // 100 photos in all: 40 trashed, 10 vaulted, 20 kept, 30 left.
+        val summary = LibrarySummary(total = 50, unreviewed = 25, skipped = 5, kept = 20, trashedCount = 40, vaultedCount = 10)
+        assertEquals(30, summary.toReview)
+        assertEquals(0.7f, summary.sortedFraction, 0.0001f)
+        assertEquals(0f, LibrarySummary().sortedFraction)
+    }
 }

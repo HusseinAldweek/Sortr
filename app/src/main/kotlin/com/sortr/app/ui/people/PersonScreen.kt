@@ -1,7 +1,6 @@
 package com.sortr.app.ui.people
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,23 +17,19 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Swipe
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,12 +49,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sortr.app.R
-import com.sortr.app.ui.design.BackButton
 import com.sortr.app.ui.common.formatCount
+import com.sortr.app.ui.design.BarTextButton
+import com.sortr.app.ui.design.LargeTitleScaffold
+import com.sortr.app.ui.design.SelectionBar
+import com.sortr.app.ui.design.TintedButton
+import com.sortr.app.ui.theme.palette
 import com.sortr.domain.model.SessionFilter
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonScreen(
     onBack: () -> Unit,
@@ -93,60 +91,50 @@ fun PersonScreen(
     }
     BackHandler(enabled = selecting) { viewModel.clearSelection() }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        if (selecting) {
-                            pluralStringResource(R.plurals.trash_selected, state.selected.size, formatCount(state.selected.size))
-                        } else {
-                            person?.let { personLabel(it) }.orEmpty()
-                        },
+    LargeTitleScaffold(
+        title = person?.let { personLabel(it) }.orEmpty(),
+        onBack = if (selecting) null else onBack,
+        actions = {
+            if (selecting) {
+                BarTextButton(text = stringResource(R.string.action_cancel), onClick = viewModel::clearSelection)
+            } else if (person != null) {
+                IconButton(onClick = { renaming = true }) {
+                    Icon(Icons.Rounded.Edit, contentDescription = stringResource(R.string.person_rename_title), tint = MaterialTheme.colorScheme.primary)
+                }
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Rounded.MoreHoriz, contentDescription = stringResource(R.string.action_more), tint = MaterialTheme.colorScheme.primary)
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.person_merge_with)) },
+                            onClick = {
+                                menuOpen = false
+                                pickingMerge = true
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(if (person.hidden) R.string.people_unhide else R.string.people_hide)) },
+                            onClick = {
+                                menuOpen = false
+                                viewModel.setHidden(!person.hidden)
+                            },
+                        )
+                    }
+                }
+            }
+        },
+        bottomBar = {
+            if (selecting) {
+                SelectionBar(count = state.selected.size) {
+                    TintedButton(
+                        text = stringResource(R.string.person_not_this_person),
+                        onClick = viewModel::removeSelected,
+                        color = MaterialTheme.palette.red,
+                        compact = true,
                     )
-                },
-                navigationIcon = {
-                    if (selecting) {
-                        IconButton(onClick = viewModel::clearSelection) {
-                            Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.trash_clear_selection))
-                        }
-                    } else {
-                        BackButton(onBack)
-                    }
-                },
-                actions = {
-                    if (selecting) {
-                        TextButton(onClick = viewModel::removeSelected) {
-                            Text(stringResource(R.string.person_not_this_person))
-                        }
-                    } else if (person != null) {
-                        IconButton(onClick = { renaming = true }) {
-                            Icon(Icons.Rounded.Edit, contentDescription = stringResource(R.string.person_rename_title))
-                        }
-                        Box {
-                            IconButton(onClick = { menuOpen = true }) {
-                                Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.action_more))
-                            }
-                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.person_merge_with)) },
-                                    onClick = {
-                                        menuOpen = false
-                                        pickingMerge = true
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(if (person.hidden) R.string.people_unhide else R.string.people_hide)) },
-                                    onClick = {
-                                        menuOpen = false
-                                        viewModel.setHidden(!person.hidden)
-                                    },
-                                )
-                            }
-                        }
-                    }
-                },
-            )
+                }
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
@@ -167,14 +155,9 @@ fun PersonScreen(
                             .fillMaxWidth()
                             .padding(bottom = 12.dp),
                     ) {
+                        // The name is the screen's title, so it isn't repeated here.
                         FaceImage(face = person.cover, size = 112.dp)
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            text = personLabel(person),
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = if (person.name == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.clickable { renaming = true },
-                        )
+                        Spacer(Modifier.height(8.dp))
                         if (person.name == null) {
                             TextButton(onClick = { renaming = true }) { Text(stringResource(R.string.person_add_name)) }
                         }

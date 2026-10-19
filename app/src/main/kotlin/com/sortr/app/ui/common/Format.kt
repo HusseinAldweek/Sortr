@@ -9,6 +9,7 @@ import java.time.Month
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.DecimalStyle
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
@@ -20,6 +21,7 @@ fun formatCount(count: Int): String = NumberFormat.getIntegerInstance().format(c
 
 fun formatDate(epochMillis: Long): String =
     DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+        .localDigits()
         .format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
 
 /** "0:42" or "1:03:15". */
@@ -42,8 +44,13 @@ fun formatMonth(month: Int): String =
 /** Month and year, e.g. "March 2024", in the phone's language. */
 fun formatMonthYear(year: Int, month: Int): String =
     DateFormat.getBestDateTimePattern(Locale.getDefault(), "MMMMyyyy").let { pattern ->
-        DateTimeFormatter.ofPattern(pattern, Locale.getDefault()).format(YearMonth.of(year, month))
+        DateTimeFormatter.ofPattern(pattern, Locale.getDefault()).localDigits().format(YearMonth.of(year, month))
     }
 
 /** A year as written in the phone's language (no thousands separator). */
-fun formatYear(year: Int): String = DateTimeFormatter.ofPattern("yyyy").withLocale(Locale.getDefault()).format(YearMonth.of(year, 1))
+fun formatYear(year: Int): String =
+    DateTimeFormatter.ofPattern("yyyy", Locale.getDefault()).localDigits().format(YearMonth.of(year, 1))
+
+/** java.time prints 0-9 by default; this uses the phone's own digits, e.g. Arabic-Indic ones. */
+private fun DateTimeFormatter.localDigits(): DateTimeFormatter =
+    withDecimalStyle(DecimalStyle.of(Locale.getDefault()))

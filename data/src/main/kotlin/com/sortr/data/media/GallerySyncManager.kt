@@ -4,6 +4,7 @@ import android.content.Context
 import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import androidx.room.withTransaction
 import com.sortr.data.db.PhotoEntity
@@ -94,6 +95,7 @@ class GallerySyncManager @Inject constructor(
         // type on its own: rows of a type we can't read right now are left alone.
         val readable = MediaType.entries.filter(media::hasAccess)
         if (readable.isEmpty()) return
+        val started = SystemClock.elapsedRealtime()
         val items = readable.flatMap { type -> media.queryAll(type) ?: return }
 
         val known = photoDao.syncKeys().associateBy { it.mediaStoreId }
@@ -131,7 +133,11 @@ class GallerySyncManager @Inject constructor(
         }
         removed.chunked(SQL_CHUNK).forEach { photoDao.deleteByIds(it) }
 
-        Log.i(TAG, "Sync: ${items.size} items, +${inserts.size} ~${updates.size} >${moves.size} -${removed.size}")
+        Log.i(
+            TAG,
+            "Sync: ${items.size} items, +${inserts.size} ~${updates.size} >${moves.size} -${removed.size} " +
+                "in ${SystemClock.elapsedRealtime() - started} ms",
+        )
     }
 
     private fun MediaItem.toNewEntity(now: Long) = PhotoEntity(

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon version (Android 13+): only the shape counts, the system picks the colour. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:rotation="-12">
+        <path
+            android:pathData="M41,31 H67 A5,5 0 0 1 72,36 V72 A5,5 0 0 1 67,77 H41 A5,5 0 0 1 36,72 V36 A5,5 0 0 1 41,31 Z"
+            android:strokeWidth="3"
+            android:strokeColor="#FFFFFFFF" />
+    </group>
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:rotation="6">
+        <path
+            android:pathData="M41,31 H67 A5,5 0 0 1 72,36 V72 A5,5 0 0 1 67,77 H41 A5,5 0 0 1 36,72 V36 A5,5 0 0 1 41,31 Z"
+            android:strokeWidth="3.5"
+            android:strokeColor="#FFFFFFFF" />
+        <path
+            android:pathData="M45,55 L51,61 L63,47"
+            android:strokeWidth="4.5"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>
