@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.DriveFileMove
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.FaceRetouchingNatural
 import androidx.compose.material.icons.rounded.MergeType
@@ -34,11 +35,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,12 +56,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sortr.app.R
+import com.sortr.app.ui.albums.MoveToAlbumDialogs
+import com.sortr.app.ui.albums.MoveToAlbumViewModel
 import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.design.BarTextButton
 import com.sortr.app.ui.design.LargeTitleScaffold
 import com.sortr.app.ui.design.SelectionToolbar
 import com.sortr.app.ui.design.ToolbarItem
 import com.sortr.domain.model.FaceModelState
+import kotlinx.coroutines.launch
 
 @Composable
 fun PeopleScreen(
@@ -63,12 +72,21 @@ fun PeopleScreen(
     onOpenPerson: (Long) -> Unit,
     onOpenUnsorted: () -> Unit,
     viewModel: PeopleViewModel = hiltViewModel(),
+    mover: MoveToAlbumViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val moving by mover.moving.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     val selecting = state.selected.isNotEmpty()
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     var confirmMerge by rememberSaveable { mutableStateOf(false) }
 
+    // Once a move starts, the selection has done its job.
+    LaunchedEffect(moving) {
+        if (moving) viewModel.clearSelection()
+    }
+    MoveToAlbumDialogs(mover, snackbarHostState)
     BackHandler(enabled = selecting) { viewModel.clearSelection() }
 
     LargeTitleScaffold(
@@ -107,10 +125,14 @@ fun PeopleScreen(
                             viewModel::toggleHiddenForSelected,
                         ),
                         ToolbarItem(Icons.Rounded.MergeType, stringResource(R.string.people_merge), { confirmMerge = true }, enabled = state.selected.size >= 2),
+                        ToolbarItem(Icons.AutoMirrored.Rounded.DriveFileMove, stringResource(R.string.album_move_to), {
+                            scope.launch { mover.choose(viewModel.photosOfSelected()) }
+                        }, enabled = !moving),
                     ),
                 )
             }
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 104.dp),
@@ -121,6 +143,11 @@ fun PeopleScreen(
                 .padding(padding)
                 .fillMaxSize(),
         ) {
+            if (moving) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    LinearProgressIndicator(Modifier.fillMaxWidth().height(2.dp))
+                }
+            }
             if (!state.progress.isComplete && state.modelState == FaceModelState.READY) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     ScanProgressLine(indexed = state.progress.indexed, total = state.progress.total)

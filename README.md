@@ -21,7 +21,7 @@ cloud services.
 | 3 | Offline face grouping, People grid, person sessions | Done |
 | 4 | Videos, similar and blurry photos, sessions by year/month/album/app/size, albums (merge, rename, move), custom sessions, stats, new look | Done |
 | 5 | Apple-style look everywhere, faster face pictures, big-gallery tuning, swipe-down viewer, restore to original album, Arabic-ready layout | Done |
-| Extras | WhatsApp's hidden media and a WhatsApp page, cleaner Home, hold and drag to select, Share everywhere, organize by year, moves that copy when Android refuses, View/Delete/Share for faces, "Try again" for unsorted faces, photo checks on several cores, purple icon again | Done |
+| Extras | WhatsApp's hidden media and a WhatsApp page, cleaner Home, hold and drag to select, Share everywhere, organize by year, moves that copy when Android refuses, View/Delete/Share/Move for faces and people, "Try again" for unsorted faces, photo checks on several cores, purple icon again | Done |
 
 ## Building
 
@@ -254,8 +254,12 @@ notification and the charging setting with the face scan, and runs even without 
   can't be shared, because that would mean writing a decrypted copy to disk.
 - The full-screen viewer shows "3 / 12" at the top; swipe sideways for the next photo.
 - On a person's page or in Unsorted faces, selected faces can be grouped (**Not them**, **Add
-  to person**, **New person**), opened with **View**, shared, or their photos sent to the Trash
-  with **Delete** (with Undo).
+  to person**, **New person**), their photos moved with **Move to…** (an existing album or a new
+  one), opened with **View**, shared, or sent to the Trash with **Delete** (with Undo).
+- To move everything of a person: **⋯ → Move all photos to an album** on their page, or select
+  one or more people in the People grid and tap **Move to…**. Moves work as in albums, including
+  the copy fallback; photos in the Trash or the vault stay where they are.
+- When a toolbar has more than five actions, the last ones are under **More**.
 - **Try again** in Unsorted faces regroups them with the current strictness. Faces you've
   marked "Not them" stay away from that person.
 

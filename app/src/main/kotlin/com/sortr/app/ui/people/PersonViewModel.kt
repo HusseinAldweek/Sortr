@@ -11,17 +11,18 @@ import com.sortr.domain.model.Person
 import com.sortr.domain.model.Photo
 import com.sortr.domain.repository.PeopleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class PersonUiState(
     val person: Person? = null,
@@ -102,8 +103,11 @@ class PersonViewModel @Inject constructor(
 
     fun selectedFaces(): List<FaceRef> = state.value.faces.filter { it.faceId in state.value.selected }
 
-    /** The photos behind the selected faces, for viewing. */
+    /** The photos behind the selected faces, for viewing or moving. */
     suspend fun selectedPhotos(): List<Photo> = photoActions.photosOf(selectedFaces())
+
+    /** Every photo this person is in. */
+    suspend fun allPhotos(): List<Photo> = photoActions.photosOf(repository.observeFaces(personId).first())
 
     fun rename(name: String?) {
         viewModelScope.launch { repository.rename(personId, name) }

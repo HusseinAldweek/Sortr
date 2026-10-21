@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.DriveFileMove
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FaceRetouchingNatural
 import androidx.compose.material.icons.rounded.GroupAdd
@@ -53,6 +54,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.sortr.app.R
 import com.sortr.app.media.Sharing
+import com.sortr.app.ui.albums.MoveToAlbumDialogs
+import com.sortr.app.ui.albums.MoveToAlbumViewModel
 import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.design.BarTextButton
 import com.sortr.app.ui.design.LargeTitleScaffold
@@ -69,6 +72,7 @@ import com.sortr.domain.model.SessionFilter
 import com.sortr.domain.repository.AppSettings
 import com.sortr.domain.repository.PeopleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -80,7 +84,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class UnsortedUiState(
     val faces: List<FaceRef> = emptyList(),
@@ -175,7 +178,7 @@ class UnsortedFacesViewModel @Inject constructor(
 
     fun selectedFaces(): List<FaceRef> = state.value.faces.filter { it.faceId in state.value.selected }
 
-    /** The photos behind the selected faces, for viewing. */
+    /** The photos behind the selected faces, for viewing or moving. */
     suspend fun selectedPhotos(): List<Photo> = photoActions.photosOf(selectedFaces())
 
     /** Adds the selected faces to [person], or to a new person when it's null. */
@@ -195,8 +198,10 @@ fun UnsortedFacesScreen(
     onBack: () -> Unit,
     onStartSession: (filterKey: String) -> Unit,
     viewModel: UnsortedFacesViewModel = hiltViewModel(),
+    mover: MoveToAlbumViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val moving by mover.moving.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -231,6 +236,11 @@ fun UnsortedFacesScreen(
             }
         }
     }
+    // Once a move starts, the selection has done its job.
+    LaunchedEffect(moving) {
+        if (moving) viewModel.clearSelection()
+    }
+    MoveToAlbumDialogs(mover, snackbarHostState)
     BackHandler(enabled = selecting) { viewModel.clearSelection() }
 
     LargeTitleScaffold(
@@ -250,11 +260,15 @@ fun UnsortedFacesScreen(
                     items = listOf(
                         ToolbarItem(Icons.Rounded.PersonAdd, stringResource(R.string.unsorted_add_to_person), { picking = true }),
                         ToolbarItem(Icons.Rounded.GroupAdd, stringResource(R.string.unsorted_new_person), { viewModel.groupSelected(null) }),
-                        ToolbarItem(Icons.Rounded.Visibility, stringResource(R.string.action_view), {
-                            scope.launch { viewing = viewModel.selectedPhotos() }
-                        }),
+                        ToolbarItem(Icons.AutoMirrored.Rounded.DriveFileMove, stringResource(R.string.album_move_to), {
+                            scope.launch { mover.choose(viewModel.selectedPhotos()) }
+                        }, enabled = !moving),
                         ToolbarItem(Icons.Rounded.Share, stringResource(R.string.action_share), {
                             Sharing.shareUris(context, viewModel.selectedFaces().map { it.photoUri }.distinct())
+                        }),
+                        // These two land in the toolbar's More menu.
+                        ToolbarItem(Icons.Rounded.Visibility, stringResource(R.string.action_view), {
+                            scope.launch { viewing = viewModel.selectedPhotos() }
                         }),
                         ToolbarItem(Icons.Rounded.Delete, stringResource(R.string.action_delete), viewModel::trashSelected, tint = MaterialTheme.palette.red),
                     ),
@@ -263,7 +277,7 @@ fun UnsortedFacesScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
-        if (regrouping) LinearProgressIndicator(Modifier.padding(padding).fillMaxWidth().height(2.dp))
+        if (regrouping || moving) LinearProgressIndicator(Modifier.padding(padding).fillMaxWidth().height(2.dp))
         LazyVerticalGrid(
             state = gridState,
             columns = GridCells.Adaptive(minSize = 96.dp),

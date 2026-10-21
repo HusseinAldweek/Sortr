@@ -5,19 +5,21 @@ import androidx.lifecycle.viewModelScope
 import com.sortr.domain.model.FaceIndexProgress
 import com.sortr.domain.model.FaceModelState
 import com.sortr.domain.model.Person
+import com.sortr.domain.model.Photo
 import com.sortr.domain.repository.PeopleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class PeopleUiState(
     val people: List<Person> = emptyList(),
@@ -35,6 +37,7 @@ data class PeopleUiState(
 @HiltViewModel
 class PeopleViewModel @Inject constructor(
     private val repository: PeopleRepository,
+    private val photoActions: FacePhotoActions,
 ) : ViewModel() {
 
     private val showHidden = MutableStateFlow(false)
@@ -83,6 +86,10 @@ class PeopleViewModel @Inject constructor(
             selected.value = emptySet()
         }
     }
+
+    /** Every photo any of the selected people is in. */
+    suspend fun photosOfSelected(): List<Photo> =
+        photoActions.photosOf(state.value.selected.flatMap { repository.observeFaces(it).first() })
 
     /** Hides the selection, or shows it again if every selected person is already hidden. */
     fun toggleHiddenForSelected() {

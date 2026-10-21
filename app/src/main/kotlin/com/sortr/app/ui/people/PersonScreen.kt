@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.DriveFileMove
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.MoreHoriz
@@ -30,6 +31,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -57,6 +59,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sortr.app.R
 import com.sortr.app.media.Sharing
+import com.sortr.app.ui.albums.MoveToAlbumDialogs
+import com.sortr.app.ui.albums.MoveToAlbumViewModel
 import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.design.BarTextButton
 import com.sortr.app.ui.design.LargeTitleScaffold
@@ -74,8 +78,10 @@ fun PersonScreen(
     onBack: () -> Unit,
     onStartSession: (filterKey: String) -> Unit,
     viewModel: PersonViewModel = hiltViewModel(),
+    mover: MoveToAlbumViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val moving by mover.moving.collectAsStateWithLifecycle()
     val person = state.person
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -112,6 +118,11 @@ fun PersonScreen(
             }
         }
     }
+    // Once a move starts, the selection has done its job.
+    LaunchedEffect(moving) {
+        if (moving) viewModel.clearSelection()
+    }
+    MoveToAlbumDialogs(mover, snackbarHostState)
     BackHandler(enabled = selecting) { viewModel.clearSelection() }
 
     LargeTitleScaffold(
@@ -129,6 +140,14 @@ fun PersonScreen(
                         Icon(Icons.Rounded.MoreHoriz, contentDescription = stringResource(R.string.action_more), tint = MaterialTheme.colorScheme.primary)
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.person_move_all)) },
+                            enabled = !moving,
+                            onClick = {
+                                menuOpen = false
+                                scope.launch { mover.choose(viewModel.allPhotos()) }
+                            },
+                        )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.person_merge_with)) },
                             onClick = {
@@ -153,6 +172,9 @@ fun PersonScreen(
                     count = state.selected.size,
                     items = listOf(
                         ToolbarItem(Icons.Rounded.PersonRemove, stringResource(R.string.person_not_this_person_short), viewModel::removeSelected),
+                        ToolbarItem(Icons.AutoMirrored.Rounded.DriveFileMove, stringResource(R.string.album_move_to), {
+                            scope.launch { mover.choose(viewModel.selectedPhotos()) }
+                        }, enabled = !moving),
                         ToolbarItem(Icons.Rounded.Visibility, stringResource(R.string.action_view), {
                             scope.launch { viewing = viewModel.selectedPhotos() }
                         }),
@@ -166,59 +188,61 @@ fun PersonScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
-        LazyVerticalGrid(
-            state = gridState,
-            columns = GridCells.Adaptive(minSize = 96.dp),
-            contentPadding = PaddingValues(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .dragToSelect(gridState, state.faces.map { it.faceId }, state.selected, viewModel::setSelection),
-        ) {
-            if (person != null) {
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp),
-                    ) {
-                        // The name is the screen's title, so it isn't repeated here.
-                        FaceImage(face = person.cover, size = 112.dp)
-                        Spacer(Modifier.height(8.dp))
-                        if (person.name == null) {
-                            TextButton(onClick = { renaming = true }) { Text(stringResource(R.string.person_add_name)) }
+        Box(Modifier.padding(padding)) {
+            LazyVerticalGrid(
+                state = gridState,
+                columns = GridCells.Adaptive(minSize = 96.dp),
+                contentPadding = PaddingValues(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .dragToSelect(gridState, state.faces.map { it.faceId }, state.selected, viewModel::setSelection),
+            ) {
+                if (person != null) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                        ) {
+                            // The name is the screen's title, so it isn't repeated here.
+                            FaceImage(face = person.cover, size = 112.dp)
+                            Spacer(Modifier.height(8.dp))
+                            if (person.name == null) {
+                                TextButton(onClick = { renaming = true }) { Text(stringResource(R.string.person_add_name)) }
+                            }
+                            Text(
+                                text = pluralStringResource(R.plurals.photo_count_short, person.photoCount, formatCount(person.photoCount)),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Button(onClick = { onStartSession(SessionFilter.Person(person.id).key) }) {
+                                Icon(Icons.Rounded.Swipe, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(stringResource(R.string.person_sort_photos))
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                text = stringResource(R.string.person_faces_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                            )
                         }
-                        Text(
-                            text = pluralStringResource(R.plurals.photo_count_short, person.photoCount, formatCount(person.photoCount)),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Button(onClick = { onStartSession(SessionFilter.Person(person.id).key) }) {
-                            Icon(Icons.Rounded.Swipe, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.person_sort_photos))
-                        }
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            text = stringResource(R.string.person_faces_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                        )
                     }
                 }
+                items(state.faces, key = { it.faceId }) { face ->
+                    FaceTile(
+                        face = face,
+                        selected = face.faceId in state.selected,
+                        onClick = { viewModel.toggleFace(face.faceId) },
+                    )
+                }
             }
-            items(state.faces, key = { it.faceId }) { face ->
-                FaceTile(
-                    face = face,
-                    selected = face.faceId in state.selected,
-                    onClick = { viewModel.toggleFace(face.faceId) },
-                )
-            }
+            if (moving) LinearProgressIndicator(Modifier.fillMaxWidth().height(2.dp))
         }
     }
 

@@ -2,6 +2,7 @@ package com.sortr.app.ui.design
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,17 +13,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,9 +49,14 @@ class ToolbarItem(
     val tint: Color? = null,
 )
 
-/** Bottom bar while items are selected, like the Photos app: the count, then labelled icons. */
+/**
+ * Bottom bar while items are selected, like the Photos app: the count, then labelled icons. More
+ * than five don't fit on a phone, so from the fifth on they go into a More menu.
+ */
 @Composable
 fun SelectionToolbar(count: Int, items: List<ToolbarItem>) {
+    val shown = if (items.size > MAX_SHOWN) items.take(MAX_SHOWN - 1) else items
+    val overflow = items.drop(shown.size)
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, shadowElevation = 2.dp) {
         Column(
             Modifier
@@ -58,7 +73,8 @@ fun SelectionToolbar(count: Int, items: List<ToolbarItem>) {
             )
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                items.forEach { item -> ToolbarButton(item) }
+                shown.forEach { item -> ToolbarButton(item) }
+                if (overflow.isNotEmpty()) MoreButton(overflow)
             }
         }
     }
@@ -86,3 +102,26 @@ private fun ToolbarButton(item: ToolbarItem) {
         )
     }
 }
+
+@Composable
+private fun MoreButton(items: List<ToolbarItem>) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        ToolbarButton(ToolbarItem(Icons.Rounded.MoreHoriz, stringResource(R.string.toolbar_more), { open = true }))
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            items.forEach { item ->
+                DropdownMenuItem(
+                    text = { Text(item.label, color = item.tint ?: MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(item.icon, contentDescription = null, tint = item.tint ?: MaterialTheme.colorScheme.primary) },
+                    enabled = item.enabled,
+                    onClick = {
+                        open = false
+                        item.onClick()
+                    },
+                )
+            }
+        }
+    }
+}
+
+private const val MAX_SHOWN = 5

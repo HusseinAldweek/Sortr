@@ -276,6 +276,7 @@
 
     <string name="action_save">Save</string>
     <string name="action_more">More options</string>
+    <string name="toolbar_more">More</string>
 
     <!-- People -->
     <string name="people_title">People</string>
@@ -571,6 +572,7 @@
     <string name="album_organize_body">Everything moves into %1$s albums, one per year, from “%2$s” to “%3$s”. Android will ask you to allow it.</string>
     <string name="album_organize_action">Organize</string>
     <string name="person_not_this_person_short">Not them</string>
+    <string name="person_move_all">Move all photos to an album</string>
     <string name="unsorted_try_again">Try again</string>
     <plurals name="unsorted_regrouped">
         <item quantity="one">Grouped again. %1$s face is still unsorted.</item>
