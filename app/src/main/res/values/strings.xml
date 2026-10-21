@@ -603,4 +603,72 @@
     <string name="whatsapp_hub_empty_body">Photos and videos from WhatsApp will show up here.</string>
     <string name="whatsapp_tile_sent">Sent</string>
     <string name="whatsapp_tile_private">Private chats</string>
+
+    <!-- Screenshots page -->
+    <string name="screenshots_title">Screenshots</string>
+    <plurals name="screenshots_caption">
+        <item quantity="one">screenshot left to sort</item>
+        <item quantity="other">screenshots left to sort</item>
+    </plurals>
+    <string name="screenshots_empty_title">No screenshots</string>
+    <string name="screenshots_empty_body">Screenshots you take will show up here.</string>
+    <string name="screenshots_tile_all">All screenshots</string>
+    <string name="screenshots_tile_old">Older than %1$s days</string>
+    <string name="screenshots_section_tidy">Tidy up</string>
+    <string name="screenshots_tidy_title">Put them all in “%1$s”</string>
+    <plurals name="screenshots_tidy_body">
+        <item quantity="one">%1$s screenshot is in another folder</item>
+        <item quantity="other">%1$s screenshots are in other folders</item>
+    </plurals>
+    <string name="screenshots_tidy_done_title">All in one album</string>
+    <string name="screenshots_tidy_done_body">Every screenshot is in “%1$s”.</string>
+    <plurals name="screenshots_tidy_confirm_title">
+        <item quantity="one">Move %1$s screenshot?</item>
+        <item quantity="other">Move %1$s screenshots?</item>
+    </plurals>
+    <string name="screenshots_tidy_confirm_body">They go into “%1$s”, so all your screenshots are in one album. Android will ask you to allow it.</string>
+    <string name="screenshots_tidy_confirm_action">Move</string>
+    <string name="session_screenshots">Screenshots</string>
+    <string name="session_old_screenshots">Older screenshots</string>
+
+    <!-- On this day and the daily goal -->
+    <string name="session_on_this_day">On this day</string>
+    <string name="on_this_day_title">On this day</string>
+    <plurals name="on_this_day_body">
+        <item quantity="one">%1$s photo taken on this date in earlier years</item>
+        <item quantity="other">%1$s photos taken on this date in earlier years</item>
+    </plurals>
+    <string name="goal_title">Daily goal</string>
+    <string name="goal_progress">%1$s of %2$s sorted today</string>
+    <string name="goal_reached">Goal reached. Nice work!</string>
+    <plurals name="goal_streak">
+        <item quantity="one">%1$s day in a row</item>
+        <item quantity="other">%1$s days in a row</item>
+    </plurals>
+    <string name="goal_streak_none">Reach it today to start a streak</string>
+    <string name="settings_section_goal">Daily goal</string>
+    <string name="settings_goal_footer">A few swipes every day add up. Keep, Delete and Private count; skips don\'t.</string>
+    <string name="settings_goal_off">Off</string>
+    <string name="settings_goal_value">%1$s a day</string>
+    <string name="settings_goal_dialog_title">Sort how many a day?</string>
+    <string name="settings_reminder">Reminder</string>
+    <string name="settings_reminder_body">A gentle nudge if the goal isn\'t reached yet</string>
+    <string name="settings_reminder_time">Time</string>
+    <string name="settings_reminder_time_title">Remind me at</string>
+    <string name="settings_reminder_needs_permission">To get reminders, allow notifications for Sortr in Android\'s settings.</string>
+    <string name="notification_channel_goal">Daily goal</string>
+    <string name="notification_channel_goal_body">A reminder when today\'s goal isn\'t reached yet</string>
+    <string name="notification_goal_title">Time for a quick sort?</string>
+    <plurals name="notification_goal_streak_title">
+        <item quantity="one">Keep your %1$s-day streak going</item>
+        <item quantity="other">Keep your %1$s-day streak going</item>
+    </plurals>
+
+    <!-- Home screen widget -->
+    <string name="widget_name">Left to sort</string>
+    <string name="widget_description">See how much is left to sort and start with one tap.</string>
+    <string name="widget_left">left to sort</string>
+    <string name="widget_done">All sorted</string>
+    <string name="widget_goal">%1$s of %2$s today</string>
+    <string name="widget_preview_count" translatable="false">1,234</string>
 </resources>

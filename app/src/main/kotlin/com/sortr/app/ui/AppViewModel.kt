@@ -3,6 +3,7 @@ package com.sortr.app.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sortr.app.faces.FaceScanScheduler
+import com.sortr.app.launch.LaunchRequests
 import com.sortr.app.ui.permission.MediaAccess
 import com.sortr.domain.repository.AppSettings
 import com.sortr.domain.repository.GallerySync
@@ -30,7 +31,13 @@ class AppViewModel @Inject constructor(
     private val settings: AppSettings,
     private val gallerySync: GallerySync,
     private val faceScan: FaceScanScheduler,
+    private val launchRequests: LaunchRequests,
 ) : ViewModel() {
+
+    /** A session the widget or a reminder asked to open. */
+    val pendingSession: StateFlow<String?> = launchRequests.session
+
+    fun onPendingSessionOpened() = launchRequests.consume()
 
     /** Null until the first permission check, so the UI doesn't flash the permission screen. */
     private val access = MutableStateFlow<MediaAccess?>(null)

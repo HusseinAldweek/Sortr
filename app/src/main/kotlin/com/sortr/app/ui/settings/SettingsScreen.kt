@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sortr.app.R
+import com.sortr.app.goal.GoalSettingsSection
 import com.sortr.app.ui.common.formatCount
 import com.sortr.app.ui.common.formatDate
 import com.sortr.app.ui.design.GroupedSection
@@ -187,6 +188,8 @@ fun SettingsScreen(
                     )
                 }
             }
+
+            GoalSettingsSection(snackbarHostState = snackbarHostState)
 
             WhatsAppSettingsSection(snackbarHostState = snackbarHostState)
 

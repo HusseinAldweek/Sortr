@@ -101,4 +101,7 @@ fun sessionTitle(filter: SessionFilter, personName: String? = null): String = wh
     SessionFilter.Duplicates -> stringResource(R.string.session_duplicates)
     SessionFilter.Largest -> stringResource(R.string.session_largest)
     is SessionFilter.Custom -> stringResource(R.string.session_custom)
+    is SessionFilter.Screenshots ->
+        stringResource(if (filter.olderThanDays == null) R.string.session_screenshots else R.string.session_old_screenshots)
+    SessionFilter.OnThisDay -> stringResource(R.string.session_on_this_day)
 }

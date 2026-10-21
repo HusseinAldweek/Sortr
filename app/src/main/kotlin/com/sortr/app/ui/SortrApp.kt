@@ -23,6 +23,7 @@ import com.sortr.app.ui.permission.PermissionScreen
 @Composable
 fun SortrApp(viewModel: AppViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val pendingSession by viewModel.pendingSession.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val checkAccess = {
@@ -62,6 +63,8 @@ fun SortrApp(viewModel: AppViewModel = hiltViewModel()) {
             videoAccess = state.videoAccess,
             onRequestAccess = requestAccess,
             onOpenAppSettings = openAppSettings,
+            pendingSession = pendingSession,
+            onPendingSessionOpened = viewModel::onPendingSessionOpened,
         )
     }
 }

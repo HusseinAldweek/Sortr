@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
@@ -24,6 +25,7 @@ import com.sortr.app.ui.people.PeopleScreen
 import com.sortr.app.ui.people.PersonScreen
 import com.sortr.app.ui.people.UnsortedFacesScreen
 import com.sortr.app.ui.permission.MediaAccess
+import com.sortr.app.ui.screenshots.ScreenshotsScreen
 import com.sortr.app.ui.settings.SettingsScreen
 import com.sortr.app.ui.swipe.SwipeScreen
 import com.sortr.app.ui.trash.TrashScreen
@@ -73,6 +75,9 @@ data object CustomSessionRoute
 @Serializable
 data object WhatsAppRoute
 
+@Serializable
+data object ScreenshotsRoute
+
 /** [startBackup] opens Settings straight into exporting a vault backup. */
 @Serializable
 data class SettingsRoute(val startBackup: Boolean = false)
@@ -88,6 +93,8 @@ fun SortrNavHost(
     videoAccess: Boolean,
     onRequestAccess: () -> Unit,
     onOpenAppSettings: () -> Unit,
+    pendingSession: String? = null,
+    onPendingSessionOpened: () -> Unit = {},
 ) {
     val navController = rememberNavController()
 
@@ -126,7 +133,15 @@ fun SortrNavHost(
                     openStats = { entry.go(StatsRoute) },
                     openCustom = { entry.go(CustomSessionRoute) },
                     openWhatsApp = { entry.go(WhatsAppRoute) },
+                    openScreenshots = { entry.go(ScreenshotsRoute) },
                 ),
+            )
+        }
+        composable<ScreenshotsRoute> { entry ->
+            ScreenshotsScreen(
+                onBack = dropUnlessResumed { navController.popBackStack() },
+                onStartSession = { filterKey -> entry.go(SwipeRoute(filterKey)) },
+                onOpenAlbum = { path -> entry.go(AlbumRoute(path)) },
             )
         }
         composable<WhatsAppRoute> { entry ->
@@ -213,5 +228,12 @@ fun SortrNavHost(
                 onOpenVault = dropUnlessResumed { navController.navigate(VaultRoute) },
             )
         }
+    }
+
+    // The widget's Start button and the goal reminder open a session on top of Home.
+    LaunchedEffect(pendingSession) {
+        val filterKey = pendingSession ?: return@LaunchedEffect
+        onPendingSessionOpened()
+        navController.navigate(SwipeRoute(filterKey)) { popUpTo(HomeRoute) }
     }
 }

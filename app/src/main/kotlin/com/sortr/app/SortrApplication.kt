@@ -10,11 +10,13 @@ import coil3.SingletonImageLoader
 import coil3.memory.MemoryCache
 import coil3.request.crossfade
 import com.sortr.app.faces.ScanNotifications
+import com.sortr.app.goal.GoalNotifications
 import com.sortr.app.image.FaceCropFetcher
 import com.sortr.app.image.FaceCropKeyer
 import com.sortr.app.image.MediaThumbnailFetcher
 import com.sortr.app.image.MediaThumbnailKeyer
 import com.sortr.app.vault.VaultLock
+import com.sortr.app.widget.WidgetUpdater
 import com.sortr.data.faces.FaceCropLoader
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -31,6 +33,9 @@ class SortrApplication : Application(), SingletonImageLoader.Factory, Configurat
     @Inject
     lateinit var faceCropLoader: FaceCropLoader
 
+    @Inject
+    lateinit var widgetUpdater: WidgetUpdater
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
@@ -39,6 +44,8 @@ class SortrApplication : Application(), SingletonImageLoader.Factory, Configurat
         // Lock the vault whenever the app leaves the screen.
         ProcessLifecycleOwner.get().lifecycle.addObserver(vaultLock)
         ScanNotifications.createChannel(this)
+        GoalNotifications.createChannel(this)
+        widgetUpdater.start()
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =

@@ -9,6 +9,7 @@ import com.sortr.domain.model.MoveResult
 import com.sortr.domain.model.MovedCopy
 import com.sortr.domain.model.Photo
 import com.sortr.domain.model.QuickCounts
+import com.sortr.domain.model.ScreenshotSummary
 import com.sortr.domain.model.SessionFilter
 import com.sortr.domain.model.SourceCount
 import kotlinx.coroutines.flow.Flow
@@ -41,6 +42,12 @@ interface LibraryRepository {
 
     /** Photos and videos a session with [filter] would show. */
     suspend fun countToReview(filter: SessionFilter): Int
+
+    /** Screenshots per folder, including ones saved outside screenshot folders. */
+    fun observeScreenshots(): Flow<ScreenshotSummary>
+
+    /** Screenshots that aren't in [album], for tidying them all into it. */
+    suspend fun screenshotsOutside(album: String): List<Photo>
 
     /**
      * Moves photos into [relativePath]. Call only after the user granted write access in the

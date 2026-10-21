@@ -32,6 +32,9 @@ import androidx.compose.material.icons.rounded.Collections
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FaceRetouchingNatural
 import androidx.compose.material.icons.rounded.FilterNone
+import androidx.compose.material.icons.rounded.Flag
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.PlayCircle
@@ -116,6 +119,7 @@ class HomeActions(
     val openStats: () -> Unit,
     val openCustom: () -> Unit,
     val openWhatsApp: () -> Unit,
+    val openScreenshots: () -> Unit,
 )
 
 /**
@@ -245,6 +249,7 @@ fun HomeScreen(
                 }
             }
             if (summary.total > 0) {
+                todaySection(state, actions)
                 browseSection(state, actions)
                 peopleSection(state, actions)
                 appsSection(state, actions)
@@ -440,7 +445,58 @@ private fun LazyListScope.peopleSection(state: HomeUiState, actions: HomeActions
     }
 }
 
-/** Apps the photos came from, as a row of round icons. WhatsApp opens its own page. */
+/** The daily goal and photos from this date in earlier years, when there's something to show. */
+private fun LazyListScope.todaySection(state: HomeUiState, actions: HomeActions) {
+    val goal = state.goal
+    if (!goal.enabled && state.onThisDay == 0) return
+    item {
+        val palette = MaterialTheme.palette
+        GroupedSection {
+            if (goal.enabled) {
+                row {
+                    ListRow(
+                        title = if (goal.reached) {
+                            stringResource(R.string.goal_reached)
+                        } else {
+                            stringResource(R.string.goal_progress, formatCount(goal.today), formatCount(goal.goal))
+                        },
+                        subtitle = if (goal.streak > 0) {
+                            pluralStringResource(R.plurals.goal_streak, goal.streak, formatCount(goal.streak))
+                        } else {
+                            stringResource(R.string.goal_streak_none)
+                        },
+                        icon = if (goal.streak > 0) Icons.Rounded.LocalFireDepartment else Icons.Rounded.Flag,
+                        iconColor = palette.orange,
+                        onClick = if (state.summary.toReview > 0) ({ actions.startSession(SessionFilter.AllPhotos.key) }) else null,
+                        trailing = {
+                            CircularProgressIndicator(
+                                progress = { goal.fraction },
+                                color = if (goal.reached) palette.green else palette.orange,
+                                trackColor = palette.fill,
+                                strokeWidth = 3.dp,
+                                gapSize = 0.dp,
+                                modifier = Modifier.size(26.dp),
+                            )
+                        },
+                    )
+                }
+            }
+            if (state.onThisDay > 0) {
+                row {
+                    ListRow(
+                        title = stringResource(R.string.on_this_day_title),
+                        subtitle = pluralStringResource(R.plurals.on_this_day_body, state.onThisDay, formatCount(state.onThisDay)),
+                        icon = Icons.Rounded.History,
+                        iconColor = palette.teal,
+                        onClick = { actions.startSession(SessionFilter.OnThisDay.key) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Apps the photos came from, as a row of round icons. WhatsApp and Screenshots open their own pages. */
 private fun LazyListScope.appsSection(state: HomeUiState, actions: HomeActions) {
     val sources = state.browse.sources.filter { it.source.partOf == null }
     if (sources.isEmpty()) return
@@ -461,10 +517,10 @@ private fun AppShortcut(source: SourceCount, actions: HomeActions) {
         value = if (source.toReview > 0) formatCount(source.toReview) else null,
         done = source.toReview == 0,
         onClick = {
-            if (source.source == MediaSource.WHATSAPP) {
-                actions.openWhatsApp()
-            } else {
-                actions.startSession(SessionFilter.Source(source.source).key)
+            when (source.source) {
+                MediaSource.WHATSAPP -> actions.openWhatsApp()
+                MediaSource.SCREENSHOTS -> actions.openScreenshots()
+                else -> actions.startSession(SessionFilter.Source(source.source).key)
             }
         },
     )

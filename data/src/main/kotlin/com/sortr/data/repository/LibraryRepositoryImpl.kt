@@ -17,6 +17,9 @@ import com.sortr.domain.model.MovedCopy
 import com.sortr.domain.model.Photo
 import com.sortr.domain.model.PhotoStatus
 import com.sortr.domain.model.QuickCounts
+import com.sortr.domain.model.ScreenshotFolder
+import com.sortr.domain.model.ScreenshotRules
+import com.sortr.domain.model.ScreenshotSummary
 import com.sortr.domain.model.SessionFilter
 import com.sortr.domain.model.SourceCount
 import com.sortr.domain.repository.LibraryRepository
@@ -109,6 +112,22 @@ class LibraryRepositoryImpl @Inject constructor(
         } else {
             libraryDao.count(SessionQueries.countToReview(filter))
         }
+
+    override fun observeScreenshots(): Flow<ScreenshotSummary> {
+        val oldBefore = System.currentTimeMillis() - ScreenshotRules.OLD_AFTER_DAYS * 24 * 60 * 60 * 1000L
+        return libraryDao.observeScreenshotFolders(SessionQueries.screenshotFolders(oldBefore)).map { rows ->
+            ScreenshotSummary(
+                total = rows.sumOf { it.count },
+                sizeBytes = rows.sumOf { it.sizeBytes },
+                toReview = rows.sumOf { it.toReview },
+                oldToReview = rows.sumOf { it.oldToReview },
+                folders = rows.map { ScreenshotFolder(it.relativePath, it.count) }.sortedByDescending { it.count },
+            )
+        }.distinctUntilChanged()
+    }
+
+    override suspend fun screenshotsOutside(album: String): List<Photo> =
+        libraryDao.photos(SessionQueries.screenshotsOutside(album)).map { it.toDomain() }
 
     override suspend fun movePhotos(photos: Collection<Photo>, relativePath: String): MoveResult =
         mover.move(photos, relativePath)

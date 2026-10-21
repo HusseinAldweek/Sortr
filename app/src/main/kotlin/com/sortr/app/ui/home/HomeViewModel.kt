@@ -7,6 +7,7 @@ import com.sortr.app.faces.ScanStatus
 import com.sortr.domain.model.AnalysisProgress
 import com.sortr.domain.model.FaceIndexProgress
 import com.sortr.domain.model.FaceModelState
+import com.sortr.domain.model.GoalProgress
 import com.sortr.domain.model.LibrarySummary
 import com.sortr.domain.model.Person
 import com.sortr.domain.model.QuickCounts
@@ -14,6 +15,7 @@ import com.sortr.domain.model.SessionFilter
 import com.sortr.domain.model.SourceCount
 import com.sortr.domain.repository.AppSettings
 import com.sortr.domain.repository.GallerySync
+import com.sortr.domain.repository.GoalRepository
 import com.sortr.domain.repository.LibraryRepository
 import com.sortr.domain.repository.PeopleRepository
 import com.sortr.domain.repository.PhotoRepository
@@ -56,6 +58,9 @@ data class HomeUiState(
     val faceScan: FaceScanUiState = FaceScanUiState(),
     val browse: BrowseUiState = BrowseUiState(),
     val notificationAsked: Boolean = true,
+    val goal: GoalProgress = GoalProgress(),
+    /** Photos to sort that were taken on today's date in earlier years. */
+    val onThisDay: Int = 0,
     val loaded: Boolean = false,
 )
 
@@ -67,6 +72,7 @@ class HomeViewModel @Inject constructor(
     people: PeopleRepository,
     library: LibraryRepository,
     scanScheduler: FaceScanScheduler,
+    goals: GoalRepository,
     private val settings: AppSettings,
 ) : ViewModel() {
 
@@ -94,6 +100,15 @@ class HomeViewModel @Inject constructor(
         .onStart { emit(null) }
         .distinctUntilChanged()
 
+    // Recounted whenever the library changes; cheap, and the date only matters once a day.
+    private val onThisDay = photos.observeSummary()
+        .conflate()
+        .transform { emit(library.countToReview(SessionFilter.OnThisDay)) }
+        .onStart { emit(0) }
+        .distinctUntilChanged()
+
+    private val extras = combine(settings.notificationPermissionAsked, goals.progress, onThisDay, ::Triple)
+
     private val browse = combine(
         library.observeQuickCounts(),
         similarToReview,
@@ -107,8 +122,8 @@ class HomeViewModel @Inject constructor(
         peopleInfo,
         faceScan,
         browse,
-        settings.notificationPermissionAsked,
-    ) { (summary, syncing, vaultSetUp), (people, unsorted), scan, browse, asked ->
+        extras,
+    ) { (summary, syncing, vaultSetUp), (people, unsorted), scan, browse, (asked, goal, onThisDay) ->
         HomeUiState(
             summary = summary,
             isSyncing = syncing,
@@ -118,6 +133,8 @@ class HomeViewModel @Inject constructor(
             faceScan = scan,
             browse = browse,
             notificationAsked = asked,
+            goal = goal,
+            onThisDay = onThisDay,
             loaded = true,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())

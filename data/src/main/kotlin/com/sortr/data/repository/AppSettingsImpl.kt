@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -82,6 +83,21 @@ class AppSettingsImpl @Inject constructor(
         store.edit { it[WHATSAPP_PROMPT_DISMISSED] = true }
     }
 
+    override val dailyGoal: Flow<Int> = preferences.map { (it[DAILY_GOAL] ?: 0).coerceAtLeast(0) }.distinctUntilChanged()
+
+    override suspend fun setDailyGoal(value: Int) {
+        store.edit { it[DAILY_GOAL] = value.coerceAtLeast(0) }
+    }
+
+    override val goalReminderMinutes: Flow<Int?> =
+        preferences.map { prefs -> prefs[GOAL_REMINDER_MINUTES]?.takeIf { it in 0 until 24 * 60 } }.distinctUntilChanged()
+
+    override suspend fun setGoalReminderMinutes(value: Int?) {
+        store.edit {
+            if (value == null) it.remove(GOAL_REMINDER_MINUTES) else it[GOAL_REMINDER_MINUTES] = value.coerceIn(0, 24 * 60 - 1)
+        }
+    }
+
     private companion object {
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val FACE_THRESHOLD = floatPreferencesKey("face_similarity_threshold")
@@ -90,5 +106,7 @@ class AppSettingsImpl @Inject constructor(
         val ALBUM_SORT = stringPreferencesKey("album_sort")
         val HIDDEN_FOLDERS = stringSetPreferencesKey("hidden_folders")
         val WHATSAPP_PROMPT_DISMISSED = booleanPreferencesKey("whatsapp_prompt_dismissed")
+        val DAILY_GOAL = intPreferencesKey("daily_goal")
+        val GOAL_REMINDER_MINUTES = intPreferencesKey("goal_reminder_minutes")
     }
 }

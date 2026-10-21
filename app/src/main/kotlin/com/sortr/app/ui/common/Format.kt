@@ -5,6 +5,7 @@ import android.text.format.DateFormat
 import android.text.format.Formatter
 import java.text.NumberFormat
 import java.time.Instant
+import java.time.LocalTime
 import java.time.Month
 import java.time.YearMonth
 import java.time.ZoneId
@@ -50,6 +51,14 @@ fun formatMonthYear(year: Int, month: Int): String =
 /** A year as written in the phone's language (no thousands separator). */
 fun formatYear(year: Int): String =
     DateTimeFormatter.ofPattern("yyyy", Locale.getDefault()).localDigits().format(YearMonth.of(year, 1))
+
+/** A time of day, e.g. "7:00 PM" or "19:00", following the phone's clock style and digits. */
+fun formatTimeOfDay(context: Context, minutesAfterMidnight: Int): String {
+    val skeleton = if (DateFormat.is24HourFormat(context)) "Hm" else "hma"
+    val pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), skeleton)
+    return DateTimeFormatter.ofPattern(pattern, Locale.getDefault()).localDigits()
+        .format(LocalTime.of(minutesAfterMidnight / 60, minutesAfterMidnight % 60))
+}
 
 /** java.time prints 0-9 by default; this uses the phone's own digits, e.g. Arabic-Indic ones. */
 private fun DateTimeFormatter.localDigits(): DateTimeFormatter =

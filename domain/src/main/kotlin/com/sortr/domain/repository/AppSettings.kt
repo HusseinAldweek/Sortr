@@ -38,4 +38,14 @@ interface AppSettings {
     val whatsAppPromptDismissed: Flow<Boolean>
 
     suspend fun dismissWhatsAppPrompt()
+
+    /** Photos to sort each day; 0 means no goal. */
+    val dailyGoal: Flow<Int>
+
+    suspend fun setDailyGoal(value: Int)
+
+    /** Minutes after midnight for the daily goal reminder; null when it's off. */
+    val goalReminderMinutes: Flow<Int?>
+
+    suspend fun setGoalReminderMinutes(value: Int?)
 }

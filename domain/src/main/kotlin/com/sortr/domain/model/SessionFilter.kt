@@ -57,6 +57,19 @@ sealed interface SessionFilter {
         override val key = "largest"
     }
 
+    /**
+     * Screenshots, found by folder or by file name, so ones saved in other folders count too.
+     * With [olderThanDays], only screenshots older than that.
+     */
+    data class Screenshots(val olderThanDays: Int? = null) : SessionFilter {
+        override val key = if (olderThanDays == null) "screenshots" else "screenshots:$olderThanDays"
+    }
+
+    /** Photos and videos taken on today's date in earlier years. */
+    data object OnThisDay : SessionFilter {
+        override val key = "on-this-day"
+    }
+
     /** A mix chosen by the user. Empty [albums] means any album. */
     data class Custom(
         val mediaType: MediaTypeFilter = MediaTypeFilter.ALL,
@@ -91,6 +104,8 @@ sealed interface SessionFilter {
                 "blurry" -> Blurry
                 "duplicates" -> Duplicates
                 "largest" -> Largest
+                "on-this-day" -> OnThisDay
+                "screenshots" -> Screenshots(value.toIntOrNull()?.takeIf { it > 0 })
                 "person" -> value.toLongOrNull()?.let(::Person)
                 "year" -> value.toIntOrNull()?.let(::Year)
                 "month" -> {

@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="window_background">#FF000000</color>
+    <!-- Home screen widget -->
+    <color name="widget_background">#FF1C1C1E</color>
+    <color name="widget_text">#FFFFFFFF</color>
+    <color name="widget_secondary">#FF8E8E93</color>
+    <color name="widget_accent">#FF9E8CFF</color>
+    <color name="widget_goal">#FFFF9F0A</color>
+    <color name="widget_button">#FF0A84FF</color>
 </resources>

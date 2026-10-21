@@ -93,7 +93,12 @@ interface LibraryDao {
 
     @RawQuery
     suspend fun count(query: SupportSQLiteQuery): Int
+
+    @RawQuery(observedEntities = [PhotoEntity::class])
+    fun observeScreenshotFolders(query: SupportSQLiteQuery): Flow<List<ScreenshotFolderRow>>
 }
+
+data class ScreenshotFolderRow(val relativePath: String, val count: Int, val sizeBytes: Long, val toReview: Int, val oldToReview: Int)
 
 data class AlbumRow(
     val relativePath: String,

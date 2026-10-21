@@ -10,6 +10,7 @@ import com.sortr.data.crypto.PinHasher
 import com.sortr.data.db.SortrDatabase
 import com.sortr.data.media.GallerySyncManager
 import com.sortr.data.repository.AppSettingsImpl
+import com.sortr.data.repository.GoalRepositoryImpl
 import com.sortr.data.repository.LibraryRepositoryImpl
 import com.sortr.data.repository.PeopleRepositoryImpl
 import com.sortr.data.repository.PhotoRepositoryImpl
@@ -17,6 +18,7 @@ import com.sortr.data.vault.VaultAuthImpl
 import com.sortr.data.vault.VaultRepositoryImpl
 import com.sortr.domain.repository.AppSettings
 import com.sortr.domain.repository.GallerySync
+import com.sortr.domain.repository.GoalRepository
 import com.sortr.domain.repository.LibraryRepository
 import com.sortr.domain.repository.PeopleRepository
 import com.sortr.domain.repository.PhotoRepository
@@ -93,4 +95,7 @@ abstract class DataBindingsModule {
 
     @Binds
     abstract fun peopleRepository(impl: PeopleRepositoryImpl): PeopleRepository
+
+    @Binds
+    abstract fun goalRepository(impl: GoalRepositoryImpl): GoalRepository
 }
