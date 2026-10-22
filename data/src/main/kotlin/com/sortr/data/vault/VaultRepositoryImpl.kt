@@ -57,6 +57,7 @@ import java.io.OutputStream
 import java.nio.ByteBuffer
 import java.security.DigestInputStream
 import java.security.MessageDigest
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -134,8 +135,9 @@ class VaultRepositoryImpl @Inject constructor(
         val photo = photoDao.byId(photoId) ?: return@withLock
         // Undone before its turn came, or already done.
         if (photo.status != PhotoStatus.VAULTED || vaultDao.bySource(photoId) != null) return@withLock
-        // Face pictures cut from this photo must not outlive it outside the vault.
+        // Face pictures cut from this photo, and text read from it, must not outlive it outside the vault.
         faceCrops.evict(photoId)
+        db.libraryDao().deleteText(photoId)
 
         val base = storage.newBaseName()
         val photoFile = "$base.svf"
@@ -187,6 +189,67 @@ class VaultRepositoryImpl @Inject constructor(
             throw e
         } finally {
             dataKey.fill(0)
+        }
+    }
+
+    override suspend fun addShared(uri: String, displayName: String?, mimeType: String?): Boolean = itemMutex.withLock {
+        withContext(Dispatchers.IO) {
+            val base = storage.newBaseName()
+            val photoFile = "$base.svf"
+            val thumbnailFile = "$base.svt"
+            val dataKey = VaultCipher.newDataKey()
+            try {
+                val digest = MessageDigest.getInstance("SHA-256")
+                val iv = context.contentResolver.openInputStream(uri.toUri())?.use { input ->
+                    storage.file(photoFile).outputStream().buffered().use { out ->
+                        VaultCipher.encrypt(DigestInputStream(input, digest), out, dataKey)
+                    }
+                } ?: throw IOException("Couldn't open the shared photo")
+                val plainHash = digest.digest()
+                val sha = plainHash.toHex()
+                if (vaultDao.countWithHash(sha) > 0) {
+                    storage.delete(photoFile)
+                    return@withContext false
+                }
+
+                // Read the encrypted copy back before trusting it.
+                val decrypted = decryptFile(photoFile, dataKey)
+                if (!MessageDigest.isEqual(plainHash, MessageDigest.getInstance("SHA-256").digest(decrypted))) {
+                    throw VaultCryptoException("Encrypted copy didn't verify")
+                }
+                val thumbnail = thumbnailFromBytes(decrypted)
+                if (thumbnail != null) {
+                    storage.file(thumbnailFile).outputStream().buffered().use { VaultCipher.encrypt(thumbnail, it, dataKey) }
+                }
+                val info = SharedPhotoInfo.read(decrypted)
+                val now = System.currentTimeMillis()
+                vaultDao.insert(
+                    VaultItemEntity(
+                        encryptedFilePath = photoFile,
+                        thumbnailPath = thumbnailFile.takeIf { thumbnail != null },
+                        originalName = displayName?.takeIf { it.isNotBlank() } ?: "IMG_$now.${info.extension}",
+                        mimeType = mimeType?.takeIf { it.startsWith("image/") } ?: info.mimeType,
+                        originalSize = decrypted.size.toLong(),
+                        dateTaken = info.dateTaken ?: now,
+                        iv = iv,
+                        wrappedKey = keyWrapper.wrap(dataKey),
+                        addedAt = now,
+                        // Nothing in the gallery to remove afterwards: the original belongs to another app.
+                        sourceMediaStoreId = null,
+                        originalRemoved = true,
+                        contentSha256 = sha,
+                        width = info.width,
+                        height = info.height,
+                    ),
+                )
+                true
+            } catch (e: Exception) {
+                storage.delete(photoFile)
+                storage.delete(thumbnailFile)
+                throw e
+            } finally {
+                dataKey.fill(0)
+            }
         }
     }
 
@@ -434,7 +497,9 @@ class VaultRepositoryImpl @Inject constructor(
         return out.toByteArray()
     }
 
-    private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
+    // Locale.ROOT: in Arabic the default locale would write Arabic-Indic digits, and the same photo
+    // would no longer match its stored hash.
+    private fun ByteArray.toHex(): String = joinToString("") { String.format(Locale.ROOT, "%02x", it) }
 
     private companion object {
         const val TAG = "VaultRepository"

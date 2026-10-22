@@ -2,6 +2,7 @@ package com.sortr.data.db
 
 import androidx.sqlite.db.SimpleSQLiteQuery
 import com.sortr.domain.analysis.BlurMeter
+import com.sortr.domain.analysis.TextSearchQuery
 import com.sortr.domain.model.DateRanges
 import com.sortr.domain.model.MediaTypeFilter
 import com.sortr.domain.model.PhotoStatus
@@ -76,10 +77,16 @@ internal object SessionQueries {
             order = "blurScore ASC, mediaStoreId DESC",
         )
         SessionFilter.Largest -> Clause("size >= ?", listOf(SessionFilter.LARGE_FILE_BYTES), order = "size DESC, mediaStoreId DESC")
-        SessionFilter.Duplicates -> throw IllegalArgumentException("Duplicate sessions are built from the duplicate index")
+        SessionFilter.Duplicates, SessionFilter.ExactDuplicates ->
+            throw IllegalArgumentException("Duplicate sessions are built from the duplicate indexes")
         is SessionFilter.Custom -> custom(filter)
         is SessionFilter.Screenshots -> screenshots(filter.olderThanDays)
         SessionFilter.OnThisDay -> onThisDay()
+        is SessionFilter.Category -> Clause("(smartCategories & ?) != 0", listOf(filter.category.bit))
+        // A query with nothing searchable matches nothing.
+        is SessionFilter.TextSearch -> TextSearchQuery.build(filter.query)
+            ?.let { Clause("mediaStoreId IN (SELECT rowid FROM photo_text WHERE photo_text MATCH ?)", listOf(it)) }
+            ?: Clause("0")
     }
 
     private fun screenshots(olderThanDays: Int?): Clause {

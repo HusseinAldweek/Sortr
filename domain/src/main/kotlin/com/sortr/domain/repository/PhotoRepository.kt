@@ -3,6 +3,7 @@ package com.sortr.domain.repository
 import com.sortr.domain.model.Decision
 import com.sortr.domain.model.LibrarySummary
 import com.sortr.domain.model.Photo
+import com.sortr.domain.model.RecentDecision
 import com.sortr.domain.model.SessionFilter
 import com.sortr.domain.model.SwipeAction
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +29,12 @@ interface PhotoRepository {
     suspend fun applyDecisions(photos: Collection<Photo>, action: SwipeAction): List<Decision>
 
     suspend fun undoDecisions(decisions: Collection<Decision>)
+
+    /**
+     * Keep, Delete, Private and Skip decisions made since [sinceMillis] that still hold (the
+     * photo hasn't been decided on again, restored or reset since), newest first.
+     */
+    fun observeRecentDecisions(sinceMillis: Long, limit: Int): Flow<List<RecentDecision>>
 
     /** Puts the photo back to the status it had before [decision] and drops the log entry. */
     suspend fun undoDecision(decision: Decision)

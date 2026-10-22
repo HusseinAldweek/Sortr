@@ -48,6 +48,9 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     implementation(libs.mlkit.face.detection)
+    // Bundled models: they ship inside the app and never download anything.
+    implementation(libs.mlkit.image.labeling)
+    implementation(libs.mlkit.text.recognition)
     implementation(libs.litert)
 
     testImplementation(libs.junit)

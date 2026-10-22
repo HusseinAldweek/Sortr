@@ -24,7 +24,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.FilterNone
+import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -54,12 +56,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import coil3.compose.AsyncImage
 import com.sortr.app.R
 import com.sortr.app.image.MediaThumbnail
@@ -72,8 +78,10 @@ import com.sortr.app.ui.design.LargeTitleScaffold
 import com.sortr.app.ui.design.PillButton
 import com.sortr.app.ui.design.ScreenPadding
 import com.sortr.app.ui.design.TintedButton
+import com.sortr.app.ui.navigation.DuplicatesRoute
 import com.sortr.app.ui.theme.palette
 import com.sortr.app.ui.viewer.FullScreenViewer
+import com.sortr.domain.model.AlbumPaths
 import com.sortr.domain.model.AnalysisProgress
 import com.sortr.domain.model.Decision
 import com.sortr.domain.model.DuplicateGroup
@@ -108,10 +116,16 @@ data class GroupUi(val key: Long, val group: DuplicateGroup, val keeperId: Long)
 }
 
 data class DuplicatesUiState(
+    /** Exact copies (any photo or video) rather than similar photos. */
+    val exact: Boolean = false,
     /** Null while loading. */
     val groups: List<GroupUi>? = null,
     val analysis: AnalysisProgress = AnalysisProgress(0, 0),
+    /** Files still to be checked for exact copies. */
+    val exactPending: Int = 0,
 ) {
+    val stillChecking: Boolean get() = if (exact) exactPending > 0 else !analysis.isComplete
+
     val extraCount: Int get() = groups.orEmpty().sumOf { it.extras.size }
     val reclaimableBytes: Long get() = groups.orEmpty().sumOf { g -> g.extras.sumOf { it.sizeBytes } }
 }
@@ -124,20 +138,29 @@ sealed interface DuplicatesMessage {
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class DuplicatesViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     library: LibraryRepository,
     private val photos: PhotoRepository,
 ) : ViewModel() {
+
+    private val exact = savedStateHandle.toRoute<DuplicatesRoute>().exact
 
     private val keepers = MutableStateFlow<Map<Long, Long>>(emptyMap())
     private val mutex = Mutex()
     private var lastDecisions: List<Decision> = emptyList()
 
-    private val groups = combine(photos.observeSummary(), library.observeAnalysisProgress(), ::Pair)
+    private val groups = combine(photos.observeSummary(), library.observeAnalysisProgress(), library.observeExactCheckPending(), ::Triple)
         .debounce(REFRESH_DEBOUNCE_MS)
-        .mapLatest { library.duplicateGroups() }
+        .mapLatest { if (exact) library.exactDuplicateGroups() else library.duplicateGroups() }
 
-    val state: StateFlow<DuplicatesUiState> = combine(groups, keepers, library.observeAnalysisProgress()) { groups, keepers, analysis ->
+    val state: StateFlow<DuplicatesUiState> = combine(
+        groups,
+        keepers,
+        library.observeAnalysisProgress(),
+        library.observeExactCheckPending(),
+    ) { groups, keepers, analysis, exactPending ->
         DuplicatesUiState(
+            exact = exact,
             groups = groups.map { group ->
                 // Keyed by the lowest id so a choice survives the list being recomputed.
                 val key = group.photos.minOf { it.id }
@@ -145,8 +168,9 @@ class DuplicatesViewModel @Inject constructor(
                 GroupUi(key, group, chosen ?: group.bestId)
             },
             analysis = analysis,
+            exactPending = exactPending,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DuplicatesUiState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DuplicatesUiState(exact = exact))
 
     private val _messages = Channel<DuplicatesMessage>(Channel.BUFFERED)
     val messages: Flow<DuplicatesMessage> = _messages.receiveAsFlow()
@@ -225,7 +249,11 @@ fun DuplicatesScreen(
             when (message) {
                 is DuplicatesMessage.Trashed -> {
                     val result = snackbarHostState.showSnackbar(
-                        message = context.resources.getQuantityString(R.plurals.dup_trashed, message.count, formatCount(message.count)),
+                        message = context.resources.getQuantityString(
+                            if (state.exact) R.plurals.exact_trashed else R.plurals.dup_trashed,
+                            message.count,
+                            formatCount(message.count),
+                        ),
                         actionLabel = context.getString(R.string.action_undo),
                         duration = SnackbarDuration.Long,
                     )
@@ -237,7 +265,7 @@ fun DuplicatesScreen(
     }
 
     LargeTitleScaffold(
-        title = stringResource(R.string.dup_title),
+        title = stringResource(if (state.exact) R.string.exact_title else R.string.dup_title),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
@@ -245,14 +273,10 @@ fun DuplicatesScreen(
         when {
             groups == null -> CircularProgressIndicator(Modifier.padding(padding).padding(32.dp))
             groups.isEmpty() -> EmptyState(
-                icon = Icons.Rounded.FilterNone,
+                icon = if (state.exact) Icons.Rounded.ContentCopy else Icons.Rounded.FilterNone,
                 iconColor = MaterialTheme.palette.indigo,
-                title = stringResource(R.string.dup_empty_title),
-                body = if (state.analysis.isComplete) {
-                    stringResource(R.string.dup_empty_body)
-                } else {
-                    stringResource(R.string.dup_still_checking, formatCount(state.analysis.analysed), formatCount(state.analysis.total))
-                },
+                title = stringResource(if (state.exact) R.string.exact_empty_title else R.string.dup_empty_title),
+                body = stillCheckingText(state) ?: stringResource(if (state.exact) R.string.exact_empty_body else R.string.dup_empty_body),
                 modifier = Modifier.padding(padding),
             )
             else -> LazyColumn(
@@ -266,12 +290,13 @@ fun DuplicatesScreen(
                     SummaryCard(
                         state = state,
                         onCleanAll = { confirmAll = true },
-                        onReview = { onStartSession(SessionFilter.Duplicates.key) },
+                        onReview = { onStartSession(if (state.exact) SessionFilter.ExactDuplicates.key else SessionFilter.Duplicates.key) },
                     )
                 }
                 items(groups, key = { it.key }) { group ->
                     GroupCard(
                         group = group,
+                        exact = state.exact,
                         onChoose = { viewModel.choose(group, it.id) },
                         onOpen = { viewerPhoto = it },
                         onKeepBest = { viewModel.keepBest(group) },
@@ -288,7 +313,15 @@ fun DuplicatesScreen(
         AlertDialog(
             onDismissRequest = { confirmAll = false },
             title = { Text(stringResource(R.string.dup_clean_all_confirm_title)) },
-            text = { Text(pluralStringResource(R.plurals.dup_clean_all_confirm_body, state.extraCount, formatCount(state.extraCount))) },
+            text = {
+                Text(
+                    pluralStringResource(
+                        if (state.exact) R.plurals.exact_clean_all_confirm_body else R.plurals.dup_clean_all_confirm_body,
+                        state.extraCount,
+                        formatCount(state.extraCount),
+                    ),
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -311,19 +344,24 @@ private fun SummaryCard(state: DuplicatesUiState, onCleanAll: () -> Unit, onRevi
     GroupedCard {
         Column(Modifier.padding(20.dp)) {
             Text(
-                text = pluralStringResource(R.plurals.dup_summary, groups.size, formatCount(groups.size), formatBytes(context, state.reclaimableBytes)),
+                text = pluralStringResource(
+                    if (state.exact) R.plurals.exact_summary else R.plurals.dup_summary,
+                    groups.size,
+                    formatCount(groups.size),
+                    formatBytes(context, state.reclaimableBytes),
+                ),
                 style = MaterialTheme.typography.titleMedium,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = stringResource(R.string.dup_hint),
+                text = stringResource(if (state.exact) R.string.exact_hint else R.string.dup_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (!state.analysis.isComplete) {
+            stillCheckingText(state)?.let { checking ->
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = stringResource(R.string.dup_still_checking, formatCount(state.analysis.analysed), formatCount(state.analysis.total)),
+                    text = checking,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -344,6 +382,7 @@ private fun SummaryCard(state: DuplicatesUiState, onCleanAll: () -> Unit, onRevi
 @Composable
 private fun GroupCard(
     group: GroupUi,
+    exact: Boolean,
     onChoose: (Photo) -> Unit,
     onOpen: (Photo) -> Unit,
     onKeepBest: () -> Unit,
@@ -358,6 +397,7 @@ private fun GroupCard(
                 CopyTile(
                     photo = photo,
                     isKeeper = photo.id == group.keeperId,
+                    exact = exact,
                     onClick = { onChoose(photo) },
                     onLongClick = { onOpen(photo) },
                 )
@@ -367,10 +407,10 @@ private fun GroupCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(start = 4.dp, end = 12.dp, bottom = 12.dp),
         ) {
-            TextButton(onClick = onKeepAll) { Text(stringResource(R.string.dup_not_duplicates)) }
+            TextButton(onClick = onKeepAll) { Text(stringResource(if (exact) R.string.exact_keep_all else R.string.dup_not_duplicates)) }
             Spacer(Modifier.weight(1f))
             TintedButton(
-                text = pluralStringResource(R.plurals.dup_keep_best, group.extras.size, formatCount(group.extras.size)),
+                text = pluralStringResource(if (exact) R.plurals.exact_keep_one else R.plurals.dup_keep_best, group.extras.size, formatCount(group.extras.size)),
                 onClick = onKeepBest,
                 color = MaterialTheme.palette.red,
                 compact = true,
@@ -381,10 +421,12 @@ private fun GroupCard(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun CopyTile(photo: Photo, isKeeper: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun CopyTile(photo: Photo, isKeeper: Boolean, exact: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     val context = LocalContext.current
     val shape = RoundedCornerShape(12.dp)
     val size = formatBytes(context, photo.sizeBytes)
+    // Exact copies all have the same size; where they are is what tells them apart.
+    val caption = if (exact) photo.relativePath?.let(AlbumPaths::displayName).orEmpty() else size
     val description = stringResource(
         if (isKeeper) R.string.dup_photo_best_description else R.string.dup_photo_description,
         formatDate(photo.dateTaken),
@@ -406,6 +448,17 @@ private fun CopyTile(photo: Photo, isKeeper: Boolean, onClick: () -> Unit, onLon
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
+            if (photo.isVideo) {
+                Icon(
+                    Icons.Rounded.PlayCircle,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp)
+                        .size(22.dp),
+                )
+            }
             if (isKeeper) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -418,11 +471,31 @@ private fun CopyTile(photo: Photo, isKeeper: Boolean, onClick: () -> Unit, onLon
                 ) {
                     Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(3.dp))
-                    Text(stringResource(R.string.dup_best), color = Color.White, style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        stringResource(if (exact) R.string.exact_keep_badge else R.string.dup_best),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
                 }
             }
         }
         Spacer(Modifier.height(4.dp))
-        Text(size, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            caption,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.width(116.dp),
+            textAlign = TextAlign.Center,
+        )
     }
+}
+
+/** "Still checking…", or null once everything has been checked. */
+@Composable
+private fun stillCheckingText(state: DuplicatesUiState): String? = when {
+    !state.stillChecking -> null
+    state.exact -> pluralStringResource(R.plurals.exact_still_checking, state.exactPending, formatCount(state.exactPending))
+    else -> stringResource(R.string.dup_still_checking, formatCount(state.analysis.analysed), formatCount(state.analysis.total))
 }

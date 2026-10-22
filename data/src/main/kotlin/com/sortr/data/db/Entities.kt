@@ -3,6 +3,8 @@ package com.sortr.data.db
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Fts4
+import androidx.room.FtsOptions
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.sortr.domain.model.ActionType
@@ -45,6 +47,23 @@ data class PhotoEntity(
      */
     @ColumnInfo(defaultValue = "0")
     val fromHiddenFolder: Boolean = false,
+    /**
+     * Fingerprint of the file's bytes, for finding exact copies. Only worked out for files whose
+     * size matches another file's; "" when the file couldn't be read.
+     */
+    @ColumnInfo(defaultValue = "NULL")
+    val contentHash: String? = null,
+    /** SmartCategory bits (documents, food, pets…); null until the photo has been read. */
+    @ColumnInfo(defaultValue = "NULL")
+    val smartCategories: Int? = null,
+)
+
+/** Text read from photos, for searching. Rows of photos that went into the vault are deleted. */
+@Fts4(tokenizer = FtsOptions.TOKENIZER_UNICODE61)
+@Entity(tableName = "photo_text")
+data class PhotoTextEntity(
+    @PrimaryKey @ColumnInfo(name = "rowid") val photoId: Long,
+    val text: String,
 )
 
 @Entity(

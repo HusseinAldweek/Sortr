@@ -22,6 +22,9 @@ enum class ActionType {
     PURGE,
 }
 
+/** A decision from the log that still holds, with when it was made. */
+data class RecentDecision(val decision: Decision, val decidedAt: Long)
+
 /** A decision that has been written to the database and can be undone. */
 data class Decision(
     val actionId: Long,

@@ -1,0 +1,1067 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Arabic. Numbers in the text use Arabic-Indic digits; numbers filled in by the app follow the
+     phone's own digits. Plurals give all six Arabic forms. -->
+<resources>
+
+    <!-- Common -->
+    <string name="action_back">رجوع</string>
+    <string name="action_cancel">إلغاء</string>
+    <string name="action_done">تم</string>
+    <string name="action_settings">الإعدادات</string>
+
+    <!-- Swipe actions -->
+    <string name="action_keep">احتفاظ</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_private">خاص</string>
+    <string name="action_skip">تخطٍّ</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">رتّب معرض صورك بسحبة واحدة في كل مرة</string>
+    <string name="onboarding_swipe_title">اسحب للفرز</string>
+    <string name="onboarding_swipe_body">لليمين للاحتفاظ، ولليسار للحذف، وللأعلى للإخفاء في خزنتك الخاصة، وللأسفل للتخطي.</string>
+    <string name="onboarding_safe_title">لا يضيع شيء عن طريق الخطأ</string>
+    <string name="onboarding_safe_body">تنتظر الصور المحذوفة في سلة مهملات Sortr، ولا تغادر هاتفك إلا بعد أن تفرغ السلة وتؤكد ذلك.</string>
+    <string name="onboarding_private_title">لا شيء يغادر هاتفك</string>
+    <string name="onboarding_private_body">لا يملك Sortr إذنًا بالاتصال بالإنترنت. لا تُرفع صورك أبدًا، ولا توجد إعلانات ولا تتبّع.</string>
+    <string name="onboarding_permission_note">بعد ذلك سيطلب منك Android السماح لـ Sortr برؤية صورك.</string>
+    <string name="onboarding_get_started">لنبدأ</string>
+
+    <!-- Permission -->
+    <string name="permission_title">يحتاج Sortr إلى الوصول إلى صورك</string>
+    <string name="permission_body">لا يستطيع Sortr فرز إلا الصور التي يراها. تبقى صورك على هذا الهاتف، ولا يمكن لـ Sortr رفعها لأنه لا يملك اتصالًا بالإنترنت.</string>
+    <string name="permission_allow">السماح بالوصول</string>
+    <string name="permission_open_settings">فتح الإعدادات</string>
+    <string name="permission_settings_hint">إن لم يظهر طلب الإذن، فاضغط «فتح الإعدادات»، ثم «الأذونات»، ثم «الصور والفيديوهات»، واختر «السماح بالكل».</string>
+
+    <!-- Partial access (Android 14+) -->
+    <string name="partial_access_title">يرى Sortr بعض صورك فقط</string>
+    <string name="partial_access_select_more">اختيار المزيد</string>
+    <string name="partial_access_dialog_title">السماح بالوصول إلى كل الصور</string>
+    <string name="partial_access_dialog_body">في الشاشة التالية، اضغط «الأذونات»، ثم «الصور والفيديوهات»، واختر «السماح بالكل».</string>
+
+    <!-- Home -->
+    <string name="home_loading_gallery">جارٍ قراءة معرض الصور…</string>
+    <string name="home_no_photos_title">لم يُعثر على صور</string>
+    <string name="home_no_photos_body">ستظهر هنا الصور التي تلتقطها أو تحفظها.</string>
+    <string name="session_all_photos">كل الصور</string>
+    <plurals name="session_to_review">
+        <item quantity="zero">لا شيء للمراجعة</item>
+        <item quantity="one">عنصر واحد للمراجعة</item>
+        <item quantity="two">عنصران للمراجعة</item>
+        <item quantity="few">%1$s عناصر للمراجعة</item>
+        <item quantity="many">%1$s عنصرًا للمراجعة</item>
+        <item quantity="other">%1$s عنصر للمراجعة</item>
+    </plurals>
+    <string name="home_trash">المهملات</string>
+    <string name="home_trash_empty">فارغة</string>
+
+    <!-- Swipe session -->
+    <string name="swipe_progress">%1$s / %2$s</string>
+    <string name="swipe_undo">تراجع</string>
+    <string name="swipe_card_description">صورة من %1$s</string>
+    <string name="swipe_card_details">%1$s · %2$s</string>
+    <string name="swipe_open_full_screen">عرض بملء الشاشة</string>
+    <string name="swipe_image_error">تعذّر تحميل هذه الصورة</string>
+    <string name="swipe_error_save">تعذّر الحفظ. حاول مرة أخرى.</string>
+    <string name="swipe_done_title">انتهيت!</string>
+    <string name="swipe_done_body">لقد مررت على كل صور هذه الجلسة.</string>
+    <plurals name="swipe_done_kept">
+        <item quantity="zero">لم يُحتفظ بشيء</item>
+        <item quantity="one">احتُفظ بعنصر واحد</item>
+        <item quantity="two">احتُفظ بعنصرين</item>
+        <item quantity="few">احتُفظ بـ %1$s عناصر</item>
+        <item quantity="many">احتُفظ بـ %1$s عنصرًا</item>
+        <item quantity="other">احتُفظ بـ %1$s عنصر</item>
+    </plurals>
+    <plurals name="swipe_done_trashed">
+        <item quantity="zero">لم يُنقل شيء إلى المهملات</item>
+        <item quantity="one">نُقل عنصر واحد إلى المهملات</item>
+        <item quantity="two">نُقل عنصران إلى المهملات</item>
+        <item quantity="few">نُقلت %1$s عناصر إلى المهملات</item>
+        <item quantity="many">نُقل %1$s عنصرًا إلى المهملات</item>
+        <item quantity="other">نُقل %1$s عنصر إلى المهملات</item>
+    </plurals>
+    <plurals name="swipe_done_skipped">
+        <item quantity="zero">لم يُتخطَّ شيء</item>
+        <item quantity="one">تُخطي عنصر واحد</item>
+        <item quantity="two">تُخطي عنصران</item>
+        <item quantity="few">تُخطيت %1$s عناصر</item>
+        <item quantity="many">تُخطي %1$s عنصرًا</item>
+        <item quantity="other">تُخطي %1$s عنصر</item>
+    </plurals>
+    <string name="swipe_go_to_trash">الذهاب إلى المهملات</string>
+    <string name="swipe_back_home">العودة إلى الرئيسية</string>
+    <string name="swipe_empty_title">لا شيء للفرز</string>
+    <string name="swipe_empty_body">لقد راجعت كل الصور. لتمر عليها من جديد، استخدم «إعادة تعيين الصور المراجعة» في الإعدادات.</string>
+
+    <!-- Full screen viewer -->
+    <string name="viewer_close">إغلاق</string>
+
+    <!-- Trash -->
+    <string name="trash_title">المهملات</string>
+    <plurals name="trash_summary">
+        <item quantity="zero">لا صور · %2$s للتحرير</item>
+        <item quantity="one">صورة واحدة · %2$s للتحرير</item>
+        <item quantity="two">صورتان · %2$s للتحرير</item>
+        <item quantity="few">%1$s صور · %2$s للتحرير</item>
+        <item quantity="many">%1$s صورة · %2$s للتحرير</item>
+        <item quantity="other">%1$s صورة · %2$s للتحرير</item>
+    </plurals>
+    <string name="trash_select_hint">اضغط على الصور لتحديدها، أو اضغط مطولًا على صورة واسحب فوق غيرها.</string>
+    <plurals name="trash_selected">
+        <item quantity="zero">لم يُحدَّد شيء</item>
+        <item quantity="one">عنصر واحد محدد</item>
+        <item quantity="two">عنصران محددان</item>
+        <item quantity="few">%1$s عناصر محددة</item>
+        <item quantity="many">%1$s عنصرًا محددًا</item>
+        <item quantity="other">%1$s عنصر محدد</item>
+    </plurals>
+    <string name="trash_empty_title">المهملات فارغة</string>
+    <string name="trash_empty_body">تنتظر هنا الصور التي تسحبها لليسار حتى تفرغ المهملات.</string>
+    <string name="trash_restore_all">استعادة الكل</string>
+    <string name="trash_empty_action">إفراغ المهملات</string>
+    <string name="trash_freed_title">أُفرغت المهملات</string>
+    <string name="trash_freed">حرّرت %1$s</string>
+    <string name="trash_delete_cancelled">لم يُحذف شيء. صورك ما زالت في المهملات.</string>
+    <string name="trash_delete_failed">تعذّر حذف الصور. حاول مرة أخرى.</string>
+    <plurals name="trash_restored">
+        <item quantity="zero">لم تُستعد أي صورة</item>
+        <item quantity="one">استُعيدت صورة واحدة</item>
+        <item quantity="two">استُعيدت صورتان</item>
+        <item quantity="few">استُعيدت %1$s صور</item>
+        <item quantity="many">استُعيدت %1$s صورة</item>
+        <item quantity="other">استُعيدت %1$s صورة</item>
+    </plurals>
+    <string name="trash_photo_description">صورة من %1$s</string>
+
+    <!-- Settings -->
+    <string name="settings_title">الإعدادات</string>
+    <string name="settings_section_sorting">الفرز</string>
+    <string name="settings_reset_reviewed">إعادة تعيين الصور المراجعة</string>
+    <string name="settings_reset_reviewed_body">تعود الصور التي احتفظت بها أو تخطيتها إلى الجلسات. لا تتأثر المهملات.</string>
+    <string name="settings_reset_confirm_title">إعادة تعيين الصور المراجعة؟</string>
+    <string name="settings_reset_confirm">إعادة تعيين</string>
+    <string name="settings_reset_done">أُعيد تعيين الصور المراجعة</string>
+    <string name="settings_section_about">حول</string>
+    <string name="settings_privacy_title">الخصوصية</string>
+    <string name="settings_privacy_body">لا يملك Sortr إذن الاتصال بالإنترنت. كل شيء يحدث على هذا الهاتف.</string>
+    <string name="settings_version">الإصدار %1$s</string>
+
+    <string name="action_ok">حسنًا</string>
+    <string name="action_continue">متابعة</string>
+
+    <!-- Vault: home and general -->
+    <string name="vault_title">الخزنة الخاصة</string>
+    <string name="vault_lock_now">قفل</string>
+
+    <!-- Vault: first-time setup -->
+    <string name="vault_setup_title">خزنتك الخاصة</string>
+    <string name="vault_setup_body">تُشفَّر الصور التي تسحبها للأعلى وتُحفظ داخل Sortr، مخفية عن معرض الصور والتطبيقات الأخرى. لا يفتحها إلا رقمك السري أو بصمتك.</string>
+    <string name="vault_setup_warning_title">إلغاء تثبيت Sortr يحذف الخزنة</string>
+    <string name="vault_setup_warning_body">صور الخزنة موجودة داخل Sortr على هذا الهاتف فقط. إذا ألغيت تثبيت Sortr أو مسحت بياناته، فستضيع نهائيًا. للاحتفاظ بنسخة، صدّر نسخة احتياطية مشفرة من الإعدادات.</string>
+    <string name="vault_setup_continue">اختر رقمًا سريًا</string>
+    <string name="vault_pin_create_title">اختر رقمًا سريًا</string>
+    <string name="vault_pin_create_body">استخدم من ٤ إلى ١٢ رقمًا. ستحتاج إليه حين لا تتوفر البصمة.</string>
+    <string name="vault_pin_confirm_title">أدخل الرقم السري مرة أخرى</string>
+    <string name="vault_pin_mismatch">الرقمان غير متطابقين. اختر رقمًا سريًا من جديد.</string>
+    <string name="vault_pin_invalid">استخدم من ٤ إلى ١٢ رقمًا.</string>
+
+    <!-- Vault: unlocking -->
+    <string name="vault_unlock_title">أدخل رقمك السري</string>
+    <plurals name="vault_pin_wrong">
+        <item quantity="zero">رقم سري خاطئ.</item>
+        <item quantity="one">رقم سري خاطئ. بقيت محاولة واحدة قبل انتظار قصير.</item>
+        <item quantity="two">رقم سري خاطئ. بقيت محاولتان قبل انتظار قصير.</item>
+        <item quantity="few">رقم سري خاطئ. بقيت %1$s محاولات قبل انتظار قصير.</item>
+        <item quantity="many">رقم سري خاطئ. بقيت %1$s محاولة قبل انتظار قصير.</item>
+        <item quantity="other">رقم سري خاطئ. بقيت %1$s محاولة قبل انتظار قصير.</item>
+    </plurals>
+    <string name="vault_pin_wrong_plain">رقم سري خاطئ.</string>
+    <string name="vault_locked_out">محاولات خاطئة كثيرة. حاول مرة أخرى بعد %1$s.</string>
+    <plurals name="duration_seconds">
+        <item quantity="zero">%1$s ثانية</item>
+        <item quantity="one">ثانية واحدة</item>
+        <item quantity="two">ثانيتين</item>
+        <item quantity="few">%1$s ثوانٍ</item>
+        <item quantity="many">%1$s ثانية</item>
+        <item quantity="other">%1$s ثانية</item>
+    </plurals>
+    <plurals name="duration_minutes">
+        <item quantity="zero">%1$s دقيقة</item>
+        <item quantity="one">دقيقة واحدة</item>
+        <item quantity="two">دقيقتين</item>
+        <item quantity="few">%1$s دقائق</item>
+        <item quantity="many">%1$s دقيقة</item>
+        <item quantity="other">%1$s دقيقة</item>
+    </plurals>
+    <string name="vault_use_biometric">استخدام البصمة</string>
+    <string name="biometric_title">افتح خزنتك</string>
+    <string name="biometric_use_pin">استخدام الرقم السري</string>
+    <string name="pin_delete_digit">حذف رقم</string>
+    <plurals name="pin_digits_entered">
+        <item quantity="zero">لم يُدخل أي رقم</item>
+        <item quantity="one">أُدخل رقم واحد</item>
+        <item quantity="two">أُدخل رقمان</item>
+        <item quantity="few">أُدخلت %1$s أرقام</item>
+        <item quantity="many">أُدخل %1$s رقمًا</item>
+        <item quantity="other">أُدخل %1$s رقم</item>
+    </plurals>
+
+    <!-- Vault: contents -->
+    <string name="vault_empty_title">خزنتك فارغة</string>
+    <string name="vault_empty_body">اسحب صورة للأعلى أثناء جلسة الفرز لنقلها إلى هنا.</string>
+    <plurals name="vault_item_count">
+        <item quantity="zero">لا صور</item>
+        <item quantity="one">صورة واحدة</item>
+        <item quantity="two">صورتان</item>
+        <item quantity="few">%1$s صور</item>
+        <item quantity="many">%1$s صورة</item>
+        <item quantity="other">%1$s صورة</item>
+    </plurals>
+    <plurals name="vault_encrypting">
+        <item quantity="zero">جارٍ التشفير…</item>
+        <item quantity="one">جارٍ تشفير صورة واحدة…</item>
+        <item quantity="two">جارٍ تشفير صورتين…</item>
+        <item quantity="few">جارٍ تشفير %1$s صور…</item>
+        <item quantity="many">جارٍ تشفير %1$s صورة…</item>
+        <item quantity="other">جارٍ تشفير %1$s صورة…</item>
+    </plurals>
+    <plurals name="vault_pending_title">
+        <item quantity="zero">لا صور في خزنتك ما زالت في معرض الصور</item>
+        <item quantity="one">صورة واحدة في خزنتك ما زالت في معرض الصور</item>
+        <item quantity="two">صورتان في خزنتك ما زالتا في معرض الصور</item>
+        <item quantity="few">%1$s صور في خزنتك ما زالت في معرض الصور</item>
+        <item quantity="many">%1$s صورة في خزنتك ما زالت في معرض الصور</item>
+        <item quantity="other">%1$s صورة في خزنتك ما زالت في معرض الصور</item>
+    </plurals>
+    <string name="vault_pending_body">احذف الأصول لتبقى في الخزنة وحدها. سيطلب منك Android التأكيد.</string>
+    <string name="vault_pending_action">إزالة من معرض الصور</string>
+    <plurals name="vault_originals_removed">
+        <item quantity="zero">لم تُزل أي صورة من معرض الصور.</item>
+        <item quantity="one">أُزيلت صورة واحدة من معرض الصور. إنها في أمان داخل خزنتك.</item>
+        <item quantity="two">أُزيلت صورتان من معرض الصور. إنهما في أمان داخل خزنتك.</item>
+        <item quantity="few">أُزيلت %1$s صور من معرض الصور. إنها في أمان داخل خزنتك.</item>
+        <item quantity="many">أُزيلت %1$s صورة من معرض الصور. إنها في أمان داخل خزنتك.</item>
+        <item quantity="other">أُزيلت %1$s صورة من معرض الصور. إنها في أمان داخل خزنتك.</item>
+    </plurals>
+    <string name="vault_originals_kept">الأصول ما زالت في معرض الصور.</string>
+    <string name="vault_originals_failed">تعذّرت إزالة الأصول. حاول مرة أخرى.</string>
+    <string name="vault_backup_reminder_title">احفظ نسخة احتياطية من خزنتك</string>
+    <string name="vault_backup_reminder_body">إلغاء تثبيت Sortr يحذف صور الخزنة. النسخة الاحتياطية المشفرة تتيح لك استعادتها.</string>
+    <string name="vault_backup_now">نسخ احتياطي الآن</string>
+    <string name="vault_backup_later">ليس الآن</string>
+    <string name="vault_photo_description">صورة خاصة من %1$s</string>
+
+    <!-- Vault: viewer -->
+    <string name="vault_restore">استعادة إلى معرض الصور</string>
+    <string name="vault_restore_confirm_title">استعادة إلى معرض الصور؟</string>
+    <string name="vault_restore_confirm_body">تعود الصورة إلى الألبوم الذي جاءت منه (أو Pictures/Sortr)، حيث يراها معرض الصور والتطبيقات الأخرى، وتُزال من الخزنة.</string>
+    <string name="vault_restore_action">استعادة</string>
+    <string name="vault_restored">استُعيدت الصورة إلى معرض الصور</string>
+    <string name="vault_restore_failed">تعذّرت استعادة الصورة.</string>
+    <string name="vault_delete">حذف</string>
+    <string name="vault_delete_confirm_title">حذف نهائي؟</string>
+    <string name="vault_delete_confirm_body">هذه الصورة موجودة في خزنتك فقط. لا يمكن التراجع عن حذفها.</string>
+    <string name="vault_delete_action">حذف نهائيًا</string>
+    <string name="vault_deleted">حُذفت الصورة</string>
+    <string name="vault_action_failed">حدث خطأ ما. حاول مرة أخرى.</string>
+
+    <!-- Vault: in a swipe session -->
+    <string name="swipe_vault_setup_title">جهّز خزنتك الخاصة</string>
+    <string name="swipe_vault_setup_body">السحب للأعلى يخفي الصورة في خزنة مشفرة. اختر رقمًا سريًا أولًا، ثم عد لمتابعة الفرز.</string>
+    <string name="swipe_vault_setup_action">تجهيز الخزنة</string>
+    <plurals name="swipe_done_vaulted">
+        <item quantity="zero">لم يُنقل شيء إلى الخزنة</item>
+        <item quantity="one">نُقل عنصر واحد إلى الخزنة</item>
+        <item quantity="two">نُقل عنصران إلى الخزنة</item>
+        <item quantity="few">نُقلت %1$s عناصر إلى الخزنة</item>
+        <item quantity="many">نُقل %1$s عنصرًا إلى الخزنة</item>
+        <item quantity="other">نُقل %1$s عنصر إلى الخزنة</item>
+    </plurals>
+    <string name="swipe_vault_error">تعذّر نقل صورة إلى الخزنة. أُعيدت إلى صورك غير المفروزة.</string>
+    <string name="swipe_undo_vault_blocked">غادرت هذه الصورة معرض الصور بالفعل. يمكنك استعادتها من الخزنة.</string>
+
+    <!-- Settings: vault -->
+    <string name="settings_section_vault">الخزنة الخاصة</string>
+    <string name="settings_vault_set_up">تجهيز الخزنة</string>
+    <string name="settings_vault_set_up_body">أخفِ الصور خلف رقم سري أو بصمة.</string>
+    <string name="settings_change_pin">تغيير الرقم السري للخزنة</string>
+    <string name="settings_export_backup">تصدير نسخة احتياطية للخزنة</string>
+    <string name="settings_last_backup">آخر نسخة احتياطية: %1$s</string>
+    <string name="settings_never_backed_up">لا توجد نسخة احتياطية بعد</string>
+    <string name="settings_import_backup">استيراد نسخة احتياطية للخزنة</string>
+    <string name="settings_import_backup_body">أضف صورًا إلى الخزنة من ملف نسخة احتياطية لـ Sortr.</string>
+
+    <!-- Backup -->
+    <string name="backup_password_title">اختر كلمة مرور للنسخة الاحتياطية</string>
+    <string name="backup_password_body">ستحتاج إلى كلمة المرور هذه لفتح النسخة الاحتياطية. إن نسيتها فلن يستطيع أحد استعادة الصور، ولا أنت.</string>
+    <string name="backup_password_label">كلمة مرور النسخة الاحتياطية</string>
+    <string name="backup_password_confirm_label">أعد كتابة كلمة المرور</string>
+    <plurals name="backup_password_too_short">
+        <item quantity="zero">استخدم %1$s حرف على الأقل.</item>
+        <item quantity="one">استخدم حرفًا واحدًا على الأقل.</item>
+        <item quantity="two">استخدم حرفين على الأقل.</item>
+        <item quantity="few">استخدم %1$s أحرف على الأقل.</item>
+        <item quantity="many">استخدم %1$s حرفًا على الأقل.</item>
+        <item quantity="other">استخدم %1$s حرف على الأقل.</item>
+    </plurals>
+    <string name="backup_password_mismatch">كلمتا المرور غير متطابقتين.</string>
+    <string name="backup_password_enter_title">أدخل كلمة مرور النسخة الاحتياطية</string>
+    <string name="backup_show_password">إظهار كلمة المرور</string>
+    <string name="backup_hide_password">إخفاء كلمة المرور</string>
+    <string name="backup_preparing">جارٍ التحضير…</string>
+    <string name="backup_exporting">جارٍ تصدير %1$s من %2$s…</string>
+    <string name="backup_importing">جارٍ استيراد %1$s من %2$s…</string>
+    <string name="backup_export_title">تصدير النسخة الاحتياطية</string>
+    <string name="backup_import_title">استيراد النسخة الاحتياطية</string>
+    <plurals name="backup_export_done">
+        <item quantity="zero">حُفظت النسخة الاحتياطية بلا صور</item>
+        <item quantity="one">حُفظت النسخة الاحتياطية بصورة واحدة</item>
+        <item quantity="two">حُفظت النسخة الاحتياطية بصورتين</item>
+        <item quantity="few">حُفظت النسخة الاحتياطية بـ %1$s صور</item>
+        <item quantity="many">حُفظت النسخة الاحتياطية بـ %1$s صورة</item>
+        <item quantity="other">حُفظت النسخة الاحتياطية بـ %1$s صورة</item>
+    </plurals>
+    <string name="backup_export_failed">تعذّر حفظ النسخة الاحتياطية.</string>
+    <string name="backup_vault_empty">الخزنة فارغة، فلا شيء لنسخه احتياطيًا بعد.</string>
+    <plurals name="backup_import_done">
+        <item quantity="zero">لم تُستورد أي صورة</item>
+        <item quantity="one">استُوردت صورة واحدة</item>
+        <item quantity="two">استُوردت صورتان</item>
+        <item quantity="few">استُوردت %1$s صور</item>
+        <item quantity="many">استُوردت %1$s صورة</item>
+        <item quantity="other">استُوردت %1$s صورة</item>
+    </plurals>
+    <plurals name="backup_import_skipped">
+        <item quantity="zero">لا شيء كان موجودًا في الخزنة</item>
+        <item quantity="one">صورة واحدة كانت في الخزنة بالفعل</item>
+        <item quantity="two">صورتان كانتا في الخزنة بالفعل</item>
+        <item quantity="few">%1$s صور كانت في الخزنة بالفعل</item>
+        <item quantity="many">%1$s صورة كانت في الخزنة بالفعل</item>
+        <item quantity="other">%1$s صورة كانت في الخزنة بالفعل</item>
+    </plurals>
+    <string name="backup_import_summary">%1$s. %2$s.</string>
+    <string name="backup_wrong_password">كلمة المرور خاطئة، أو الملف تالف.</string>
+    <string name="backup_not_a_backup">هذا الملف ليس نسخة احتياطية لخزنة Sortr.</string>
+    <string name="backup_damaged">ملف النسخة الاحتياطية تالف. استُوردت الصور التي قُرئت قبل موضع التلف.</string>
+    <string name="backup_unsupported">أُنشئت هذه النسخة الاحتياطية بإصدار أحدث من Sortr.</string>
+    <string name="backup_import_failed">تعذّر استيراد النسخة الاحتياطية.</string>
+
+    <!-- Change PIN and PIN prompt -->
+    <string name="change_pin_title">تغيير الرقم السري للخزنة</string>
+    <string name="change_pin_current">الرقم السري الحالي</string>
+    <string name="change_pin_new">الرقم السري الجديد</string>
+    <string name="change_pin_confirm">أعد كتابة الرقم السري الجديد</string>
+    <string name="change_pin_done">تغيّر الرقم السري للخزنة</string>
+    <string name="auth_pin_title">أدخل الرقم السري للخزنة</string>
+
+    <string name="action_save">حفظ</string>
+    <string name="action_more">خيارات أخرى</string>
+    <string name="toolbar_more">المزيد</string>
+
+    <!-- People -->
+    <string name="people_title">الأشخاص</string>
+    <string name="person_unnamed">شخص بلا اسم</string>
+    <string name="person_unnamed_short">بلا اسم</string>
+    <string name="person_hidden_label">مخفي</string>
+    <plurals name="photo_count_short">
+        <item quantity="zero">لا صور</item>
+        <item quantity="one">صورة واحدة</item>
+        <item quantity="two">صورتان</item>
+        <item quantity="few">%1$s صور</item>
+        <item quantity="many">%1$s صورة</item>
+        <item quantity="other">%1$s صورة</item>
+    </plurals>
+    <plurals name="face_count">
+        <item quantity="zero">لا وجوه</item>
+        <item quantity="one">وجه واحد</item>
+        <item quantity="two">وجهان</item>
+        <item quantity="few">%1$s وجوه</item>
+        <item quantity="many">%1$s وجهًا</item>
+        <item quantity="other">%1$s وجه</item>
+    </plurals>
+    <string name="home_people_see_all">عرض الكل</string>
+    <string name="people_empty_scanning">سيظهر الأشخاص هنا مع فحص صورك.</string>
+    <string name="people_empty">لم يُعثر على أشخاص بعد.</string>
+    <string name="people_picker_empty">لا يوجد أشخاص آخرون بعد.</string>
+    <string name="people_show_hidden">إظهار الأشخاص المخفيين</string>
+    <string name="people_merge">دمج</string>
+    <string name="people_hide">إخفاء</string>
+    <string name="people_unhide">إظهار</string>
+    <plurals name="people_merge_title">
+        <item quantity="zero">دمج %1$s شخص؟</item>
+        <item quantity="one">دمج شخص واحد؟</item>
+        <item quantity="two">دمج شخصين؟</item>
+        <item quantity="few">دمج %1$s أشخاص؟</item>
+        <item quantity="many">دمج %1$s شخصًا؟</item>
+        <item quantity="other">دمج %1$s شخص؟</item>
+    </plurals>
+    <string name="people_merge_body">ستُجمع وجوههم في شخص واحد.</string>
+    <string name="people_merge_body_named">ستُجمع وجوههم في %1$s.</string>
+
+    <!-- One person -->
+    <string name="person_rename_title">سمِّ هذا الشخص</string>
+    <string name="person_name_label">الاسم</string>
+    <string name="person_add_name">إضافة اسم</string>
+    <string name="person_sort_photos">فرز هذه الصور</string>
+    <string name="person_faces_hint">اضغط على أي وجه ليس لهذا الشخص، ثم اختر «ليس هو». اضغط مطولًا واسحب لاختيار عدة وجوه.</string>
+    <string name="person_merge_with">دمج مع…</string>
+    <string name="person_merged">دُمج الأشخاص</string>
+    <plurals name="person_faces_removed">
+        <item quantity="zero">لم يُزل أي وجه من هذا الشخص</item>
+        <item quantity="one">أُزيل وجه واحد من هذا الشخص</item>
+        <item quantity="two">أُزيل وجهان من هذا الشخص</item>
+        <item quantity="few">أُزيلت %1$s وجوه من هذا الشخص</item>
+        <item quantity="many">أُزيل %1$s وجهًا من هذا الشخص</item>
+        <item quantity="other">أُزيل %1$s وجه من هذا الشخص</item>
+    </plurals>
+
+    <!-- Unsorted faces -->
+    <string name="unsorted_faces_title">وجوه غير مصنفة</string>
+    <string name="unsorted_faces_short">غير مصنفة</string>
+    <string name="unsorted_hint">وجوه لم يكن Sortr متأكدًا منها. حدّد وجوه الشخص نفسه لتجميعها.</string>
+    <string name="unsorted_empty">لا توجد وجوه غير مصنفة. ستظهر هنا الوجوه التي لا يكون Sortr متأكدًا منها.</string>
+    <string name="unsorted_sort_photos">فرز هذه الصور</string>
+    <string name="unsorted_add_to_person">إضافة إلى شخص</string>
+    <string name="unsorted_new_person">شخص جديد</string>
+    <plurals name="unsorted_grouped">
+        <item quantity="zero">لم يُجمَّع أي وجه</item>
+        <item quantity="one">جُمِّع وجه واحد</item>
+        <item quantity="two">جُمِّع وجهان</item>
+        <item quantity="few">جُمِّعت %1$s وجوه</item>
+        <item quantity="many">جُمِّع %1$s وجهًا</item>
+        <item quantity="other">جُمِّع %1$s وجه</item>
+    </plurals>
+
+    <!-- Face scanning -->
+    <string name="face_scan_progress">جارٍ العثور على الأشخاص… %1$s من %2$s</string>
+    <string name="face_scan_waiting_charger">سيستمر فحص الوجوه أثناء الشحن.</string>
+    <string name="face_model_missing">تجميع الوجوه متوقف لأن ملف نموذج الوجوه غير موجود. يشرح ملف README أين تضع mobilefacenet.tflite.</string>
+    <string name="face_model_unsupported">تجميع الوجوه متوقف لأن ملف نموذج الوجوه غير صالح للاستخدام. يشرح ملف README الصيغة التي يتوقعها Sortr.</string>
+    <string name="notification_channel_scan">فحص الوجوه</string>
+    <string name="notification_channel_scan_body">يعرض التقدم أثناء عثور Sortr على الأشخاص في صورك.</string>
+    <string name="notification_scan_title">جارٍ تجهيز مكتبتك</string>
+    <string name="notification_scan_progress">جارٍ العثور على الأشخاص: %1$s من %2$s صورة</string>
+    <string name="notification_analysis_progress">جارٍ البحث عن الصور المكررة والضبابية: %1$s من %2$s صورة</string>
+
+    <!-- Settings: people -->
+    <string name="settings_section_people">الأشخاص</string>
+    <string name="settings_faces_off">تجميع الوجوه متوقف</string>
+    <string name="settings_face_strictness">صرامة التجميع</string>
+    <string name="settings_face_strictness_body">الأكثر صرامة يفصل بين المتشابهين. والأقل صرامة يجمع وجوهًا أكثر، مع أخطاء أكثر.</string>
+    <string name="settings_face_strictness_looser">أقل صرامة</string>
+    <string name="settings_face_strictness_stricter">أكثر صرامة</string>
+    <string name="settings_people_regrouped">أُعيد تجميع الأشخاص</string>
+    <string name="settings_scan_charging">الفحص أثناء الشحن فقط</string>
+    <string name="settings_scan_charging_body">العثور على الوجوه يستهلك البطارية. فعّل هذا لانتظار الشاحن.</string>
+    <string name="settings_rescan">إعادة فحص كل الوجوه</string>
+    <string name="settings_rescan_body">ابدأ تجميع الوجوه من جديد.</string>
+    <string name="settings_rescan_confirm_title">إعادة فحص كل الوجوه؟</string>
+    <string name="settings_rescan_confirm_body">ستُنسى كل الأسماء وعمليات الدمج والتصحيحات، وستُفحص كل صورة من جديد.</string>
+    <string name="settings_rescan_confirm">إعادة الفحص</string>
+    <string name="settings_rescan_started">جارٍ فحص كل الصور من جديد</string>
+
+    <!-- Common -->
+    <string name="action_undo">تراجع</string>
+    <string name="action_select">تحديد</string>
+    <string name="action_select_all">تحديد الكل</string>
+    <string name="action_rename">إعادة تسمية</string>
+    <string name="action_create">إنشاء</string>
+    <string name="action_start">ابدأ</string>
+    <plurals name="count_items">
+        <item quantity="zero">لا عناصر</item>
+        <item quantity="one">عنصر واحد</item>
+        <item quantity="two">عنصران</item>
+        <item quantity="few">%1$s عناصر</item>
+        <item quantity="many">%1$s عنصرًا</item>
+        <item quantity="other">%1$s عنصر</item>
+    </plurals>
+    <plurals name="count_selected">
+        <item quantity="zero">لم يُحدَّد شيء</item>
+        <item quantity="one">عنصر واحد محدد</item>
+        <item quantity="two">عنصران محددان</item>
+        <item quantity="few">%1$s عناصر محددة</item>
+        <item quantity="many">%1$s عنصرًا محددًا</item>
+        <item quantity="other">%1$s عنصر محدد</item>
+    </plurals>
+    <string name="count_with_review">%1$s · %2$s</string>
+
+    <!-- Home -->
+    <plurals name="home_hero_caption">
+        <item quantity="zero">صور وفيديوهات بانتظار الفرز</item>
+        <item quantity="one">صورة أو فيديو بانتظار الفرز</item>
+        <item quantity="two">صورتان أو فيديوهان بانتظار الفرز</item>
+        <item quantity="few">صور وفيديوهات بانتظار الفرز</item>
+        <item quantity="many">صورة وفيديو بانتظار الفرز</item>
+        <item quantity="other">صورة وفيديو بانتظار الفرز</item>
+    </plurals>
+    <string name="home_hero_start">ابدأ الفرز</string>
+    <string name="home_hero_done_title">أنجزت كل شيء</string>
+    <string name="home_hero_done_body">فُرز كل شيء. ستظهر هنا الصور الجديدة.</string>
+    <string name="home_section_browse">تصفّح</string>
+    <string name="home_section_sources">من التطبيقات</string>
+    <string name="home_section_library">المكتبة</string>
+    <string name="tile_by_date">حسب التاريخ</string>
+    <string name="tile_albums">الألبومات</string>
+    <string name="tile_similar">متشابهة</string>
+    <string name="tile_blurry">ضبابية</string>
+    <string name="tile_videos">الفيديوهات</string>
+    <string name="tile_large">ملفات كبيرة</string>
+    <string name="home_custom_session">جلسة مخصصة</string>
+    <string name="home_custom_session_body">اختر النوع أو التاريخ أو الألبوم أو الحجم</string>
+    <string name="home_stats">الإحصاءات</string>
+    <string name="home_analysis_progress">جارٍ البحث عن المكرر والضبابي… %1$s من %2$s</string>
+    <string name="video_access_title">افرز فيديوهاتك أيضًا</string>
+
+    <!-- Sources -->
+    <string name="source_camera">الكاميرا</string>
+    <string name="source_screenshots">لقطات الشاشة</string>
+    <string name="source_screen_recordings">تسجيلات الشاشة</string>
+    <string name="source_whatsapp">واتساب</string>
+    <string name="source_snapchat">سناب شات</string>
+    <string name="source_telegram">تيليجرام</string>
+    <string name="source_instagram">إنستغرام</string>
+    <string name="source_messenger">ماسنجر وفيسبوك</string>
+    <string name="source_tiktok">تيك توك</string>
+    <string name="source_downloads">التنزيلات</string>
+    <string name="source_whatsapp_photos">صور واتساب</string>
+    <string name="source_whatsapp_videos">فيديوهات واتساب</string>
+    <string name="source_whatsapp_sent">المرسلة في واتساب</string>
+    <string name="source_whatsapp_private">محادثات واتساب الخاصة</string>
+
+    <!-- Session titles -->
+    <string name="session_videos">الفيديوهات</string>
+    <string name="session_blurry">صور ضبابية</string>
+    <string name="session_duplicates">صور متشابهة</string>
+    <string name="session_largest">ملفات كبيرة</string>
+    <string name="session_custom">جلسة مخصصة</string>
+    <string name="swipe_video_private_blocked">لا يمكن وضع الفيديوهات في الخزنة بعد.</string>
+    <string name="swipe_video_description">فيديو من %1$s، مدته %2$s</string>
+    <string name="viewer_video_error">لا يمكن تشغيل هذا الفيديو.</string>
+
+    <!-- By date -->
+    <string name="dates_title">حسب التاريخ</string>
+    <string name="dates_empty_title">لا صور بعد</string>
+    <string name="dates_empty_body">ستُجمع الصور هنا حسب السنة والشهر.</string>
+
+    <!-- Albums -->
+    <string name="albums_title">الألبومات</string>
+    <string name="albums_sort">ترتيب الألبومات</string>
+    <string name="albums_sort_most">الأكثر عناصر</string>
+    <string name="albums_sort_largest">الأكبر حجمًا</string>
+    <string name="albums_sort_name">الاسم</string>
+    <string name="albums_sort_recent">الأحدث</string>
+    <string name="albums_sort_year">حسب السنة</string>
+    <string name="albums_merge">دمج</string>
+    <string name="albums_select_hint">اختر ألبومين أو أكثر لدمجها.</string>
+    <string name="albums_empty_title">لا ألبومات بعد</string>
+    <string name="albums_empty_body">تظهر هنا المجلدات التي فيها صور أو فيديوهات.</string>
+    <string name="merge_title">دمج في</string>
+    <string name="merge_body">ينتقل كل شيء إلى الألبوم الذي تختاره. الصور نفسها لا تتغير.</string>
+    <string name="merge_new_album">ألبوم جديد…</string>
+    <string name="album_cant_receive">لا يسمح Android بنقل عناصر إلى هنا</string>
+    <string name="album_new_title">ألبوم جديد</string>
+    <string name="album_name_label">اسم الألبوم</string>
+    <string name="album_sort_this">فرز هذا الألبوم</string>
+    <string name="album_rename_title">إعادة تسمية الألبوم</string>
+    <string name="album_rename_body">ينتقل كل ما فيه إلى مجلد بالاسم الجديد.</string>
+    <string name="album_move_to">نقل إلى…</string>
+    <string name="album_move_title">نقل إلى ألبوم</string>
+    <string name="album_empty_title">هذا الألبوم فارغ</string>
+    <string name="album_empty_body">العناصر التي تفرزها أو تنقلها إلى مكان آخر تغادر هذا الألبوم.</string>
+    <string name="album_photo_description">عنصر من %1$s</string>
+    <plurals name="moved_result">
+        <item quantity="zero">لم يُنقل شيء إلى %2$s</item>
+        <item quantity="one">نُقل عنصر واحد إلى %2$s</item>
+        <item quantity="two">نُقل عنصران إلى %2$s</item>
+        <item quantity="few">نُقلت %1$s عناصر إلى %2$s</item>
+        <item quantity="many">نُقل %1$s عنصرًا إلى %2$s</item>
+        <item quantity="other">نُقل %1$s عنصر إلى %2$s</item>
+    </plurals>
+    <plurals name="move_failed">
+        <item quantity="zero">لا عناصر تعذّر نقلها</item>
+        <item quantity="one">تعذّر نقل عنصر واحد</item>
+        <item quantity="two">تعذّر نقل عنصرين</item>
+        <item quantity="few">تعذّر نقل %1$s عناصر</item>
+        <item quantity="many">تعذّر نقل %1$s عنصرًا</item>
+        <item quantity="other">تعذّر نقل %1$s عنصر</item>
+    </plurals>
+    <string name="move_cancelled">لم يُنقل شيء</string>
+    <plurals name="moved_result_albums">
+        <item quantity="zero">لم يُنقل شيء إلى %2$s ألبوم</item>
+        <item quantity="one">نُقل عنصر واحد إلى %2$s ألبوم</item>
+        <item quantity="two">نُقل عنصران إلى %2$s ألبوم</item>
+        <item quantity="few">نُقلت %1$s عناصر إلى %2$s ألبوم</item>
+        <item quantity="many">نُقل %1$s عنصرًا إلى %2$s ألبوم</item>
+        <item quantity="other">نُقل %1$s عنصر إلى %2$s ألبوم</item>
+    </plurals>
+
+    <!-- Similar photos -->
+    <string name="dup_title">صور متشابهة</string>
+    <plurals name="dup_summary">
+        <item quantity="zero">لا مجموعات · يمكن تحرير %2$s</item>
+        <item quantity="one">مجموعة واحدة · يمكن تحرير %2$s</item>
+        <item quantity="two">مجموعتان · يمكن تحرير %2$s</item>
+        <item quantity="few">%1$s مجموعات · يمكن تحرير %2$s</item>
+        <item quantity="many">%1$s مجموعة · يمكن تحرير %2$s</item>
+        <item quantity="other">%1$s مجموعة · يمكن تحرير %2$s</item>
+    </plurals>
+    <string name="dup_hint">النسخة الأفضل مميزة. اضغط على صورة أخرى للاحتفاظ بها بدلًا منها.</string>
+    <string name="dup_best">الأفضل</string>
+    <plurals name="dup_keep_best">
+        <item quantity="zero">الاحتفاظ بالأفضل</item>
+        <item quantity="one">احتفظ بالأفضل واحذف واحدة</item>
+        <item quantity="two">احتفظ بالأفضل واحذف اثنتين</item>
+        <item quantity="few">احتفظ بالأفضل واحذف %1$s</item>
+        <item quantity="many">احتفظ بالأفضل واحذف %1$s</item>
+        <item quantity="other">احتفظ بالأفضل واحذف %1$s</item>
+    </plurals>
+    <string name="dup_not_duplicates">الاحتفاظ بالكل</string>
+    <string name="dup_clean_all">تنظيف كل المجموعات</string>
+    <string name="dup_review_one_by_one">مراجعة واحدة تلو الأخرى</string>
+    <string name="dup_clean_all_confirm_title">تنظيف كل المجموعات؟</string>
+    <plurals name="dup_clean_all_confirm_body">
+        <item quantity="zero">تبقى النسخة الأفضل في كل مجموعة.</item>
+        <item quantity="one">تبقى النسخة الأفضل في كل مجموعة. تنتقل صورة واحدة أخرى إلى المهملات، ويمكنك استعادتها من هناك.</item>
+        <item quantity="two">تبقى النسخة الأفضل في كل مجموعة. تنتقل صورتان أخريان إلى المهملات، ويمكنك استعادتهما من هناك.</item>
+        <item quantity="few">تبقى النسخة الأفضل في كل مجموعة. تنتقل %1$s صور أخرى إلى المهملات، ويمكنك استعادتها من هناك.</item>
+        <item quantity="many">تبقى النسخة الأفضل في كل مجموعة. تنتقل %1$s صورة أخرى إلى المهملات، ويمكنك استعادتها من هناك.</item>
+        <item quantity="other">تبقى النسخة الأفضل في كل مجموعة. تنتقل %1$s صورة أخرى إلى المهملات، ويمكنك استعادتها من هناك.</item>
+    </plurals>
+    <plurals name="dup_trashed">
+        <item quantity="zero">لم تُنقل أي صورة إلى المهملات</item>
+        <item quantity="one">نُقلت صورة واحدة إلى المهملات</item>
+        <item quantity="two">نُقلت صورتان إلى المهملات</item>
+        <item quantity="few">نُقلت %1$s صور إلى المهملات</item>
+        <item quantity="many">نُقلت %1$s صورة إلى المهملات</item>
+        <item quantity="other">نُقلت %1$s صورة إلى المهملات</item>
+    </plurals>
+    <string name="dup_empty_title">لا صور متشابهة</string>
+    <string name="dup_empty_body">لا شيء في مكتبتك يبدو مكررًا.</string>
+    <string name="dup_still_checking">ما زال الفحص جاريًا (%1$s من %2$s)، فقد يظهر المزيد.</string>
+    <string name="dup_photo_description">صورة من %1$s، %2$s</string>
+    <string name="dup_photo_best_description">النسخة الأفضل. صورة من %1$s، %2$s</string>
+
+    <!-- Stats -->
+    <string name="stats_title">الإحصاءات</string>
+    <string name="stats_sorted_percent">فُرز %1$s%%</string>
+    <string name="stats_reviewed">مفروزة</string>
+    <string name="stats_freed">المساحة المحررة</string>
+    <string name="stats_section_decisions">قراراتك</string>
+    <string name="stats_kept">احتُفظ بها</string>
+    <string name="stats_trashed">نُقلت إلى المهملات</string>
+    <string name="stats_deleted">حُذفت من الهاتف</string>
+    <string name="stats_vaulted">نُقلت إلى الخزنة</string>
+    <string name="stats_skipped">تُخطيت</string>
+    <string name="stats_section_library">مكتبتك</string>
+    <string name="stats_photos">الصور</string>
+    <string name="stats_videos">الفيديوهات</string>
+    <string name="stats_albums">الألبومات</string>
+    <string name="stats_left">بانتظار الفرز</string>
+    <string name="stats_in_trash">في المهملات</string>
+    <string name="stats_in_vault">في الخزنة</string>
+    <string name="stats_section_years">حسب السنة</string>
+
+    <!-- Custom session -->
+    <string name="custom_title">جلسة مخصصة</string>
+    <string name="custom_type">النوع</string>
+    <string name="custom_type_all">الكل</string>
+    <string name="custom_type_photos">الصور</string>
+    <string name="custom_type_videos">الفيديوهات</string>
+    <string name="custom_date">التاريخ</string>
+    <string name="custom_any_year">أي سنة</string>
+    <string name="custom_any_month">أي شهر</string>
+    <string name="custom_albums">الألبومات</string>
+    <string name="custom_any_album">أي ألبوم</string>
+    <string name="custom_show_all_albums">عرض كل الألبومات</string>
+    <string name="custom_size">الحجم</string>
+    <string name="custom_size_any">أي حجم</string>
+    <string name="custom_size_over">أكبر من %1$s</string>
+    <plurals name="custom_start">
+        <item quantity="zero">ابدأ · لا عناصر</item>
+        <item quantity="one">ابدأ · عنصر واحد</item>
+        <item quantity="two">ابدأ · عنصران</item>
+        <item quantity="few">ابدأ · %1$s عناصر</item>
+        <item quantity="many">ابدأ · %1$s عنصرًا</item>
+        <item quantity="other">ابدأ · %1$s عنصر</item>
+    </plurals>
+    <string name="custom_nothing">لا شيء مطابق</string>
+
+    <!-- WhatsApp hidden media -->
+    <string name="whatsapp_section">واتساب</string>
+    <string name="whatsapp_name">واتساب</string>
+    <string name="whatsapp_business_name">واتساب للأعمال</string>
+    <string name="whatsapp_include_title">تضمين وسائط %1$s المخفية</string>
+    <string name="whatsapp_include_body">الصور والفيديوهات التي أرسلتها، والمحادثات التي أوقفت فيها ظهور الوسائط. سيطلب Android السماح بمجلد وسائط التطبيق.</string>
+    <string name="whatsapp_included">مضمّنة</string>
+    <string name="whatsapp_section_footer">الصور والفيديوهات المستلمة تظهر في Sortr بالفعل. أما المخفية فتُقرأ من مجلد واتساب. لا يستطيع Android تأكيد حذفها، لذا يسألك Sortr بنفسه أولًا.</string>
+    <string name="whatsapp_remove_title">إيقاف تضمين وسائط %1$s المخفية؟</string>
+    <string name="whatsapp_remove_body">ستغادر صوره وفيديوهاته المرسلة والخاصة Sortr. لن يُحذف شيء من هاتفك.</string>
+    <string name="whatsapp_remove_action">إيقاف التضمين</string>
+    <string name="whatsapp_added">ستظهر وسائط واتساب المخفية بعد لحظات.</string>
+    <string name="whatsapp_wrong_folder">هذا ليس مجلد واتساب. اضغط «استخدام هذا المجلد» على المجلد الذي يفتحه المنتقي، ثم «سماح».</string>
+    <string name="whatsapp_prompt_title">افرز كل وسائط واتساب</string>
+    <string name="whatsapp_prompt_body">الصور والفيديوهات التي أرسلتها، والمحادثات التي أوقفت فيها ظهور الوسائط، مخفية عن معرض الصور. اسمح بمجلد واتساب لتضمينها.</string>
+    <string name="whatsapp_prompt_action">اختيار المجلد</string>
+    <string name="whatsapp_prompt_hint">في الشاشة التالية، اضغط «استخدام هذا المجلد» ثم «سماح».</string>
+    <string name="action_not_now">ليس الآن</string>
+    <string name="action_share">مشاركة</string>
+    <string name="vault_title_short">الخزنة</string>
+    <string name="vault_tile_locked">مقفلة</string>
+    <string name="vault_tile_set_up">غير مجهزة</string>
+    <string name="trash_restore">استعادة</string>
+    <string name="action_deselect">إلغاء التحديد</string>
+    <string name="album_organize_by_year">تنظيم حسب السنة</string>
+    <string name="album_organize_title">تنظيم حسب السنة؟</string>
+    <string name="album_organize_body">ينتقل كل شيء إلى %1$s ألبوم، ألبوم لكل سنة، من «%2$s» إلى «%3$s». سيطلب منك Android السماح بذلك.</string>
+    <string name="album_organize_action">تنظيم</string>
+    <string name="person_not_this_person_short">ليس هو</string>
+    <string name="person_move_all">نقل كل الصور إلى ألبوم</string>
+    <string name="unsorted_try_again">إعادة المحاولة</string>
+    <plurals name="unsorted_regrouped">
+        <item quantity="zero">أُعيد التجميع. لم يبقَ أي وجه غير مصنف.</item>
+        <item quantity="one">أُعيد التجميع. بقي وجه واحد غير مصنف.</item>
+        <item quantity="two">أُعيد التجميع. بقي وجهان غير مصنفين.</item>
+        <item quantity="few">أُعيد التجميع. بقيت %1$s وجوه غير مصنفة.</item>
+        <item quantity="many">أُعيد التجميع. بقي %1$s وجهًا غير مصنف.</item>
+        <item quantity="other">أُعيد التجميع. بقي %1$s وجه غير مصنف.</item>
+    </plurals>
+    <string name="action_view">عرض</string>
+    <string name="share_title">مشاركة مع</string>
+    <plurals name="hidden_delete_title">
+        <item quantity="zero">حذف عناصر واتساب المخفية؟</item>
+        <item quantity="one">حذف عنصر واتساب مخفي واحد؟</item>
+        <item quantity="two">حذف عنصرين مخفيين من واتساب؟</item>
+        <item quantity="few">حذف %1$s عناصر مخفية من واتساب؟</item>
+        <item quantity="many">حذف %1$s عنصرًا مخفيًا من واتساب؟</item>
+        <item quantity="other">حذف %1$s عنصر مخفي من واتساب؟</item>
+    </plurals>
+    <string name="hidden_delete_body">هذه العناصر مخفية عن معرض الصور، فلا يستطيع Android أن يسألك بنفسه ويسألك Sortr بدلًا منه. ستُحذف من هاتفك نهائيًا.</string>
+    <plurals name="hidden_remove_originals_title">
+        <item quantity="zero">إزالة أصول واتساب المخفية؟</item>
+        <item quantity="one">إزالة أصل واتساب مخفي واحد؟</item>
+        <item quantity="two">إزالة أصلين مخفيين من واتساب؟</item>
+        <item quantity="few">إزالة %1$s أصول مخفية من واتساب؟</item>
+        <item quantity="many">إزالة %1$s أصلًا مخفيًا من واتساب؟</item>
+        <item quantity="other">إزالة %1$s أصل مخفي من واتساب؟</item>
+    </plurals>
+    <string name="hidden_remove_originals_body">تبقى النسخ في أمان داخل الخزنة. الأصول مخفية عن معرض الصور، فلا يستطيع Android أن يسألك بنفسه ويسألك Sortr بدلًا منه.</string>
+    <string name="hidden_moved_originals_body">النسخ الآن في الألبوم. الأصول في مجلد واتساب المخفي، فلا يستطيع Android أن يسألك بنفسه ويسألك Sortr بدلًا منه. إن ألغيت، تُزال النسخ مرة أخرى.</string>
+    <string name="hidden_delete_action">حذف</string>
+    <string name="hidden_needs_folder_again">تعذّر حذف بعض عناصر واتساب المخفية. في الإعدادات، أوقف تضمين وسائط واتساب المخفية ثم ضمّنها من جديد للسماح بالحذف.</string>
+    <plurals name="whatsapp_hub_caption">
+        <item quantity="zero">صور وفيديوهات واتساب بانتظار الفرز</item>
+        <item quantity="one">صورة أو فيديو من واتساب بانتظار الفرز</item>
+        <item quantity="two">صورتان أو فيديوهان من واتساب بانتظار الفرز</item>
+        <item quantity="few">صور وفيديوهات من واتساب بانتظار الفرز</item>
+        <item quantity="many">صورة وفيديو من واتساب بانتظار الفرز</item>
+        <item quantity="other">صورة وفيديو من واتساب بانتظار الفرز</item>
+    </plurals>
+    <string name="whatsapp_hub_of_total">من أصل %1$s · %2$s</string>
+    <string name="whatsapp_hub_folders">المجلدات</string>
+    <string name="whatsapp_hub_empty_title">لا وسائط من واتساب بعد</string>
+    <string name="whatsapp_hub_empty_body">ستظهر هنا الصور والفيديوهات القادمة من واتساب.</string>
+    <string name="whatsapp_tile_sent">المرسلة</string>
+    <string name="whatsapp_tile_private">المحادثات الخاصة</string>
+
+    <!-- Screenshots page -->
+    <string name="screenshots_title">لقطات الشاشة</string>
+    <plurals name="screenshots_caption">
+        <item quantity="zero">لقطات شاشة بانتظار الفرز</item>
+        <item quantity="one">لقطة شاشة بانتظار الفرز</item>
+        <item quantity="two">لقطتا شاشة بانتظار الفرز</item>
+        <item quantity="few">لقطات شاشة بانتظار الفرز</item>
+        <item quantity="many">لقطة شاشة بانتظار الفرز</item>
+        <item quantity="other">لقطة شاشة بانتظار الفرز</item>
+    </plurals>
+    <string name="screenshots_empty_title">لا لقطات شاشة</string>
+    <string name="screenshots_empty_body">ستظهر هنا لقطات الشاشة التي تلتقطها.</string>
+    <string name="screenshots_tile_all">كل اللقطات</string>
+    <string name="screenshots_tile_old">أقدم من %1$s يومًا</string>
+    <string name="screenshots_section_tidy">ترتيب</string>
+    <string name="screenshots_tidy_title">ضعها كلها في «%1$s»</string>
+    <plurals name="screenshots_tidy_body">
+        <item quantity="zero">لا لقطات في مجلدات أخرى</item>
+        <item quantity="one">لقطة شاشة واحدة في مجلد آخر</item>
+        <item quantity="two">لقطتا شاشة في مجلدات أخرى</item>
+        <item quantity="few">%1$s لقطات شاشة في مجلدات أخرى</item>
+        <item quantity="many">%1$s لقطة شاشة في مجلدات أخرى</item>
+        <item quantity="other">%1$s لقطة شاشة في مجلدات أخرى</item>
+    </plurals>
+    <string name="screenshots_tidy_done_title">كلها في ألبوم واحد</string>
+    <string name="screenshots_tidy_done_body">كل لقطات الشاشة في «%1$s».</string>
+    <plurals name="screenshots_tidy_confirm_title">
+        <item quantity="zero">نقل لقطات الشاشة؟</item>
+        <item quantity="one">نقل لقطة شاشة واحدة؟</item>
+        <item quantity="two">نقل لقطتي شاشة؟</item>
+        <item quantity="few">نقل %1$s لقطات شاشة؟</item>
+        <item quantity="many">نقل %1$s لقطة شاشة؟</item>
+        <item quantity="other">نقل %1$s لقطة شاشة؟</item>
+    </plurals>
+    <string name="screenshots_tidy_confirm_body">ستنتقل إلى «%1$s» لتكون كل لقطات شاشتك في ألبوم واحد. سيطلب منك Android السماح بذلك.</string>
+    <string name="screenshots_tidy_confirm_action">نقل</string>
+    <string name="session_screenshots">لقطات الشاشة</string>
+    <string name="session_old_screenshots">لقطات شاشة قديمة</string>
+
+    <!-- On this day and the daily goal -->
+    <string name="session_on_this_day">في مثل هذا اليوم</string>
+    <string name="on_this_day_title">في مثل هذا اليوم</string>
+    <plurals name="on_this_day_body">
+        <item quantity="zero">لا صور من هذا التاريخ في السنوات الماضية</item>
+        <item quantity="one">صورة واحدة التُقطت في هذا التاريخ في سنوات سابقة</item>
+        <item quantity="two">صورتان التُقطتا في هذا التاريخ في سنوات سابقة</item>
+        <item quantity="few">%1$s صور التُقطت في هذا التاريخ في سنوات سابقة</item>
+        <item quantity="many">%1$s صورة التُقطت في هذا التاريخ في سنوات سابقة</item>
+        <item quantity="other">%1$s صورة التُقطت في هذا التاريخ في سنوات سابقة</item>
+    </plurals>
+    <string name="goal_title">الهدف اليومي</string>
+    <string name="goal_progress">فُرز %1$s من %2$s اليوم</string>
+    <string name="goal_reached">بلغت هدفك. أحسنت!</string>
+    <plurals name="goal_streak">
+        <item quantity="zero">لا أيام متتالية بعد</item>
+        <item quantity="one">يوم واحد على التوالي</item>
+        <item quantity="two">يومان على التوالي</item>
+        <item quantity="few">%1$s أيام على التوالي</item>
+        <item quantity="many">%1$s يومًا على التوالي</item>
+        <item quantity="other">%1$s يوم على التوالي</item>
+    </plurals>
+    <string name="goal_streak_none">ابلغه اليوم لتبدأ سلسلة أيام</string>
+    <string name="settings_section_goal">الهدف اليومي</string>
+    <string name="settings_goal_footer">بضع سحبات كل يوم تصنع فرقًا. يُحتسب الاحتفاظ والحذف والخاص، ولا يُحتسب التخطي.</string>
+    <string name="settings_goal_off">متوقف</string>
+    <string name="settings_goal_value">%1$s يوميًا</string>
+    <string name="settings_goal_dialog_title">كم صورة تفرز يوميًا؟</string>
+    <string name="settings_reminder">تذكير</string>
+    <string name="settings_reminder_body">تنبيه لطيف إن لم تبلغ هدفك بعد</string>
+    <string name="settings_reminder_time">الوقت</string>
+    <string name="settings_reminder_time_title">ذكّرني في</string>
+    <string name="settings_reminder_needs_permission">لتصلك التذكيرات، اسمح بإشعارات Sortr في إعدادات Android.</string>
+    <string name="notification_channel_goal">الهدف اليومي</string>
+    <string name="notification_channel_goal_body">تذكير حين لم يُبلغ هدف اليوم بعد</string>
+    <string name="notification_goal_title">وقت لفرز سريع؟</string>
+    <plurals name="notification_goal_streak_title">
+        <item quantity="zero">حافظ على سلسلة أيامك</item>
+        <item quantity="one">حافظ على سلسلة يومك</item>
+        <item quantity="two">حافظ على سلسلة يومين متتاليين</item>
+        <item quantity="few">حافظ على سلسلة %1$s أيام متتالية</item>
+        <item quantity="many">حافظ على سلسلة %1$s يومًا متتاليًا</item>
+        <item quantity="other">حافظ على سلسلة %1$s يوم متتالٍ</item>
+    </plurals>
+
+    <!-- Home screen widget -->
+    <string name="widget_name">بانتظار الفرز</string>
+    <string name="widget_description">اعرف كم بقي للفرز وابدأ بضغطة واحدة.</string>
+    <string name="widget_left">بانتظار الفرز</string>
+    <string name="widget_done">فُرز كل شيء</string>
+    <string name="widget_goal">%1$s من %2$s اليوم</string>
+
+    <!-- Exact duplicates -->
+    <string name="tile_duplicates">مكررة</string>
+    <string name="session_exact_duplicates">ملفات مكررة</string>
+    <string name="exact_title">ملفات مكررة</string>
+    <plurals name="exact_summary">
+        <item quantity="zero">لا مجموعات · يمكن تحرير %2$s</item>
+        <item quantity="one">مجموعة واحدة من الملفات المتطابقة · يمكن تحرير %2$s</item>
+        <item quantity="two">مجموعتان من الملفات المتطابقة · يمكن تحرير %2$s</item>
+        <item quantity="few">%1$s مجموعات من الملفات المتطابقة · يمكن تحرير %2$s</item>
+        <item quantity="many">%1$s مجموعة من الملفات المتطابقة · يمكن تحرير %2$s</item>
+        <item quantity="other">%1$s مجموعة من الملفات المتطابقة · يمكن تحرير %2$s</item>
+    </plurals>
+    <string name="exact_hint">هذه نسخ مطابقة تمامًا للصورة أو الفيديو نفسه. النسخة التي ستبقى مميزة؛ اضغط على غيرها للاحتفاظ بها بدلًا منها.</string>
+    <string name="exact_keep_badge">إبقاء</string>
+    <plurals name="exact_keep_one">
+        <item quantity="zero">الاحتفاظ بنسخة واحدة</item>
+        <item quantity="one">احتفظ بنسخة واحذف واحدة</item>
+        <item quantity="two">احتفظ بنسخة واحذف اثنتين</item>
+        <item quantity="few">احتفظ بنسخة واحذف %1$s</item>
+        <item quantity="many">احتفظ بنسخة واحذف %1$s</item>
+        <item quantity="other">احتفظ بنسخة واحذف %1$s</item>
+    </plurals>
+    <string name="exact_keep_all">الاحتفاظ بكل النسخ</string>
+    <plurals name="exact_clean_all_confirm_body">
+        <item quantity="zero">تبقى نسخة واحدة في كل مجموعة.</item>
+        <item quantity="one">تبقى نسخة واحدة في كل مجموعة. ينتقل ملف واحد آخر إلى المهملات، ويمكنك استعادته من هناك.</item>
+        <item quantity="two">تبقى نسخة واحدة في كل مجموعة. ينتقل ملفان آخران إلى المهملات، ويمكنك استعادتهما من هناك.</item>
+        <item quantity="few">تبقى نسخة واحدة في كل مجموعة. تنتقل %1$s ملفات أخرى إلى المهملات، ويمكنك استعادتها من هناك.</item>
+        <item quantity="many">تبقى نسخة واحدة في كل مجموعة. ينتقل %1$s ملفًا آخر إلى المهملات، ويمكنك استعادتها من هناك.</item>
+        <item quantity="other">تبقى نسخة واحدة في كل مجموعة. ينتقل %1$s ملف آخر إلى المهملات، ويمكنك استعادتها من هناك.</item>
+    </plurals>
+    <plurals name="exact_trashed">
+        <item quantity="zero">لم يُنقل أي ملف إلى المهملات</item>
+        <item quantity="one">نُقل ملف واحد إلى المهملات</item>
+        <item quantity="two">نُقل ملفان إلى المهملات</item>
+        <item quantity="few">نُقلت %1$s ملفات إلى المهملات</item>
+        <item quantity="many">نُقل %1$s ملفًا إلى المهملات</item>
+        <item quantity="other">نُقل %1$s ملف إلى المهملات</item>
+    </plurals>
+    <string name="exact_empty_title">لا ملفات مكررة</string>
+    <string name="exact_empty_body">تظهر هنا النسخ المطابقة لصورة أو فيديو، مثل ملف حُفظ مرتين من واتساب.</string>
+    <plurals name="exact_still_checking">
+        <item quantity="zero">انتهى الفحص.</item>
+        <item quantity="one">ما زال فحص ملف واحد جاريًا، فقد يظهر المزيد.</item>
+        <item quantity="two">ما زال فحص ملفين جاريًا، فقد يظهر المزيد.</item>
+        <item quantity="few">ما زال فحص %1$s ملفات جاريًا، فقد يظهر المزيد.</item>
+        <item quantity="many">ما زال فحص %1$s ملفًا جاريًا، فقد يظهر المزيد.</item>
+        <item quantity="other">ما زال فحص %1$s ملف جاريًا، فقد يظهر المزيد.</item>
+    </plurals>
+
+    <!-- Recently sorted -->
+    <string name="recent_title">فُرزت مؤخرًا</string>
+    <string name="recent_tile">الأخيرة</string>
+    <string name="recent_tile_caption">تراجع عن أي قرار</string>
+    <string name="recent_hint">قراراتك في آخر ٣٠ يومًا. حدّد الصور واضغط «تراجع» لإعادتها كما كانت.</string>
+    <string name="recent_filter_all">الكل</string>
+    <string name="recent_filter_kept">محفوظة</string>
+    <string name="recent_filter_deleted">محذوفة</string>
+    <string name="recent_filter_skipped">متخطاة</string>
+    <string name="recent_today">اليوم</string>
+    <string name="recent_yesterday">أمس</string>
+    <string name="recent_kept">احتُفظ بها</string>
+    <string name="recent_deleted">نُقلت إلى المهملات</string>
+    <string name="recent_private">نُقلت إلى الخزنة</string>
+    <string name="recent_skipped">تُخطيت</string>
+    <string name="recent_photo_description">%1$s. صورة من %2$s</string>
+    <string name="recent_empty_title">لم تفرز شيئًا مؤخرًا</string>
+    <string name="recent_empty_body">الصور التي تحتفظ بها أو تحذفها أو تتخطاها أو تجعلها خاصة تظهر هنا لمدة ٣٠ يومًا.</string>
+    <plurals name="recent_undone">
+        <item quantity="zero">لم تُعد أي صورة.</item>
+        <item quantity="one">أُعيدت صورة واحدة.</item>
+        <item quantity="two">أُعيدت صورتان.</item>
+        <item quantity="few">أُعيدت %1$s صور.</item>
+        <item quantity="many">أُعيدت %1$s صورة.</item>
+        <item quantity="other">أُعيدت %1$s صورة.</item>
+    </plurals>
+    <plurals name="recent_undo_blocked">
+        <item quantity="zero">لا صور في الخزنة وحدها.</item>
+        <item quantity="one">صورة واحدة صارت في الخزنة وحدها؛ استعدها من هناك.</item>
+        <item quantity="two">صورتان صارتا في الخزنة وحدها؛ استعدهما من هناك.</item>
+        <item quantity="few">%1$s صور صارت في الخزنة وحدها؛ استعدها من هناك.</item>
+        <item quantity="many">%1$s صورة صارت في الخزنة وحدها؛ استعدها من هناك.</item>
+        <item quantity="other">%1$s صورة صارت في الخزنة وحدها؛ استعدها من هناك.</item>
+    </plurals>
+
+    <!-- Share to vault -->
+    <string name="share_vault_label">خزنة Sortr</string>
+    <plurals name="share_vault_confirm_title">
+        <item quantity="zero">إضافة صور إلى خزنتك الخاصة؟</item>
+        <item quantity="one">إضافة صورة واحدة إلى خزنتك الخاصة؟</item>
+        <item quantity="two">إضافة صورتين إلى خزنتك الخاصة؟</item>
+        <item quantity="few">إضافة %1$s صور إلى خزنتك الخاصة؟</item>
+        <item quantity="many">إضافة %1$s صورة إلى خزنتك الخاصة؟</item>
+        <item quantity="other">إضافة %1$s صورة إلى خزنتك الخاصة؟</item>
+    </plurals>
+    <string name="share_vault_confirm_body">يحتفظ Sortr بنسخة مشفرة لا تُفتح إلا برقمك السري أو بصمتك. يبقى الأصل في التطبيق الذي شاركت منه.</string>
+    <string name="share_vault_add">إضافة إلى الخزنة</string>
+    <string name="share_vault_adding">جارٍ إضافة %1$s من %2$s…</string>
+    <plurals name="share_vault_added">
+        <item quantity="zero">لم تُضف أي صورة إلى الخزنة</item>
+        <item quantity="one">أُضيفت صورة واحدة إلى الخزنة</item>
+        <item quantity="two">أُضيفت صورتان إلى الخزنة</item>
+        <item quantity="few">أُضيفت %1$s صور إلى الخزنة</item>
+        <item quantity="many">أُضيفت %1$s صورة إلى الخزنة</item>
+        <item quantity="other">أُضيفت %1$s صورة إلى الخزنة</item>
+    </plurals>
+    <plurals name="share_vault_already">
+        <item quantity="zero">لا شيء كان فيها.</item>
+        <item quantity="one">صورة واحدة كانت فيها بالفعل.</item>
+        <item quantity="two">صورتان كانتا فيها بالفعل.</item>
+        <item quantity="few">%1$s صور كانت فيها بالفعل.</item>
+        <item quantity="many">%1$s صورة كانت فيها بالفعل.</item>
+        <item quantity="other">%1$s صورة كانت فيها بالفعل.</item>
+    </plurals>
+    <plurals name="share_vault_failed">
+        <item quantity="zero">أُضيف كل شيء.</item>
+        <item quantity="one">تعذّرت إضافة صورة واحدة.</item>
+        <item quantity="two">تعذّرت إضافة صورتين.</item>
+        <item quantity="few">تعذّرت إضافة %1$s صور.</item>
+        <item quantity="many">تعذّرت إضافة %1$s صورة.</item>
+        <item quantity="other">تعذّرت إضافة %1$s صورة.</item>
+    </plurals>
+    <string name="share_vault_original_stays">لإخفاء الأصل أيضًا، احذفه من التطبيق الذي شاركت منه.</string>
+    <string name="share_vault_already_title">موجودة في خزنتك بالفعل</string>
+    <string name="share_vault_failed_title">تعذّرت إضافة هذه الصور</string>
+    <string name="share_vault_no_vault_title">جهّز خزنتك أولًا</string>
+    <string name="share_vault_no_vault_body">افتح Sortr واسحب صورة للأعلى لاختيار رقم سري. بعد ذلك يمكنك مشاركة الصور مباشرة إلى الخزنة.</string>
+    <string name="share_vault_open_sortr">فتح Sortr</string>
+    <string name="share_vault_nothing_title">لا شيء لإضافته</string>
+    <string name="share_vault_nothing_body">لا يمكن وضع غير الصور في الخزنة.</string>
+
+    <!-- Saving sorting progress -->
+    <string name="progress_section">تقدّم الفرز</string>
+    <string name="progress_footer">يحفظ الصور التي احتفظت بها أو تخطيتها أو وضعتها في المهملات، حتى لا تبدأ من الصفر بعد إعادة تثبيت Sortr أو الانتقال إلى هاتف جديد. يحوي الملف أسماء الملفات لا الصور. وللخزنة نسختها الاحتياطية الخاصة.</string>
+    <string name="progress_save">حفظ تقدّم الفرز</string>
+    <string name="progress_restore">استعادة تقدّم الفرز</string>
+    <plurals name="progress_saved">
+        <item quantity="zero">لم يُحفظ أي قرار.</item>
+        <item quantity="one">حُفظ قرار واحد.</item>
+        <item quantity="two">حُفظ قراران.</item>
+        <item quantity="few">حُفظت %1$s قرارات.</item>
+        <item quantity="many">حُفظ %1$s قرارًا.</item>
+        <item quantity="other">حُفظ %1$s قرار.</item>
+    </plurals>
+    <plurals name="progress_restored">
+        <item quantity="zero">لم يُستعد أي قرار.</item>
+        <item quantity="one">استُعيد قرار واحد.</item>
+        <item quantity="two">استُعيد قراران.</item>
+        <item quantity="few">استُعيدت %1$s قرارات.</item>
+        <item quantity="many">استُعيد %1$s قرارًا.</item>
+        <item quantity="other">استُعيد %1$s قرار.</item>
+    </plurals>
+    <plurals name="progress_not_found">
+        <item quantity="zero">كل الصور موجودة على هذا الهاتف.</item>
+        <item quantity="one">صورة واحدة ليست على هذا الهاتف.</item>
+        <item quantity="two">صورتان ليستا على هذا الهاتف.</item>
+        <item quantity="few">%1$s صور ليست على هذا الهاتف.</item>
+        <item quantity="many">%1$s صورة ليست على هذا الهاتف.</item>
+        <item quantity="other">%1$s صورة ليست على هذا الهاتف.</item>
+    </plurals>
+    <string name="progress_not_a_file">هذا ليس ملف تقدّم فرز من Sortr.</string>
+    <string name="progress_failed">تعذّر استخدام هذا الملف. حاول مرة أخرى.</string>
+
+    <!-- Smart categories and text search -->
+    <string name="tile_categories">الفئات</string>
+    <string name="tile_search">بحث</string>
+    <string name="categories_title">الفئات</string>
+    <string name="category_documents">مستندات</string>
+    <string name="category_receipts">إيصالات</string>
+    <string name="category_memes">ميمز</string>
+    <string name="category_food">طعام</string>
+    <string name="category_pets">حيوانات أليفة</string>
+    <plurals name="categories_total">
+        <item quantity="zero">لا صور</item>
+        <item quantity="one">صورة واحدة إجمالًا</item>
+        <item quantity="two">صورتان إجمالًا</item>
+        <item quantity="few">%1$s صور إجمالًا</item>
+        <item quantity="many">%1$s صورة إجمالًا</item>
+        <item quantity="other">%1$s صورة إجمالًا</item>
+    </plurals>
+    <string name="categories_footer">يخمّن Sortr هذه الفئات على الهاتف مما في كل صورة والنص الذي فيها، لذا قد يخطئ في بعضها. الرقم هو عدد ما بقي للفرز.</string>
+    <string name="categories_empty_title">لم يُعثر على شيء بعد</string>
+    <string name="categories_empty_body">تظهر هنا المستندات والإيصالات والميمز والطعام والحيوانات الأليفة بعد أن يطّلع Sortr على صورك.</string>
+    <string name="smart_progress">جارٍ قراءة الصور للفئات والبحث… %1$s من %2$s</string>
+    <string name="notification_smart_progress">جارٍ قراءة الصور للفئات والبحث: %1$s من %2$s</string>
+    <string name="search_title">بحث</string>
+    <string name="search_hint">كلمات في صورك</string>
+    <string name="search_clear">مسح</string>
+    <string name="search_intro_title">ابحث عن الصور بكلماتها</string>
+    <string name="search_intro_body">اكتب شيئًا تتذكر أنك رأيته، مثل اسم شارع في لقطة شاشة أو اسم متجر على إيصال. يمكن العثور على النص المكتوب بالحروف اللاتينية (الإنجليزية والفرنسية والإسبانية…).</string>
+    <string name="search_no_results">لا صور فيها «%1$s»</string>
+    <string name="search_no_results_body">جرّب كلمات أقل أو أقصر. الصور التي ما زالت تُقرأ ستظهر لاحقًا.</string>
+    <plurals name="search_results">
+        <item quantity="zero">لا صور</item>
+        <item quantity="one">صورة واحدة</item>
+        <item quantity="two">صورتان</item>
+        <item quantity="few">%1$s صور</item>
+        <item quantity="many">%1$s صورة</item>
+        <item quantity="other">%1$s صورة</item>
+    </plurals>
+    <plurals name="search_sort_these">
+        <item quantity="zero">فرز الصور</item>
+        <item quantity="one">فرز هذه الصورة</item>
+        <item quantity="two">فرز هاتين الصورتين</item>
+        <item quantity="few">فرز هذه الصور الـ %1$s</item>
+        <item quantity="many">فرز هذه الصور الـ %1$s</item>
+        <item quantity="other">فرز هذه الصور الـ %1$s</item>
+    </plurals>
+    <string name="session_search">«%1$s»</string>
+</resources>

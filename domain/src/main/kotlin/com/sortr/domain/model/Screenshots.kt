@@ -14,6 +14,25 @@ object ScreenshotRules {
     /** "Older screenshots" means older than this many days. */
     const val OLD_AFTER_DAYS = 30
 
+    private val folderRegexes = FOLDER_PATTERNS.map(::likeRegex)
+    private val nameRegexes = NAME_PATTERNS.map(::likeRegex)
+
+    /** The same rule as the SQL patterns, for one photo. */
+    fun isScreenshot(relativePath: String?, displayName: String): Boolean =
+        (relativePath != null && folderRegexes.any { it.matches(relativePath) }) || nameRegexes.any { it.matches(displayName) }
+
+    /** SQL LIKE (`%` any run, `_` one character, case-insensitive) as a regex. */
+    private fun likeRegex(pattern: String): Regex = Regex(
+        pattern.map { c ->
+            when (c) {
+                '%' -> ".*"
+                '_' -> "."
+                else -> Regex.escape(c.toString())
+            }
+        }.joinToString(""),
+        RegexOption.IGNORE_CASE,
+    )
+
     /**
      * The album every screenshot belongs in: the biggest existing screenshot album that Android
      * lets apps move items into, otherwise [DEFAULT_ALBUM].

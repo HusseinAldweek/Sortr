@@ -1,6 +1,8 @@
 package com.sortr.data.db
 
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.RawQuery
 import androidx.sqlite.db.SupportSQLiteQuery
@@ -96,7 +98,75 @@ interface LibraryDao {
 
     @RawQuery(observedEntities = [PhotoEntity::class])
     fun observeScreenshotFolders(query: SupportSQLiteQuery): Flow<List<ScreenshotFolderRow>>
+
+    /** Files without a fingerprint whose size matches another file's: the only ones that can be exact copies. */
+    @Query("SELECT * FROM photos WHERE contentHash IS NULL AND $SAME_SIZE ORDER BY size LIMIT :limit")
+    suspend fun unfingerprinted(limit: Int): List<PhotoEntity>
+
+    @Query("SELECT COUNT(*) FROM photos WHERE contentHash IS NULL AND $SAME_SIZE")
+    fun observeUnfingerprinted(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM photos WHERE contentHash IS NULL AND $SAME_SIZE")
+    suspend fun unfingerprintedCount(): Int
+
+    @Query("UPDATE photos SET contentHash = :hash WHERE mediaStoreId = :id")
+    suspend fun setContentHash(id: Long, hash: String)
+
+    /** Photos not read for categories and text yet, newest first. */
+    @Query("SELECT * FROM photos WHERE smartCategories IS NULL AND mediaType = 'IMAGE' AND $IN_LIBRARY ORDER BY dateTaken DESC LIMIT :limit")
+    suspend fun unclassified(limit: Int): List<PhotoEntity>
+
+    @Query("UPDATE photos SET smartCategories = :mask WHERE mediaStoreId = :id")
+    suspend fun setSmartCategories(id: Long, mask: Int)
+
+    @Query(
+        "SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN smartCategories IS NOT NULL THEN 1 ELSE 0 END), 0) AS analysed " +
+            "FROM photos WHERE mediaType = 'IMAGE' AND $IN_LIBRARY",
+    )
+    fun observeSmartProgress(): Flow<AnalysisRow>
+
+    @Query(
+        "SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN smartCategories IS NOT NULL THEN 1 ELSE 0 END), 0) AS analysed " +
+            "FROM photos WHERE mediaType = 'IMAGE' AND $IN_LIBRARY",
+    )
+    suspend fun smartProgress(): AnalysisRow
+
+    /** Photos per category mask, split by whether they're still to be sorted. */
+    @Query(
+        "SELECT smartCategories AS mask, COUNT(*) AS count, SUM(CASE WHEN $TO_REVIEW THEN 1 ELSE 0 END) AS toReview " +
+            "FROM photos WHERE smartCategories > 0 AND $IN_LIBRARY GROUP BY smartCategories",
+    )
+    fun observeCategoryMasks(): Flow<List<CategoryMaskRow>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertText(row: PhotoTextEntity)
+
+    @Query("DELETE FROM photo_text WHERE rowid = :photoId")
+    suspend fun deleteText(photoId: Long)
+
+    /** Text of photos that are gone or in the vault. Photos in the Trash keep theirs in case they come back. */
+    @Query("DELETE FROM photo_text WHERE rowid NOT IN (SELECT mediaStoreId FROM photos WHERE status != 'VAULTED')")
+    suspend fun deleteOrphanText()
+
+    /** Photos whose text matches an FTS query, newest first. */
+    @Query(
+        "SELECT * FROM photos WHERE $IN_LIBRARY AND mediaStoreId IN (SELECT rowid FROM photo_text WHERE photo_text MATCH :query) " +
+            "ORDER BY dateTaken DESC, mediaStoreId DESC LIMIT :limit",
+    )
+    fun observeTextSearch(query: String, limit: Int): Flow<List<PhotoEntity>>
+
+    /** Fingerprinted files outside the Trash and the vault. */
+    @Query("SELECT mediaStoreId, size, contentHash AS hash FROM photos WHERE contentHash IS NOT NULL AND contentHash != '' AND $IN_LIBRARY")
+    suspend fun fingerprints(): List<FingerprintRow>
 }
+
+/** In the library, with a size, and not the only file of that exact size. */
+private const val SAME_SIZE = "$IN_LIBRARY AND size > 0 AND size IN " +
+    "(SELECT size FROM photos WHERE $IN_LIBRARY AND size > 0 GROUP BY size HAVING COUNT(*) > 1)"
+
+data class FingerprintRow(val mediaStoreId: Long, val size: Long, val hash: String)
+
+data class CategoryMaskRow(val mask: Int, val count: Int, val toReview: Int)
 
 data class ScreenshotFolderRow(val relativePath: String, val count: Int, val sizeBytes: Long, val toReview: Int, val oldToReview: Int)
 

@@ -2,6 +2,7 @@ package com.sortr.domain.repository
 
 import com.sortr.domain.model.Album
 import com.sortr.domain.model.AnalysisProgress
+import com.sortr.domain.model.CategoryCount
 import com.sortr.domain.model.DateBucket
 import com.sortr.domain.model.DuplicateGroup
 import com.sortr.domain.model.LibraryStats
@@ -40,8 +41,23 @@ interface LibraryRepository {
     /** Groups of near-identical photos, biggest saving first. */
     suspend fun duplicateGroups(): List<DuplicateGroup>
 
+    /** Groups of byte-identical photos and videos, biggest saving first. */
+    suspend fun exactDuplicateGroups(): List<DuplicateGroup>
+
+    /** Files still to be checked for exact copies. */
+    fun observeExactCheckPending(): Flow<Int>
+
     /** Photos and videos a session with [filter] would show. */
     suspend fun countToReview(filter: SessionFilter): Int
+
+    /** Photos read for categories and text so far. */
+    fun observeSmartProgress(): Flow<AnalysisProgress>
+
+    /** Categories with at least one photo. */
+    fun observeCategories(): Flow<List<CategoryCount>>
+
+    /** Photos with text matching what the user typed, newest first. */
+    fun searchText(input: String): Flow<List<Photo>>
 
     /** Screenshots per folder, including ones saved outside screenshot folders. */
     fun observeScreenshots(): Flow<ScreenshotSummary>

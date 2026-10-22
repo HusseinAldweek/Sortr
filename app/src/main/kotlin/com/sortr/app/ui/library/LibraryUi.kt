@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import com.sortr.app.R
 import com.sortr.app.ui.common.formatMonthYear
 import com.sortr.app.ui.common.formatYear
+import com.sortr.app.ui.smart.labelRes
 import com.sortr.app.ui.theme.palette
 import com.sortr.domain.model.AlbumPaths
 import com.sortr.domain.model.MediaSource
@@ -99,9 +100,12 @@ fun sessionTitle(filter: SessionFilter, personName: String? = null): String = wh
     SessionFilter.Videos -> stringResource(R.string.session_videos)
     SessionFilter.Blurry -> stringResource(R.string.session_blurry)
     SessionFilter.Duplicates -> stringResource(R.string.session_duplicates)
+    SessionFilter.ExactDuplicates -> stringResource(R.string.session_exact_duplicates)
     SessionFilter.Largest -> stringResource(R.string.session_largest)
     is SessionFilter.Custom -> stringResource(R.string.session_custom)
     is SessionFilter.Screenshots ->
         stringResource(if (filter.olderThanDays == null) R.string.session_screenshots else R.string.session_old_screenshots)
     SessionFilter.OnThisDay -> stringResource(R.string.session_on_this_day)
+    is SessionFilter.Category -> stringResource(filter.category.labelRes)
+    is SessionFilter.TextSearch -> stringResource(R.string.session_search, filter.query.trim())
 }

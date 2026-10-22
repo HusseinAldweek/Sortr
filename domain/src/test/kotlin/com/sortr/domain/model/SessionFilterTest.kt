@@ -1,5 +1,6 @@
 package com.sortr.domain.model
 
+import com.sortr.domain.analysis.SmartCategory
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -14,6 +15,8 @@ class SessionFilterTest {
             SessionFilter.Screenshots(),
             SessionFilter.Screenshots(olderThanDays = 30),
             SessionFilter.OnThisDay,
+            SessionFilter.Category(SmartCategory.RECEIPTS),
+            SessionFilter.TextSearch("wifi password: 1234 & more"),
             SessionFilter.Year(2019),
             SessionFilter.Month(2023, 11),
             SessionFilter.Album("Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/"),
@@ -22,6 +25,7 @@ class SessionFilterTest {
             SessionFilter.Videos,
             SessionFilter.Blurry,
             SessionFilter.Duplicates,
+            SessionFilter.ExactDuplicates,
             SessionFilter.Largest,
             SessionFilter.Custom(),
             SessionFilter.Custom(

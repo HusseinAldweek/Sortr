@@ -1,5 +1,6 @@
 package com.sortr.domain.model
 
+import com.sortr.domain.analysis.SmartCategory
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
@@ -160,3 +161,6 @@ object DateRanges {
         return start until end
     }
 }
+
+/** Photos in one smart category, and how many of them are still to be sorted. */
+data class CategoryCount(val category: SmartCategory, val count: Int, val toReview: Int)

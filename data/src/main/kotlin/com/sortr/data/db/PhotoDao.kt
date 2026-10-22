@@ -104,7 +104,13 @@ interface PhotoDao {
         """,
     )
     fun observeSummary(): Flow<SummaryRow>
+
+    /** What saving and restoring sorting progress needs to match photos. */
+    @Query("SELECT mediaStoreId, relativePath, displayName, size, status FROM photos")
+    suspend fun progressRows(): List<ProgressRow>
 }
+
+data class ProgressRow(val mediaStoreId: Long, val relativePath: String?, val displayName: String, val size: Long, val status: PhotoStatus)
 
 const val SQL_CHUNK = 500
 
@@ -143,6 +149,8 @@ data class PhotoMetadataUpdate(
     val indexed: Boolean = false,
     val dHash: Long? = null,
     val blurScore: Double? = null,
+    val contentHash: String? = null,
+    val smartCategories: Int? = null,
 )
 
 data class SummaryRow(

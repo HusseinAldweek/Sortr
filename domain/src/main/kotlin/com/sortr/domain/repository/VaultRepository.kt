@@ -33,6 +33,12 @@ interface VaultRepository {
      */
     suspend fun cancel(photoId: Long)
 
+    /**
+     * Encrypts a photo shared from another app into the vault. The original stays where it is.
+     * Returns false if the same photo is already in the vault.
+     */
+    suspend fun addShared(uri: String, displayName: String?, mimeType: String?): Boolean
+
     /** Records that these items' gallery originals were deleted. */
     suspend fun markOriginalsRemoved(itemIds: Collection<Long>)
 

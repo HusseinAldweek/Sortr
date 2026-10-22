@@ -671,4 +671,146 @@
     <string name="widget_done">All sorted</string>
     <string name="widget_goal">%1$s of %2$s today</string>
     <string name="widget_preview_count" translatable="false">1,234</string>
+
+    <!-- Exact duplicates -->
+    <string name="tile_duplicates">Duplicates</string>
+    <string name="session_exact_duplicates">Duplicates</string>
+    <string name="exact_title">Duplicates</string>
+    <plurals name="exact_summary">
+        <item quantity="one">%1$s group of identical files · %2$s can be freed</item>
+        <item quantity="other">%1$s groups of identical files · %2$s can be freed</item>
+    </plurals>
+    <string name="exact_hint">These are exact copies of the same photo or video. The one to keep is marked; tap another to keep that one instead.</string>
+    <string name="exact_keep_badge">Keep</string>
+    <plurals name="exact_keep_one">
+        <item quantity="one">Keep one, trash %1$s</item>
+        <item quantity="other">Keep one, trash %1$s</item>
+    </plurals>
+    <string name="exact_keep_all">Keep all copies</string>
+    <plurals name="exact_clean_all_confirm_body">
+        <item quantity="one">One copy in each group stays. %1$s other file moves to the Trash, where you can still restore it.</item>
+        <item quantity="other">One copy in each group stays. %1$s other files move to the Trash, where you can still restore them.</item>
+    </plurals>
+    <plurals name="exact_trashed">
+        <item quantity="one">Moved %1$s file to the Trash</item>
+        <item quantity="other">Moved %1$s files to the Trash</item>
+    </plurals>
+    <string name="exact_empty_title">No duplicates</string>
+    <string name="exact_empty_body">Exact copies of a photo or video, like one saved twice from WhatsApp, show up here.</string>
+    <plurals name="exact_still_checking">
+        <item quantity="one">Still checking %1$s file, so more may appear.</item>
+        <item quantity="other">Still checking %1$s files, so more may appear.</item>
+    </plurals>
+
+    <!-- Recently sorted -->
+    <string name="recent_title">Recently sorted</string>
+    <string name="recent_tile">Recent</string>
+    <string name="recent_tile_caption">Undo any decision</string>
+    <string name="recent_hint">Your decisions from the last 30 days. Select photos and tap Undo to put them back.</string>
+    <string name="recent_filter_all">All</string>
+    <string name="recent_filter_kept">Kept</string>
+    <string name="recent_filter_deleted">Deleted</string>
+    <string name="recent_filter_skipped">Skipped</string>
+    <string name="recent_today">Today</string>
+    <string name="recent_yesterday">Yesterday</string>
+    <string name="recent_kept">Kept</string>
+    <string name="recent_deleted">Moved to the Trash</string>
+    <string name="recent_private">Moved to the vault</string>
+    <string name="recent_skipped">Skipped</string>
+    <string name="recent_photo_description">%1$s. Photo from %2$s</string>
+    <string name="recent_empty_title">Nothing sorted lately</string>
+    <string name="recent_empty_body">Photos you keep, delete, skip or make private show up here for 30 days.</string>
+    <plurals name="recent_undone">
+        <item quantity="one">Put %1$s photo back.</item>
+        <item quantity="other">Put %1$s photos back.</item>
+    </plurals>
+    <plurals name="recent_undo_blocked">
+        <item quantity="one">%1$s is already only in the vault; restore it from there.</item>
+        <item quantity="other">%1$s are already only in the vault; restore them from there.</item>
+    </plurals>
+
+    <!-- Share to vault -->
+    <string name="share_vault_label">Sortr vault</string>
+    <plurals name="share_vault_confirm_title">
+        <item quantity="one">Add %1$s photo to your private vault?</item>
+        <item quantity="other">Add %1$s photos to your private vault?</item>
+    </plurals>
+    <string name="share_vault_confirm_body">Sortr keeps an encrypted copy that only opens with your PIN or fingerprint. The original stays in the app you shared from.</string>
+    <string name="share_vault_add">Add to vault</string>
+    <string name="share_vault_adding">Adding %1$s of %2$s…</string>
+    <plurals name="share_vault_added">
+        <item quantity="one">Added %1$s photo to the vault</item>
+        <item quantity="other">Added %1$s photos to the vault</item>
+    </plurals>
+    <plurals name="share_vault_already">
+        <item quantity="one">%1$s was already in it.</item>
+        <item quantity="other">%1$s were already in it.</item>
+    </plurals>
+    <plurals name="share_vault_failed">
+        <item quantity="one">%1$s couldn\'t be added.</item>
+        <item quantity="other">%1$s couldn\'t be added.</item>
+    </plurals>
+    <string name="share_vault_original_stays">To hide the original too, delete it in the app you shared from.</string>
+    <string name="share_vault_already_title">Already in your vault</string>
+    <string name="share_vault_failed_title">Couldn\'t add these photos</string>
+    <string name="share_vault_no_vault_title">Set up your vault first</string>
+    <string name="share_vault_no_vault_body">Open Sortr and swipe a photo up to choose a PIN. Then you can share photos straight into the vault.</string>
+    <string name="share_vault_open_sortr">Open Sortr</string>
+    <string name="share_vault_nothing_title">Nothing to add</string>
+    <string name="share_vault_nothing_body">Only photos can go in the vault.</string>
+
+    <!-- Saving sorting progress -->
+    <string name="progress_section">Sorting progress</string>
+    <string name="progress_footer">Saves which photos you kept, skipped or put in the Trash, so reinstalling Sortr or moving to a new phone doesn\'t mean starting over. The file holds file names, not photos. The vault has its own backup.</string>
+    <string name="progress_save">Save sorting progress</string>
+    <string name="progress_restore">Restore sorting progress</string>
+    <plurals name="progress_saved">
+        <item quantity="one">Saved %1$s decision.</item>
+        <item quantity="other">Saved %1$s decisions.</item>
+    </plurals>
+    <plurals name="progress_restored">
+        <item quantity="one">Restored %1$s decision.</item>
+        <item quantity="other">Restored %1$s decisions.</item>
+    </plurals>
+    <plurals name="progress_not_found">
+        <item quantity="one">%1$s photo isn\'t on this phone.</item>
+        <item quantity="other">%1$s photos aren\'t on this phone.</item>
+    </plurals>
+    <string name="progress_not_a_file">That isn\'t a Sortr progress file.</string>
+    <string name="progress_failed">Couldn\'t use that file. Try again.</string>
+
+    <!-- Smart categories and text search -->
+    <string name="tile_categories">Categories</string>
+    <string name="tile_search">Search</string>
+    <string name="categories_title">Categories</string>
+    <string name="category_documents">Documents</string>
+    <string name="category_receipts">Receipts</string>
+    <string name="category_memes">Memes</string>
+    <string name="category_food">Food</string>
+    <string name="category_pets">Pets</string>
+    <plurals name="categories_total">
+        <item quantity="one">%1$s photo in all</item>
+        <item quantity="other">%1$s photos in all</item>
+    </plurals>
+    <string name="categories_footer">Sortr guesses these on the phone from what\'s in each photo and the text in it, so a few may be wrong. The number is how many are left to sort.</string>
+    <string name="categories_empty_title">Nothing found yet</string>
+    <string name="categories_empty_body">Documents, receipts, memes, food and pets show up here once Sortr has looked at your photos.</string>
+    <string name="smart_progress">Reading photos for categories and search… %1$s of %2$s</string>
+    <string name="notification_smart_progress">Reading photos for categories and search: %1$s of %2$s</string>
+    <string name="search_title">Search</string>
+    <string name="search_hint">Words in your photos</string>
+    <string name="search_clear">Clear</string>
+    <string name="search_intro_title">Find photos by their words</string>
+    <string name="search_intro_body">Type something you remember seeing, like a street name in a screenshot or a shop on a receipt. Text in Latin letters (English, French, Spanish…) can be found.</string>
+    <string name="search_no_results">No photos with “%1$s”</string>
+    <string name="search_no_results_body">Try fewer or shorter words. Photos still being read will show up later.</string>
+    <plurals name="search_results">
+        <item quantity="one">%1$s photo</item>
+        <item quantity="other">%1$s photos</item>
+    </plurals>
+    <plurals name="search_sort_these">
+        <item quantity="one">Sort this %1$s photo</item>
+        <item quantity="other">Sort these %1$s photos</item>
+    </plurals>
+    <string name="session_search">“%1$s”</string>
 </resources>

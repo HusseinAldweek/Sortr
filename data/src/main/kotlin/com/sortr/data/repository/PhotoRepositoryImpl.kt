@@ -11,6 +11,7 @@ import com.sortr.domain.model.Decision
 import com.sortr.domain.model.LibrarySummary
 import com.sortr.domain.model.Photo
 import com.sortr.domain.model.PhotoStatus
+import com.sortr.domain.model.RecentDecision
 import com.sortr.domain.model.SessionFilter
 import com.sortr.domain.model.SwipeAction
 import com.sortr.domain.repository.PhotoRepository
@@ -23,6 +24,7 @@ import javax.inject.Singleton
 class PhotoRepositoryImpl @Inject constructor(
     private val db: SortrDatabase,
     private val duplicates: DuplicateIndex,
+    private val exactDuplicates: ExactDuplicateIndex,
 ) : PhotoRepository {
 
     private val photoDao = db.photoDao()
@@ -36,9 +38,10 @@ class PhotoRepositoryImpl @Inject constructor(
         photoDao.observeByStatusRecentlyChanged(PhotoStatus.TRASHED).map { rows -> rows.map { it.toDomain() } }
 
     override suspend fun loadSession(filter: SessionFilter): List<Photo> {
-        if (filter == SessionFilter.Duplicates) {
+        if (filter == SessionFilter.Duplicates || filter == SessionFilter.ExactDuplicates) {
             // Every copy except the best one, group by group.
-            val extras = duplicates.groups().flatMap { group -> group.photos.filter { it.id != group.bestId } }
+            val groups = if (filter == SessionFilter.Duplicates) duplicates.groups() else exactDuplicates.groups()
+            val extras = groups.flatMap { group -> group.photos.filter { it.id != group.bestId } }
             return extras.filter { it.status == PhotoStatus.UNREVIEWED } + extras.filter { it.status == PhotoStatus.SKIPPED }
         }
         return db.withTransaction {
@@ -91,6 +94,15 @@ class PhotoRepositoryImpl @Inject constructor(
             actionDao.delete(it.actionId)
         }
     }
+
+    override fun observeRecentDecisions(sinceMillis: Long, limit: Int): Flow<List<RecentDecision>> =
+        actionDao.observeRecent(sinceMillis, limit).map { rows ->
+            rows.mapNotNull { row ->
+                val action = SwipeAction.entries.firstOrNull { it.actionType == row.actionType } ?: return@mapNotNull null
+                val photo = row.photo.toDomain()
+                RecentDecision(Decision(row.actionId, photo, action, row.previousStatus ?: PhotoStatus.UNREVIEWED), row.decidedAt)
+            }
+        }
 
     override suspend fun undoDecision(decision: Decision) = db.withTransaction {
         photoDao.updateStatus(decision.photo.id, decision.previousStatus, System.currentTimeMillis())

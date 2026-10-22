@@ -22,7 +22,9 @@ import androidx.work.WorkerParameters
 import com.sortr.app.MainActivity
 import com.sortr.app.R
 import com.sortr.app.ui.common.formatCount
+import com.sortr.data.analysis.ExactDuplicateIndexer
 import com.sortr.data.analysis.PhotoAnalysisIndexer
+import com.sortr.data.analysis.SmartIndexer
 import com.sortr.data.faces.FaceIndexer
 import com.sortr.domain.model.FaceModelState
 import com.sortr.domain.repository.AppSettings
@@ -88,7 +90,8 @@ class FaceScanScheduler @Inject constructor(
 }
 
 /**
- * Checks photos for duplicates and blur, then scans them for faces, until nothing is left.
+ * Checks photos for similar copies and blur, then files for exact copies, then scans photos for
+ * faces, until nothing is left.
  * Runs in the foreground with a progress notification so Android doesn't pause it; if that
  * isn't allowed (e.g. started while the app is in the background) it carries on as a normal
  * job. Progress is saved after every batch.
@@ -98,6 +101,8 @@ class FaceScanWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val analysis: PhotoAnalysisIndexer,
+    private val exactDuplicates: ExactDuplicateIndexer,
+    private val smart: SmartIndexer,
     private val indexer: FaceIndexer,
     private val people: PeopleRepository,
 ) : CoroutineWorker(context, params) {
@@ -110,7 +115,9 @@ class FaceScanWorker @AssistedInject constructor(
         if (facesEnabled) indexer.cleanUp()
         val analysed = analysis.progress()
         val faces = if (facesEnabled) indexer.progress() else null
-        if (analysed.isComplete && (faces == null || faces.isComplete)) return Result.success()
+        val exactPending = exactDuplicates.pending()
+        val smartDone = smart.progress().isComplete
+        if (analysed.isComplete && exactPending == 0 && smartDone && (faces == null || faces.isComplete)) return Result.success()
 
         inForeground = try {
             setForeground(foregroundInfo(currentStage()))
@@ -124,6 +131,8 @@ class FaceScanWorker @AssistedInject constructor(
 
         val analysisResult = runBatches(ScanStage.Kind.ANALYSIS) { analysis.analyseNextBatch() }
         if (analysisResult != null) return analysisResult
+        val exactResult = runBatches(ScanStage.Kind.ANALYSIS) { exactDuplicates.fingerprintNextBatch() }
+        if (exactResult != null) return exactResult
         if (facesEnabled) {
             val faceResult = runBatches(ScanStage.Kind.FACES) { indexer.indexNextBatch() }
             if (faceResult != null) {
@@ -131,6 +140,9 @@ class FaceScanWorker @AssistedInject constructor(
             }
             indexer.cleanUp()
         }
+        // Categories and text search last: the slowest step, and the least needed for sorting.
+        val smartResult = runBatches(ScanStage.Kind.SMART) { smart.indexNextBatch() }
+        if (smartResult != null) return smartResult
         return Result.success()
     }
 
@@ -152,11 +164,11 @@ class FaceScanWorker @AssistedInject constructor(
 
     private suspend fun currentStage(): ScanStage {
         val analysed = analysis.progress()
-        if (!analysed.isComplete || !facesEnabled) {
-            return ScanStage(ScanStage.Kind.ANALYSIS, analysed.analysed, analysed.total)
-        }
-        val faces = indexer.progress()
-        return ScanStage(ScanStage.Kind.FACES, faces.indexed, faces.total)
+        if (!analysed.isComplete) return ScanStage(ScanStage.Kind.ANALYSIS, analysed.analysed, analysed.total)
+        val faces = if (facesEnabled) indexer.progress() else null
+        if (faces != null && !faces.isComplete) return ScanStage(ScanStage.Kind.FACES, faces.indexed, faces.total)
+        val read = smart.progress()
+        return ScanStage(ScanStage.Kind.SMART, read.analysed, read.total)
     }
 
     override suspend fun getForegroundInfo(): ForegroundInfo = foregroundInfo(currentStage())
@@ -175,7 +187,7 @@ class FaceScanWorker @AssistedInject constructor(
 
 /** What the background scan is doing, for its notification. */
 data class ScanStage(val kind: Kind, val done: Int, val total: Int) {
-    enum class Kind { ANALYSIS, FACES }
+    enum class Kind { ANALYSIS, FACES, SMART }
 }
 
 object ScanNotifications {
@@ -203,7 +215,11 @@ object ScanNotifications {
             .setContentTitle(context.getString(R.string.notification_scan_title))
             .setContentText(
                 context.getString(
-                    if (stage.kind == ScanStage.Kind.ANALYSIS) R.string.notification_analysis_progress else R.string.notification_scan_progress,
+                    when (stage.kind) {
+                        ScanStage.Kind.ANALYSIS -> R.string.notification_analysis_progress
+                        ScanStage.Kind.FACES -> R.string.notification_scan_progress
+                        ScanStage.Kind.SMART -> R.string.notification_smart_progress
+                    },
                     formatCount(stage.done),
                     formatCount(stage.total),
                 ),

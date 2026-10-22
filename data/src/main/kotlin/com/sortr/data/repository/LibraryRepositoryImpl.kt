@@ -5,9 +5,12 @@ import com.sortr.data.db.SortrDatabase
 import com.sortr.data.db.toDomain
 import com.sortr.data.media.MediaMover
 import com.sortr.domain.analysis.BlurMeter
+import com.sortr.domain.analysis.SmartCategory
+import com.sortr.domain.analysis.TextSearchQuery
 import com.sortr.domain.model.Album
 import com.sortr.domain.model.AlbumPaths
 import com.sortr.domain.model.AnalysisProgress
+import com.sortr.domain.model.CategoryCount
 import com.sortr.domain.model.DateBucket
 import com.sortr.domain.model.DuplicateGroup
 import com.sortr.domain.model.LibraryStats
@@ -26,6 +29,7 @@ import com.sortr.domain.repository.LibraryRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,6 +38,7 @@ import javax.inject.Singleton
 class LibraryRepositoryImpl @Inject constructor(
     db: SortrDatabase,
     private val duplicates: DuplicateIndex,
+    private val exactDuplicates: ExactDuplicateIndex,
     private val mover: MediaMover,
 ) : LibraryRepository {
 
@@ -104,14 +109,32 @@ class LibraryRepositoryImpl @Inject constructor(
 
     override suspend fun duplicateGroups(): List<DuplicateGroup> = duplicates.groups()
 
+    override suspend fun exactDuplicateGroups(): List<DuplicateGroup> = exactDuplicates.groups()
+
+    override fun observeExactCheckPending(): Flow<Int> = libraryDao.observeUnfingerprinted().distinctUntilChanged()
+
     override suspend fun countToReview(filter: SessionFilter): Int =
-        if (filter == SessionFilter.Duplicates) {
-            duplicates.groups().sumOf { group ->
-                group.photos.count { it.id != group.bestId && it.status in TO_REVIEW }
-            }
+        if (filter == SessionFilter.Duplicates || filter == SessionFilter.ExactDuplicates) {
+            val groups = if (filter == SessionFilter.Duplicates) duplicates.groups() else exactDuplicates.groups()
+            groups.sumOf { group -> group.photos.count { it.id != group.bestId && it.status in TO_REVIEW } }
         } else {
             libraryDao.count(SessionQueries.countToReview(filter))
         }
+
+    override fun observeSmartProgress(): Flow<AnalysisProgress> =
+        libraryDao.observeSmartProgress().map { AnalysisProgress(analysed = it.analysed, total = it.total) }.distinctUntilChanged()
+
+    override fun observeCategories(): Flow<List<CategoryCount>> = libraryDao.observeCategoryMasks().map { rows ->
+        SmartCategory.entries.mapNotNull { category ->
+            val matching = rows.filter { it.mask and category.bit != 0 }
+            if (matching.isEmpty()) null else CategoryCount(category, matching.sumOf { it.count }, matching.sumOf { it.toReview })
+        }
+    }.distinctUntilChanged()
+
+    override fun searchText(input: String): Flow<List<Photo>> {
+        val query = TextSearchQuery.build(input) ?: return flowOf(emptyList())
+        return libraryDao.observeTextSearch(query, SEARCH_LIMIT).map { rows -> rows.map { it.toDomain() } }
+    }
 
     override fun observeScreenshots(): Flow<ScreenshotSummary> {
         val oldBefore = System.currentTimeMillis() - ScreenshotRules.OLD_AFTER_DAYS * 24 * 60 * 60 * 1000L
@@ -136,5 +159,6 @@ class LibraryRepositoryImpl @Inject constructor(
 
     private companion object {
         val TO_REVIEW = setOf(PhotoStatus.UNREVIEWED, PhotoStatus.SKIPPED)
+        const val SEARCH_LIMIT = 1_000
     }
 }

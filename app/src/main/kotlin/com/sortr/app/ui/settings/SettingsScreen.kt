@@ -189,6 +189,8 @@ fun SettingsScreen(
                 }
             }
 
+            ProgressBackupSection(snackbarHostState = snackbarHostState)
+
             GoalSettingsSection(snackbarHostState = snackbarHostState)
 
             WhatsAppSettingsSection(snackbarHostState = snackbarHostState)

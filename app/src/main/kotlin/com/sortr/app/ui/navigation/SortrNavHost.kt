@@ -25,8 +25,11 @@ import com.sortr.app.ui.people.PeopleScreen
 import com.sortr.app.ui.people.PersonScreen
 import com.sortr.app.ui.people.UnsortedFacesScreen
 import com.sortr.app.ui.permission.MediaAccess
+import com.sortr.app.ui.recent.RecentlySortedScreen
 import com.sortr.app.ui.screenshots.ScreenshotsScreen
 import com.sortr.app.ui.settings.SettingsScreen
+import com.sortr.app.ui.smart.CategoriesScreen
+import com.sortr.app.ui.smart.SearchScreen
 import com.sortr.app.ui.swipe.SwipeScreen
 import com.sortr.app.ui.trash.TrashScreen
 import com.sortr.app.ui.vault.VaultScreen
@@ -63,8 +66,9 @@ data object AlbumsRoute
 @Serializable
 data class AlbumRoute(val relativePath: String)
 
+/** [exact]: byte-identical copies of any photo or video, rather than similar photos. */
 @Serializable
-data object DuplicatesRoute
+data class DuplicatesRoute(val exact: Boolean = false)
 
 @Serializable
 data object StatsRoute
@@ -77,6 +81,15 @@ data object WhatsAppRoute
 
 @Serializable
 data object ScreenshotsRoute
+
+@Serializable
+data object RecentRoute
+
+@Serializable
+data object CategoriesRoute
+
+@Serializable
+data object SearchRoute
 
 /** [startBackup] opens Settings straight into exporting a vault backup. */
 @Serializable
@@ -129,13 +142,32 @@ fun SortrNavHost(
                     openSettings = { entry.go(SettingsRoute()) },
                     openDates = { entry.go(DatesRoute) },
                     openAlbums = { entry.go(AlbumsRoute) },
-                    openDuplicates = { entry.go(DuplicatesRoute) },
+                    openDuplicates = { entry.go(DuplicatesRoute()) },
+                    openExactDuplicates = { entry.go(DuplicatesRoute(exact = true)) },
                     openStats = { entry.go(StatsRoute) },
                     openCustom = { entry.go(CustomSessionRoute) },
                     openWhatsApp = { entry.go(WhatsAppRoute) },
                     openScreenshots = { entry.go(ScreenshotsRoute) },
+                    openRecent = { entry.go(RecentRoute) },
+                    openCategories = { entry.go(CategoriesRoute) },
+                    openSearch = { entry.go(SearchRoute) },
                 ),
             )
+        }
+        composable<CategoriesRoute> { entry ->
+            CategoriesScreen(
+                onBack = dropUnlessResumed { navController.popBackStack() },
+                onStartSession = { filterKey -> entry.go(SwipeRoute(filterKey)) },
+            )
+        }
+        composable<SearchRoute> { entry ->
+            SearchScreen(
+                onBack = dropUnlessResumed { navController.popBackStack() },
+                onStartSession = { filterKey -> entry.go(SwipeRoute(filterKey)) },
+            )
+        }
+        composable<RecentRoute> {
+            RecentlySortedScreen(onBack = dropUnlessResumed { navController.popBackStack() })
         }
         composable<ScreenshotsRoute> { entry ->
             ScreenshotsScreen(

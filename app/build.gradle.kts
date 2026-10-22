@@ -20,11 +20,17 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+    }
 
-        ndk {
-            // Phones (64- and 32-bit ARM) plus the x86_64 emulator. 32-bit x86 only exists on
-            // old emulators and would add ~16 MB of native face-detection code.
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+    // One APK per processor type, since ML Kit's native code is about 35 MB per type: most phones
+    // need the arm64-v8a one. The universal APK holds all three, for when you're not sure.
+    // 32-bit x86 only exists on old emulators and is left out.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
         }
     }
 
@@ -53,6 +59,10 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        // Keeps the universal APK to the three types above.
+        jniLibs {
+            excludes += "lib/x86/**"
         }
     }
 }

@@ -26,9 +26,11 @@ import androidx.compose.material.icons.automirrored.rounded.Chat
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Collections
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FaceRetouchingNatural
 import androidx.compose.material.icons.rounded.FilterNone
@@ -39,6 +41,7 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.SdStorage
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material.icons.rounded.Tune
@@ -116,10 +119,14 @@ class HomeActions(
     val openDates: () -> Unit,
     val openAlbums: () -> Unit,
     val openDuplicates: () -> Unit,
+    val openExactDuplicates: () -> Unit,
     val openStats: () -> Unit,
     val openCustom: () -> Unit,
     val openWhatsApp: () -> Unit,
     val openScreenshots: () -> Unit,
+    val openRecent: () -> Unit,
+    val openCategories: () -> Unit,
+    val openSearch: () -> Unit,
 )
 
 /**
@@ -347,10 +354,14 @@ private fun ScanLine(state: HomeUiState) {
             formatCount(analysis.analysed),
             formatCount(analysis.total),
         ) to (if (analysis.total == 0) 0f else analysis.analysed.toFloat() / analysis.total)
-        scan.modelState != FaceModelState.READY || scan.progress.isComplete -> return
-        scan.status == ScanStatus.WAITING && scan.onlyWhileCharging -> stringResource(R.string.face_scan_waiting_charger) to null
-        else -> stringResource(R.string.face_scan_progress, formatCount(scan.progress.indexed), formatCount(scan.progress.total)) to
-            (if (scan.progress.total == 0) 0f else scan.progress.indexed.toFloat() / scan.progress.total)
+        scan.modelState == FaceModelState.READY && !scan.progress.isComplete -> when {
+            scan.status == ScanStatus.WAITING && scan.onlyWhileCharging -> stringResource(R.string.face_scan_waiting_charger) to null
+            else -> stringResource(R.string.face_scan_progress, formatCount(scan.progress.indexed), formatCount(scan.progress.total)) to
+                (if (scan.progress.total == 0) 0f else scan.progress.indexed.toFloat() / scan.progress.total)
+        }
+        !state.smart.isComplete -> stringResource(R.string.smart_progress, formatCount(state.smart.analysed), formatCount(state.smart.total)) to
+            (if (state.smart.total == 0) 0f else state.smart.analysed.toFloat() / state.smart.total)
+        else -> return
     }
     Spacer(Modifier.height(14.dp))
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -378,6 +389,12 @@ private fun LazyListScope.browseSection(state: HomeUiState, actions: HomeActions
                 { m -> SmartTile(stringResource(R.string.tile_by_date), Icons.Rounded.CalendarMonth, palette.red, actions.openDates, m, formatCount(counts.years)) },
                 { m -> SmartTile(stringResource(R.string.tile_albums), Icons.Rounded.Collections, palette.blue, actions.openAlbums, m, formatCount(counts.albums)) },
                 { m ->
+                    SmartTile(
+                        stringResource(R.string.tile_duplicates), Icons.Rounded.ContentCopy, palette.purple,
+                        actions.openExactDuplicates, m, state.browse.exactToReview?.let { formatCount(it) },
+                    )
+                },
+                { m ->
                     SmartTile(stringResource(R.string.tile_similar), Icons.Rounded.FilterNone, palette.indigo, actions.openDuplicates, m, state.browse.similarToReview?.let { formatCount(it) })
                 },
                 { m ->
@@ -398,6 +415,13 @@ private fun LazyListScope.browseSection(state: HomeUiState, actions: HomeActions
                         { actions.startSession(SessionFilter.Largest.key) }, m, formatCount(counts.largeToReview),
                     )
                 },
+                { m ->
+                    SmartTile(
+                        stringResource(R.string.tile_categories), Icons.Rounded.Category, palette.yellow,
+                        actions.openCategories, m, formatCount(state.categoriesToReview),
+                    )
+                },
+                { m -> SmartTile(stringResource(R.string.tile_search), Icons.Rounded.Search, palette.gray, actions.openSearch, m) },
             ),
         )
     }
@@ -555,7 +579,7 @@ private fun RoundShortcut(
     }
 }
 
-/** Trash, vault and stats as three small tiles side by side. */
+/** Trash, vault, recently sorted and stats as small tiles, two by two. */
 private fun LazyListScope.librarySection(state: HomeUiState, actions: HomeActions) {
     item { SectionTitle(stringResource(R.string.home_section_library)) }
     item {
@@ -563,7 +587,7 @@ private fun LazyListScope.librarySection(state: HomeUiState, actions: HomeAction
         val summary = state.summary
         val palette = MaterialTheme.palette
         TileGrid(
-            columns = 3,
+            columns = 2,
             tiles = listOf<@Composable (Modifier) -> Unit>(
                 { m ->
                     SmartTile(
@@ -583,6 +607,16 @@ private fun LazyListScope.librarySection(state: HomeUiState, actions: HomeAction
                         onClick = actions.openVault,
                         modifier = m,
                         caption = stringResource(if (state.vaultSetUp) R.string.vault_tile_locked else R.string.vault_tile_set_up),
+                    )
+                },
+                { m ->
+                    SmartTile(
+                        title = stringResource(R.string.recent_tile),
+                        icon = Icons.Rounded.History,
+                        color = palette.blue,
+                        onClick = actions.openRecent,
+                        modifier = m,
+                        caption = stringResource(R.string.recent_tile_caption),
                     )
                 },
                 { m ->

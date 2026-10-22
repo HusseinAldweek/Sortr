@@ -2,7 +2,8 @@
 
 An Android app for cleaning up your photo and video gallery by swiping, with photos grouped by
 the people in them, similar and blurry photos found for you, albums you can merge, rename and
-split by year, and WhatsApp's hidden photos and videos included. Everything runs on the phone. The app has no internet permission, no analytics and no
+split by year, WhatsApp's hidden photos and videos included, exact duplicates, smart categories
+and text search, a daily goal and a home screen widget. Everything runs on the phone. The app has no internet permission, no analytics and no
 cloud services.
 
 | Swipe | Meaning |
@@ -21,6 +22,7 @@ cloud services.
 | 3 | Offline face grouping, People grid, person sessions | Done |
 | 4 | Videos, similar and blurry photos, sessions by year/month/album/app/size, albums (merge, rename, move), custom sessions, stats, new look | Done |
 | 5 | Apple-style look everywhere, faster face pictures, big-gallery tuning, swipe-down viewer, restore to original album, Arabic-ready layout | Done |
+| Extras 2 | Screenshots page and tidy-up, On this day, daily goal with streak and reminder, home screen widget, Arabic translation, exact duplicates (photos and videos), Recently sorted with Undo, save/restore sorting progress, share into the vault, smart categories, text search | Done |
 | Extras | WhatsApp's hidden media and a WhatsApp page, cleaner Home, hold and drag to select, Share everywhere, organize by year, moves that copy when Android refuses, View/Delete/Share/Move for faces and people, "Try again" for unsorted faces, photo checks on several cores, purple icon again | Done |
 
 ## Building
@@ -32,7 +34,7 @@ In PowerShell, from the project folder:
 
 ```powershell
 . .\scripts\env.ps1                     # sets JAVA_HOME, ANDROID_HOME, GRADLE_USER_HOME, PATH
-gradle :app:assembleDebug               # builds app\build\outputs\apk\debug\app-debug.apk
+gradle :app:assembleRelease             # builds app\build\outputs\apk\release\app-*-release.apk
 gradle :domain:test :app:testDebugUnitTest   # unit tests
 ```
 
@@ -60,6 +62,9 @@ anything. On top of that, the manifest removes its upload backend (`cct`), so it
 at once instead of storing them and scheduling upload jobs; the log shows "Transport backend
 'cct' is not registered". The same build task fails if an upload backend comes back.
 
+Image labelling and text recognition (for categories and search) use ML Kit's *bundled* models,
+which ship inside the app; nothing is downloaded at runtime.
+
 App data is also excluded from Android's cloud backup and device-to-device transfer.
 
 The permissions that remain are photo and video access, fingerprint, notifications and
@@ -76,12 +81,19 @@ after reboot.
 
    ```powershell
    . .\scripts\env.ps1
+   gradle :app:assembleRelease
    adb devices                          # your phone should be listed as "device"
-   adb install -r app\build\outputs\apk\debug\app-debug.apk
+   adb install -r app\build\outputs\apk\release\app-arm64-v8a-release.apk
    ```
 
-Without a cable: copy `app-debug.apk` to the phone, open it in the Files app, and allow
-"Install unknown apps" for the Files app when asked.
+The build makes one APK per processor type, because ML Kit's native code is large. Almost every
+phone from the last several years takes `arm64-v8a` (about 52 MB). If Android says the app isn't
+compatible, use `app-universal-release.apk`, which works everywhere but is about twice the size.
+Release builds are signed with the same local key as debug builds, so they install over each
+other and keep your data.
+
+Without a cable: copy the APK to the phone, open it in the Files app, and allow "Install unknown
+apps" for the Files app when asked.
 
 ## Private vault
 
@@ -110,6 +122,10 @@ Swiping up moves a photo into an encrypted vault inside the app.
   vault. If the original never left the gallery, it simply stops being private; no second copy
   is made. **Delete** removes it permanently, after a confirmation.
 - **Undo** works on a swipe up until the original has been removed from the gallery.
+- **Sharing in.** In any app's share sheet, **Sortr vault** encrypts the shared photos straight
+  into the vault (once the vault is set up). Only content addresses from other apps are
+  accepted, photos already in the vault are skipped, and the original stays in the app it came
+  from, since Sortr can't delete other apps' files.
 
 ### Backups
 
@@ -181,23 +197,91 @@ grouping turned off. Home and Settings explain why.
 Home starts with a card showing how much is left to sort, how much is done, and a **Start
 sorting** button. A short to-do list appears under it only when something needs you: allowing
 full photo or video access, removing vault originals from the gallery, or including WhatsApp's
-hidden media (this one can be dismissed). Below that:
+hidden media (this one can be dismissed). Then, when there's something to show, today's
+**daily goal** with your streak, and **On this day**: photos taken on today's date in earlier
+years, as their own session. Below that:
 
 - **Browse.** Tiles with a count each:
   - **By date:** years, each opening into months. Every year and month can be sorted on its own.
   - **Albums:** every folder with photos or videos.
+  - **Duplicates:** exact copies of the same photo or video.
   - **Similar:** groups of near-identical photos.
   - **Blurry:** photos that look out of focus.
   - **Videos.**
   - **Large files:** 5 MB and over, largest first.
+  - **Categories:** documents, receipts, memes, food and pets.
+  - **Search:** find photos by the words in them.
 - **Custom session.** Mix a type (photos or videos), a year and month, any albums and a
   minimum size. The button shows how many items match before you start.
 - **People.** The people with the most photos, and a shortcut to Unsorted faces.
 - **From apps.** Camera, Screenshots, Screen recordings, WhatsApp, Snapchat, Telegram,
   Instagram, Messenger/Facebook, TikTok and Downloads, recognised by their folder names. Only
-  the ones you have show up. Tapping one starts a session; WhatsApp opens its own page.
-- **Library.** Trash, the private vault, and **Stats**: how much you've sorted, space freed,
-  every kind of decision, and photos per year.
+  the ones you have show up. Tapping one starts a session; WhatsApp and Screenshots open their
+  own pages.
+- **Library.** Trash, the private vault, **Recent** (decisions you can undo) and **Stats**: how
+  much you've sorted, space freed, every kind of decision, and photos per year.
+
+### Exact duplicates
+
+A photo or video saved twice (from WhatsApp, say) is byte-for-byte the same file. To find those
+without reading the whole library, Sortr first looks for files with exactly the same size, and
+only fingerprints those: SHA-256 of the whole file up to 32 MB, or of the size and three 1 MB
+samples (start, middle, end) for bigger files. Files with the same size and fingerprint form a
+group. The copy to keep is the one you already kept, else one the gallery can see, else one in
+the camera folder, else the oldest; each copy is labelled with its album, and you can tap another
+to keep it instead. **Keep one, trash N**, **Clean up all groups** and **Review one by one**
+work like the Similar screen, with Undo.
+
+### Screenshots
+
+Screenshots are found by folder ("Screenshots" anywhere in the path) or by file name
+("Screenshot…", "Screen shot…"), so ones saved in Downloads or elsewhere count too. The
+Screenshots page has sessions for all of them and for those **older than 30 days**, and **Put
+them all in "Screenshots"**: every screenshot outside the main screenshot album (the biggest one
+Android lets apps move into, or `Pictures/Screenshots`) is moved there, after one confirmation.
+
+### Categories and search
+
+After the other checks, a background step reads each photo once with ML Kit's on-device image
+labelling and text recognition (newest first, on a copy at most 1600 px wide):
+
+- **Food** and **Pets** come from confident image labels.
+- **Receipts** have receipt words (total, tax, cash…) and several prices; **Documents** have a
+  lot of text; **Memes** are pictures with a few lines of text that came from a chat or social
+  app. Screenshots are never put in these three.
+- The text is kept in a full-text index, so **Search** finds photos by any word in them, as you
+  type ("addr" finds "address"). Search results can be sorted as a session.
+- Text read from a photo is deleted when the photo goes into the vault, and with the photo.
+
+### Recently sorted
+
+**Recent** in the Library lists every keep, delete, private and skip decision from the last 30
+days, grouped by day, with a badge for what was decided and a filter. Select photos (tap, or
+hold and drag) and tap **Undo** to put them back as they were, in any order and long after the
+session. A photo only shows its latest decision, and only while that decision still holds.
+Vault photos can be taken back only while their original is still in the gallery.
+
+### Daily goal and reminder
+
+**Settings → Daily goal** sets a goal of 25, 50, 100 or 200 a day. Keep, Delete and Private
+count; skips don't. Home shows today's progress and how many days in a row you reached the goal
+(the streak survives until the end of the day). An optional **Reminder** at a time you choose
+sends one gentle notification, only if the goal isn't reached yet and there's something left to
+sort; tapping it opens a session.
+
+### Home screen widget
+
+The **Left to sort** widget (2×2, resizable) shows how much is left, today's goal, and a
+**Start** button that opens a session straight away. It updates while Sortr runs, and Android
+refreshes it every 30 minutes otherwise.
+
+### Saving your sorting progress
+
+**Settings → Sorting progress → Save** writes a small JSON file with which photos you kept,
+skipped or put in the Trash, matched by album, file name and size (gallery ids don't survive a
+reinstall). **Restore** applies it to photos that are still waiting to be sorted; decisions you
+already made on this phone win. The vault isn't part of this file; it has its own encrypted
+backup.
 
 ### Similar and blurry photos
 
@@ -301,13 +385,14 @@ down to close it. The app icon is a white check on purple. The building blocks l
 
 ## Arabic and right-to-left
 
-All text is in `app/src/main/res/values/strings.xml`. To add Arabic, copy it to
-`app/src/main/res/values-ar/strings.xml` and translate the text between the tags (keep the
-`%1$s`-style placeholders, and give each `<plurals>` the Arabic quantities `zero`, `one`, `two`,
-`few`, `many` and `other`). Layouts mirror automatically. This was checked with the app set to
-Arabic: lists, arrows, tiles and the vault screens flip, numbers and dates use Arabic-Indic
-digits, and the swipe buttons stay in their physical left/right positions on purpose. (Large
-text uses no custom letter spacing, because Android doesn't apply it to Arabic script.)
+Sortr is translated into Arabic (`app/src/main/res/values-ar/strings.xml`), with all six Arabic
+plural forms. It follows the phone's language; on Android 13+ you can also pick Arabic for
+Sortr alone in **Settings → Apps → Sortr → Language**. Layouts mirror: lists, arrows, tiles and
+the vault screens flip, numbers and dates use Arabic-Indic digits, and the swipe buttons stay in
+their physical left/right positions on purpose. Hashes and other values that must stay the same
+in every language are always written with ASCII digits. (Large text uses no custom letter
+spacing, because Android doesn't apply it to Arabic script.) New English text goes in
+`values/strings.xml`, with its Arabic next to it in `values-ar`.
 
 ## Performance
 
@@ -321,6 +406,7 @@ to 51,000 photos and 60,000 faces:
 | Home, album, date and session queries at 51,000 photos | 1–55 ms each |
 | People list at 60,000 faces / 400 people | 0.12 s |
 | Similar groups at 2,800 photos | 287 groups, screen opens at once |
+| Reading photos for categories and search | about 7 photos per second |
 
 While photos are being checked, Home recounts similar photos at most every 3 seconds, and the
 grouping reads only ids and hashes, loading full details just for photos that are in a group.
@@ -353,7 +439,10 @@ losing data.
 - **Sessions.** A session is a snapshot: unreviewed items first, then previously skipped ones,
   newest first (blurriest first for Blurry, largest first for Large files). Each decision is
   saved immediately, so leaving halfway loses nothing.
-- **Undo.** The last 50 decisions of the current session can be undone, one at a time.
+- **Undo.** The last 50 decisions of the current session can be undone, one at a time, and
+  any decision from the last 30 days from **Recent**.
+- **Background checks.** One job, in this order: similar/blurry check, exact-copy fingerprints,
+  faces, then categories and text. It saves after every batch and carries on where it stopped.
 - **Deleting.** Empty Trash asks Android for one confirmation covering every photo. If you
   tap Deny, nothing is deleted and the photos stay in the Trash. Sortr can't delete a gallery
   photo without that system confirmation. Hidden WhatsApp files are the one exception, since
@@ -367,9 +456,8 @@ losing data.
 - Similar photos are found by overall structure, so the same drawing in different colours, or
   photos of the same scene taken seconds apart, also count as similar. That's usually what you
   want for bursts, but check the group before cleaning up.
-- Undo history covers the current session only. Your decisions are kept when you leave a
-  session, but they can no longer be undone from the swipe screen. Kept and skipped photos can
-  be reset in Settings, and deleted ones restored from the Trash.
+- The swipe screen's Undo covers the current session; older decisions are undone from Recent,
+  which keeps 30 days.
 - The fingerprint and PIN guard the vault screens, but they aren't part of the encryption key.
   This is so photos can be encrypted while you swipe, without a prompt each time. The vault
   protects against someone who picks up your unlocked phone. It doesn't protect against an
@@ -392,8 +480,17 @@ losing data.
   from the cache.
 - Faces smaller than 80 px in the 1280 px scan copy (about 6% of the photo's width) are ignored,
   so people in the far background of group photos aren't grouped.
-- ML Kit's native code makes the app larger: release builds are about 52 MB, debug builds
-  bigger still.
+- ML Kit's native code makes the app large: about 52 MB for the arm64 release APK, 111 MB for the
+  universal one, and debug builds bigger still.
+- Categories are best guesses from a general image model and the text in a photo. Memes in
+  particular are guessed from short text in pictures from chat apps.
+- Text search finds text in Latin letters (English, French, Spanish…); ML Kit's bundled reader
+  doesn't read Arabic script.
+- Text read from photos is stored unencrypted in the app's private database, like the rest of
+  the index. It's removed when a photo goes into the vault.
+- The progress file is plain JSON with file names and decisions. Keep it somewhere private.
+- When the app isn't running, the widget can be up to 30 minutes behind, and Android may send the
+  reminder a little late to save battery.
 - The progress bar counts photos in the Trash and the vault as sorted, until they're deleted or
   their originals removed; after that they're no longer part of the count.
 - Android doesn't delete folders, so merging or renaming albums leaves empty folders behind

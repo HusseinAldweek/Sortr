@@ -12,8 +12,9 @@ import androidx.room.TypeConverters
         PersonEntity::class,
         VaultItemEntity::class,
         ActionEntity::class,
+        PhotoTextEntity::class,
     ],
-    version = 6,
+    version = 8,
     exportSchema = true,
     autoMigrations = [
         // v2: vault content hash and dimensions.
@@ -26,6 +27,10 @@ import androidx.room.TypeConverters
         AutoMigration(from = 4, to = 5),
         // v6: photos and videos read from folders the gallery hides (WhatsApp).
         AutoMigration(from = 5, to = 6),
+        // v7: content fingerprints for exact duplicates.
+        AutoMigration(from = 6, to = 7),
+        // v8: smart categories and the photo_text search table.
+        AutoMigration(from = 7, to = 8),
     ],
 )
 @TypeConverters(Converters::class)

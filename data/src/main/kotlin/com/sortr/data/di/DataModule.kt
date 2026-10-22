@@ -14,6 +14,7 @@ import com.sortr.data.repository.GoalRepositoryImpl
 import com.sortr.data.repository.LibraryRepositoryImpl
 import com.sortr.data.repository.PeopleRepositoryImpl
 import com.sortr.data.repository.PhotoRepositoryImpl
+import com.sortr.data.repository.SortingProgressImpl
 import com.sortr.data.vault.VaultAuthImpl
 import com.sortr.data.vault.VaultRepositoryImpl
 import com.sortr.domain.repository.AppSettings
@@ -22,6 +23,7 @@ import com.sortr.domain.repository.GoalRepository
 import com.sortr.domain.repository.LibraryRepository
 import com.sortr.domain.repository.PeopleRepository
 import com.sortr.domain.repository.PhotoRepository
+import com.sortr.domain.repository.SortingProgress
 import com.sortr.domain.repository.VaultAuth
 import com.sortr.domain.repository.VaultRepository
 import dagger.Binds
@@ -98,4 +100,7 @@ abstract class DataBindingsModule {
 
     @Binds
     abstract fun goalRepository(impl: GoalRepositoryImpl): GoalRepository
+
+    @Binds
+    abstract fun sortingProgress(impl: SortingProgressImpl): SortingProgress
 }

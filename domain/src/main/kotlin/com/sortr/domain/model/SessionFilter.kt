@@ -1,5 +1,6 @@
 package com.sortr.domain.model
 
+import com.sortr.domain.analysis.SmartCategory
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -52,6 +53,11 @@ sealed interface SessionFilter {
         override val key = "duplicates"
     }
 
+    /** In each group of byte-identical photos and videos, every copy except the one to keep. */
+    data object ExactDuplicates : SessionFilter {
+        override val key = "exact-duplicates"
+    }
+
     /** Files of at least [LARGE_FILE_BYTES], largest first. */
     data object Largest : SessionFilter {
         override val key = "largest"
@@ -68,6 +74,16 @@ sealed interface SessionFilter {
     /** Photos and videos taken on today's date in earlier years. */
     data object OnThisDay : SessionFilter {
         override val key = "on-this-day"
+    }
+
+    /** Photos Sortr recognised as [category], e.g. receipts or pets. */
+    data class Category(val category: SmartCategory) : SessionFilter {
+        override val key = "category:${category.name}"
+    }
+
+    /** Photos with these words in them. */
+    data class TextSearch(val query: String) : SessionFilter {
+        override val key = "search:${encode(query)}"
     }
 
     /** A mix chosen by the user. Empty [albums] means any album. */
@@ -103,9 +119,12 @@ sealed interface SessionFilter {
                 "videos" -> Videos
                 "blurry" -> Blurry
                 "duplicates" -> Duplicates
+                "exact-duplicates" -> ExactDuplicates
                 "largest" -> Largest
                 "on-this-day" -> OnThisDay
                 "screenshots" -> Screenshots(value.toIntOrNull()?.takeIf { it > 0 })
+                "category" -> Category(SmartCategory.valueOf(value))
+                "search" -> TextSearch(decode(value))
                 "person" -> value.toLongOrNull()?.let(::Person)
                 "year" -> value.toIntOrNull()?.let(::Year)
                 "month" -> {
